@@ -1,8 +1,7 @@
 import { githubService } from '../services/githubService.js';
 import jwt from 'jsonwebtoken';
 
-// 임시 메모리 사용자 저장 (실제 서비스에서는 DB로 대체)
-const users = [];
+const users = []; // 실제 서비스에서는 DB 사용
 
 export const login = (req, res) => {
   const clientId = process.env.GITHUB_CLIENT_ID;
@@ -25,7 +24,7 @@ export const callback = async (req, res) => {
       email = primaryEmail ? primaryEmail.email : (emails[0]?.email || '');
     }
 
-    // 사용자 정보 저장 (accessToken도 저장)
+    // 사용자 정보 저장
     let user = users.find(u => u.githubId === userInfo.id);
     if (!user) {
       user = {
@@ -34,13 +33,13 @@ export const callback = async (req, res) => {
         username: userInfo.login,
         avatar_url: userInfo.avatar_url,
         email,
-        accessToken, // accessToken 저장
+        accessToken,
       };
       users.push(user);
     } else {
       user.email = email;
       user.avatar_url = userInfo.avatar_url;
-      user.accessToken = accessToken; // accessToken 갱신
+      user.accessToken = accessToken;
     }
 
     // JWT 발급 (avatar_url 포함)
@@ -57,8 +56,9 @@ export const callback = async (req, res) => {
     );
 
     // 프론트엔드로 리다이렉트 (avatar_url도 전달)
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     res.redirect(
-      `${process.env.FRONTEND_URL}/oauth/callback?token=${token}&username=${encodeURIComponent(user.username)}&email=${encodeURIComponent(user.email)}&avatar_url=${encodeURIComponent(user.avatar_url)}`
+      `${frontendUrl}/oauth/callback?token=${token}&username=${encodeURIComponent(user.username)}&email=${encodeURIComponent(user.email)}&avatar_url=${encodeURIComponent(user.avatar_url)}`
     );
   } catch (err) {
     console.error('OAuth Callback Error:', err?.response?.data || err.message || err);
@@ -68,7 +68,6 @@ export const callback = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
-    // 프론트엔드에서 JWT를 보내주면, 디코딩해서 user를 찾음
     const token = req.headers['authorization']?.split(' ')[1];
     if (!token) {
       return res.status(403).json({ message: 'A token is required for logout' });
@@ -78,7 +77,7 @@ export const logout = async (req, res) => {
 
     if (user && user.accessToken) {
       await githubService.revokeAccessToken(user.accessToken);
-      user.accessToken = null; // 메모리에서 accessToken 삭제
+      user.accessToken = null;
     }
 
     res.json({ message: 'Logged out and GitHub app authorization revoked' });

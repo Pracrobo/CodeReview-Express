@@ -24,11 +24,11 @@ export const githubService = {
         'Authorization': `token ${accessToken}`,
       },
     });
-    return response.data; 
+    return response.data;
   },
 
   async getUserEmails(accessToken) {
-    const res = await axios.get('https://api.github.com/user/emails', {
+    const res = await axios.get(`${GITHUB_API_URL}/user/emails`, {
       headers: {
         Authorization: `Bearer ${accessToken}`
       },
@@ -37,13 +37,12 @@ export const githubService = {
   },
 
   async revokeAccessToken(accessToken) {
-    // GitHub OAuth 앱의 client_id, client_secret 필요
     const basicAuth = Buffer.from(
       `${process.env.GITHUB_CLIENT_ID}:${process.env.GITHUB_CLIENT_SECRET}`
     ).toString('base64');
 
     await axios.delete(
-      `https://api.github.com/applications/${process.env.GITHUB_CLIENT_ID}/grant`,
+      `${GITHUB_API_URL}/applications/${process.env.GITHUB_CLIENT_ID}/grant`,
       {
         headers: {
           Authorization: `Basic ${basicAuth}`,
@@ -54,6 +53,5 @@ export const githubService = {
         },
       }
     );
-    // 성공하면 204 No Content 반환
   },
 };
