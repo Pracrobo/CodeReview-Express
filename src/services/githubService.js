@@ -35,4 +35,25 @@ export const githubService = {
     });
     return res.data;
   },
+
+  async revokeAccessToken(accessToken) {
+    // GitHub OAuth 앱의 client_id, client_secret 필요
+    const basicAuth = Buffer.from(
+      `${process.env.GITHUB_CLIENT_ID}:${process.env.GITHUB_CLIENT_SECRET}`
+    ).toString('base64');
+
+    await axios.delete(
+      `https://api.github.com/applications/${process.env.GITHUB_CLIENT_ID}/grant`,
+      {
+        headers: {
+          Authorization: `Basic ${basicAuth}`,
+          Accept: 'application/vnd.github+json',
+        },
+        data: {
+          access_token: accessToken,
+        },
+      }
+    );
+    // 성공하면 204 No Content 반환
+  },
 };

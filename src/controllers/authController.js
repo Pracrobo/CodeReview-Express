@@ -25,20 +25,22 @@ export const callback = async (req, res) => {
       email = primaryEmail ? primaryEmail.email : (emails[0]?.email || '');
     }
 
-    // 사용자 정보 저장 (DB로 대체 가능)
+    // 사용자 정보 저장 (accessToken도 저장)
     let user = users.find(u => u.githubId === userInfo.id);
     if (!user) {
       user = {
         id: users.length + 1,
         githubId: userInfo.id,
         username: userInfo.login,
-        avatar_url: userInfo.avatar_url, // avatar_url 저장
+        avatar_url: userInfo.avatar_url,
         email,
+        accessToken, // accessToken 저장
       };
       users.push(user);
     } else {
       user.email = email;
       user.avatar_url = userInfo.avatar_url;
+      user.accessToken = accessToken; // accessToken 갱신
     }
 
     // JWT 발급 (avatar_url 포함)
@@ -64,6 +66,24 @@ export const callback = async (req, res) => {
   }
 };
 
-export const logout = (req, res) => {
-  res.json({ message: 'Logged out successfully' });
+export const logout = async (req, res) => {
+  try {
+    // 프론트엔드에서 JWT를 보내주면, 디코딩해서 user를 찾음
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) {
+      return res.status(403).json({ message: 'A token is required for logout' });
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = users.find(u => u.id === decoded.id);
+
+    if (user && user.accessToken) {
+      await githubService.revokeAccessToken(user.accessToken);
+      user.accessToken = null; // 메모리에서 accessToken 삭제
+    }
+
+    res.json({ message: 'Logged out and GitHub app authorization revoked' });
+  } catch (err) {
+    console.error('Logout Error:', err?.response?.data || err.message || err);
+    res.status(500).json({ message: 'Internal server error', error: err?.response?.data || err.message || err });
+  }
 };
