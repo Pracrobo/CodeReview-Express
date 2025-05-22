@@ -1,21 +1,24 @@
-const mysql = require("mysql2/promise");
-const config = require("./db_env");
+import mysql from "mysql2/promise";
+import config from "./db_env.js";
 
-async function dbConnection() {
+function dbConnection() {
   try {
-    const connection = await mysql.createConnection({
+    const connection_pool = mysql.createPool({
       host: config.MYSQL_HOST,
       port: config.MYSQL_PORT,
       user: config.MYSQL_USER,
       password: config.MYSQL_PASSWORD,
       database: config.MYSQL_DB,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0
     });
     console.log("DB connected successfully.");
-    return connection;
+    return connection_pool;
   } catch (err) {
     console.error("DB connection error:", err);
     throw err;
   }
 }
 
-module.exports = dbConnection;
+export default dbConnection;
