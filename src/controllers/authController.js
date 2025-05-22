@@ -16,6 +16,7 @@ export const callback = async (req, res) => {
   try {
     const accessToken = await githubService.getAccessToken(code);
     const userInfo = await githubService.getUserInfo(accessToken);
+
     // 이메일 처리
     let email = userInfo.email;
     if (!email) {
@@ -31,7 +32,7 @@ export const callback = async (req, res) => {
         id: users.length + 1,
         githubId: userInfo.id,
         username: userInfo.login,
-        avatarUrl: userInfo.avatar_url, // avatar_url 저장
+        avatar_url: userInfo.avatar_url, // avatar_url 저장
         email,
       };
       users.push(user);
@@ -40,7 +41,7 @@ export const callback = async (req, res) => {
       user.avatar_url = userInfo.avatar_url;
     }
 
-    // JWT 발급 (avatarUrl 포함)
+    // JWT 발급 (avatar_url 포함)
     const token = jwt.sign(
       {
         id: user.id,
@@ -54,9 +55,8 @@ export const callback = async (req, res) => {
     );
 
     // 프론트엔드로 리다이렉트 (avatar_url도 전달)
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     res.redirect(
-      `${frontendUrl}/oauth/callback?token=${token}&username=${encodeURIComponent(user.username)}&email=${encodeURIComponent(user.email)}&avatar_url=${encodeURIComponent(user.avatar_url)}`
+      `${process.env.FRONTEND_URL}/oauth/callback?token=${token}&username=${encodeURIComponent(user.username)}&email=${encodeURIComponent(user.email)}&avatar_url=${encodeURIComponent(user.avatar_url)}`
     );
   } catch (err) {
     console.error('OAuth Callback Error:', err?.response?.data || err.message || err);
