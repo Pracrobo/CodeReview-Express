@@ -2,9 +2,9 @@ import express from 'express';
 import session from 'express-session';
 import passport from 'passport';
 import authRoutes from './routes/auth.js';
+import './config/passport.js';
 import dotenv from 'dotenv';
 dotenv.config();
-import './config/passport.js';
 
 const app = express();
 const PORT = 5000;

@@ -3,10 +3,6 @@ import { Strategy as GitHubStrategy } from 'passport-github2';
 import dotenv from 'dotenv';
 dotenv.config();
 
-console.log('GITHUB_CLIENT_ID:', process.env.GITHUB_CLIENT_ID);
-console.log('GITHUB_CLIENT_SECRET:', process.env.GITHUB_CLIENT_SECRET);
-console.log('GITHUB_REDIRECT_URI:', process.env.GITHUB_REDIRECT_URI);
-
 // User 모델은 실제 DB 사용 시 구현 필요
 
 passport.use(new GitHubStrategy({

@@ -5,6 +5,6 @@ const router = express.Router();
 
 router.get('/github/login', login);
 router.get('/github/callback', callback);
-router.get('/logout', logout);
+router.get('/github/logout', logout);
 
 export default router;
