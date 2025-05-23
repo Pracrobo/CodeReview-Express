@@ -27,28 +27,28 @@ async function getRepositories(userId) {
   return response;
 }
 
-// 1. 사용자 트래킹 목록에 저장소 id 있는지 확인
-async function getUserTrackingStatusForRepo(userId, githubRepositoryId) {
-  const response = await repoModel.selectTrack(userId, githubRepositoryId);
-  if(response) {
-    console.log('트래킹 목록에 있음');
-    return true;
-  }else {
-    console.log('트래킹 목록에 없음');
-    return false;
-  }
-}
-//'내 저장소'에 특정 저장소 추가(트래킹 목록에 추가)
-async function addRepositoryToUserTrackedList (userId, githubRepositoryId) {
-  const response = await repoModel.insertTrack(userId, githubRepositoryId);
-  if(response) {
-    console.log(`${response} tracking db에 insert성공`);
-    return true;
-  }else{
-    console.log(`tracking db에 insert실패`);
-    return false;
-  }
-} 
+// // 1. 사용자 트래킹 목록에 저장소 id 있는지 확인
+// async function getUserTrackingStatusForRepo(userId, githubRepositoryId) {
+//   const response = await repoModel.selectTrack(userId, githubRepositoryId);
+//   if(response) {
+//     console.log('트래킹 목록에 있음');
+//     return true;
+//   }else {
+//     console.log('트래킹 목록에 없음');
+//     return false;
+//   }
+// }
+// //'내 저장소'에 특정 저장소 추가(트래킹 목록에 추가)
+// async function addRepositoryToUserTrackedList (userId, githubRepositoryId) {
+//   const response = await repoModel.insertTrack(userId, githubRepositoryId);
+//   if(response) {
+//     console.log(`${response} tracking db에 insert성공`);
+//     return true;
+//   }else{
+//     console.log(`tracking db에 insert실패`);
+//     return false;
+//   }
+// } 
 //'내 저장소'에서 특정 저장소 삭제
 function deleteRepoInMyRepo () {}
 //'특정 저장소 개요 정보 조회
