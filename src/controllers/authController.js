@@ -1,7 +1,7 @@
 import { githubService } from '../services/githubService.js';
 import jwt from 'jsonwebtoken';
 
-const users = []; // 실제 서비스에서는 DB 사용
+const users = []; // TODO: 실제 서비스에서는 DB 사용
 
 export const login = (req, res) => {
   const clientId = process.env.GITHUB_CLIENT_ID;
