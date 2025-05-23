@@ -19,7 +19,7 @@ async function getRepositoryList(req, res) {
     return res.status(401).json({'error': '권한이 없습니다.'})
   }else{
     if(!page && !per_page) {
-      return res.status(500).json({'error' : '잘못된 서버 요청'})
+      return res.status(400).json({'error' : '잘못된 요청'})
     } else{
       const repos = await getRepositories()
       return res.status(200).json({'repositories' : repos});
