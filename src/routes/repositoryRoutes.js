@@ -1,17 +1,20 @@
 import express from "express";
-import { searchRepository, getRepositoryList } from "../controllers/repositoryControllers.js";
+import { searchRepository, getRepositoryList, addRepositoriesInMyRepo} from "../controllers/repositoryControllers.js";
+import { verifyJWT } from "../middlewares/authMiddleware.js"
+
 const router = express.Router();
 // const {
 //   searchRepo// getRepoList, addRepoInMyRepo, deleteRepoInMyRepo, getOverviewRepo, getIsuueList, getCodeConvensation 
 // } = require("../controllers/repositoryControllers");
 
 // 내 저장소 목록 조회
+// router.get("/tracked", verifyJWT, getRepositoryList);
 router.get("/tracked", getRepositoryList);
 // GitHub 저장소 검색 (공개 및 사용자 권한 저장소)
 router.get("/search", searchRepository);
 
 //'내 저장소'에 특정 저장소 추가
-// router.post("/tracked/:github_repo_id", addRepositoriesInMyRepo);
+router.post("/tracked/:github_repo_id", addRepositoriesInMyRepo);
  
 // //'내 저장소'에서 특정 저장소 삭제
 // app.delete("/repositories/tracked/:github_repo_id", deleteRepoInMyRepo);
