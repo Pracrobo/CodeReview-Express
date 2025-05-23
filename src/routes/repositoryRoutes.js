@@ -1,5 +1,5 @@
 import express from "express";
-import { searchRepository, getRepositoryList, addRepositoriesInMyRepo } from "../controllers/repositoryControllers.js";
+import { searchRepository, getRepositoryList } from "../controllers/repositoryControllers.js";
 const router = express.Router();
 // const {
 //   searchRepo// getRepoList, addRepoInMyRepo, deleteRepoInMyRepo, getOverviewRepo, getIsuueList, getCodeConvensation 
@@ -11,7 +11,7 @@ router.get("/tracked", getRepositoryList);
 router.get("/search", searchRepository);
 
 //'내 저장소'에 특정 저장소 추가
-router.post("/tracked/:github_repo_id", addRepositoriesInMyRepo);
+// router.post("/tracked/:github_repo_id", addRepositoriesInMyRepo);
  
 // //'내 저장소'에서 특정 저장소 삭제
 // app.delete("/repositories/tracked/:github_repo_id", deleteRepoInMyRepo);
