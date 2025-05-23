@@ -1,10 +1,10 @@
 // repositoryModel.js
 import dbConnection from "../config/db_index.js";
 
+const pool = await dbConnection();
 // 내가 저장한 목록 중 특정 repository 찾기
 async function selectRepository(word) {
-  const conn = await dbConnection();
-  const [results] = await conn.query(
+  const [results] = await pool.query(
     `SELECT * FROM Repositories WHERE MATCH(full_name) AGAINST(? IN BOOLEAN MODE)`,
     [word]
   );
@@ -23,7 +23,7 @@ async function selectMyRepositories(userId = 1) {
 
   const repoIds = rows.map(row => row.repo_id); 
 
-  const [repoList] = await conn.query(
+  const [repoList] = await pool.query(
     `SELECT * FROM Repositories WHERE repo_id IN (?)`,
     [repoIds]
   );
