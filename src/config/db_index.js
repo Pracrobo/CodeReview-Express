@@ -1,7 +1,7 @@
 import mysql from "mysql2/promise";
 import config from "./db_env.js";
 
-function dbConnection() {
+function getConnectionPool() {
   try {
     const connection_pool = mysql.createPool({
       host: config.MYSQL_HOST,
@@ -21,4 +21,4 @@ function dbConnection() {
   }
 }
 
-export default dbConnection;
+export default getConnectionPool;
