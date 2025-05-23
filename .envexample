@@ -1,6 +1,6 @@
 # MySQL 기본 접속 정보
-MYSQL_HOST=
-MYSQL_PORT=
-MYSQL_DB=
-MYSQL_USER=
-MYSQL_PASSWORD=
+MYSQL_HOST=aws_server
+MYSQL_PORT=db_port
+MYSQL_DB=our_db_schema
+MYSQL_USER=access_user_공유예정
+MYSQL_PASSWORD=our_access_password_공유예정
