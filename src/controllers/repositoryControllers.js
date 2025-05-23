@@ -1,8 +1,4 @@
 import { findRepository, getRepositories } from "../services/repositorySevices.js";
-/// 요청 응답만 담당
-// GitHub 저장소 검색 (공개 및 사용자 권한 저장소)
-// - 1. 사용자가 검색하자마자 GITHUB API로 가져오기 -> 화면에 보여주기
-// - 2. 비동기로 API로 가져온 데이터 DB 저장하기
 
 async function searchRepository(req, res) {
   //사용자 계정 가져오기(JWT)
