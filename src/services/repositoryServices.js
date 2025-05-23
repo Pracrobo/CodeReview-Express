@@ -56,7 +56,7 @@ function getOverviewRepo() {}
 //특정 저장소 이슈 목록 및 AI 분석 결과 조회
 function getIsuueList () {}
 //특정 저장소 코드 컨벤션 문서 조회
-function getCodeConvensation() {} 
+function getCodeConvention() {} 
 
 
 export {findRepository, getRepositories, getUserTrackingStatusForRepo, addRepository, addRepositoryToUserTrackedList};

@@ -31,7 +31,7 @@ async function getRepositoryList(req, res) {
     return res.status(401).json({'message': '권한이 없습니다.'})
   }else{
     if(!page && !per_page) {
-      return res.status(500).json({'error' : '잘못된 서버 요청'})
+      return res.status(400).json({'error' : '잘못된 요청'})
     } else{
       const repos = await getRepositories(userId)
       return res.status(200).json({'repositories' : repos});
@@ -88,8 +88,8 @@ function deleteRepoInMyRepo (req, res) {}
 //'특정 저장소 개요 정보 조회
 function getOverviewRepo(req, res) {}
 //특정 저장소 이슈 목록 및 AI 분석 결과 조회
-function getIsuueList (req, res) {}
+function getIssueList (req, res) {}
 //특정 저장소 코드 컨벤션 문서 조회
-function getCodeConvensation(req, res) {} 
+function getCodeConvention(req, res) {} 
 
 export { searchRepository, getRepositoryList, addRepositoriesInMyRepo }//getRepoList, addRepoInMyRepo, deleteRepoInMyRepo, getOverviewRepo, getIsuueList, getCodeConvensation  };
