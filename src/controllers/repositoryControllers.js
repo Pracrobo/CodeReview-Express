@@ -33,7 +33,7 @@ async function getRepositoryList(req, res) {
 
 
 //'내 저장소'에 특정 저장소 추가
-function addRepoInMyRepo (req, res) {
+function addRepositoriesInMyRepo (req, res) {
 }
  
 //'내 저장소'에서 특정 저장소 삭제
