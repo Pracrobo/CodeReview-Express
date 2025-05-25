@@ -23,3 +23,11 @@ export async function createUser({ githubId, username, email, avatar_url }) {
     avatar_url
   };
 }
+
+export async function deleteUserByGithubId(githubId) {
+  const pool = getConnectionPool();
+  await pool.query(
+    'DELETE FROM users WHERE github_user_id = ?',
+    [githubId]
+  );
+}

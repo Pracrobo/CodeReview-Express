@@ -1,17 +1,7 @@
-import jwt from 'jsonwebtoken';
+import { expressjwt } from 'express-jwt';
 
-export const verifyJWT = (req, res, next) => {
-  const token = req.headers['authorization']?.split(' ')[1];
-
-  if (!token) {
-    return res.status(403).json({ message: 'A token is required for authentication' });
-  }
-
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) {
-      return res.status(401).json({ message: 'Invalid Token' });
-    }
-    req.user = decoded;
-    next();
-  });
-};
+export const verifyJWT = expressjwt({
+  secret: process.env.JWT_SECRET,
+  algorithms: ['HS256'],
+  requestProperty: 'user', // req.user에 디코딩된 정보 저장
+});

@@ -1,6 +1,6 @@
 import { githubService } from '../services/githubService.js';
 import jwt from 'jsonwebtoken';
-import { findUserByGithubId, createUser } from '../database/userRepository.js';
+import { findUserByGithubId, createUser, deleteUserByGithubId } from '../database/userRepository.js';
 
 export const login = (req, res) => {
   const clientId = process.env.GITHUB_CLIENT_ID;
@@ -35,7 +35,7 @@ export const callback = async (req, res) => {
       });
     }
 
-    // JWT 발급 (avatar_url 포함)
+    // JWT 발급
     const token = jwt.sign(
       {
         id: user ? user.user_id : undefined,
@@ -51,7 +51,7 @@ export const callback = async (req, res) => {
     // 프론트엔드로 리다이렉트
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     res.redirect(
-      `${frontendUrl}/oauth/callback?token=${token}&username=${encodeURIComponent(user ? user.username : userInfo.login)}&email=${encodeURIComponent(user ? user.email : email)}&avatar_url=${encodeURIComponent(user ? user.avatar_url : userInfo.avatar_url)}`
+      `${frontendUrl}/oauth/callback?token=${token}&username=${encodeURIComponent(user.username)}&email=${encodeURIComponent(user.email)}&avatar_url=${encodeURIComponent(user.avatar_url)}&access_token=${accessToken}`
     );
   } catch (err) {
     console.error('OAuth Callback Error:', err?.response?.data || err.message || err);
@@ -61,23 +61,32 @@ export const callback = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
-    const token = req.headers['authorization']?.split(' ')[1];
-    if (!token) {
-      return res.status(403).json({ message: 'A token is required for logout' });
+    const { access_token } = req.body;
+    if (!access_token) {
+      return res.status(400).json({ message: 'access_token is required' });
     }
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // DB에서 사용자 조회
-    const user = await findUserByGithubId(decoded.githubId);
-
-    if (user && user.accessToken) {
-      await githubService.revokeAccessToken(user.accessToken);
-      // accessToken을 DB에 저장하지 않았다면 이 부분은 생략해도 됩니다.
-    }
-
+    await githubService.revokeAccessToken(access_token);
     res.json({ message: 'Logged out and GitHub app authorization revoked' });
   } catch (err) {
     console.error('Logout Error:', err?.response?.data || err.message || err);
+    res.status(500).json({ message: 'Internal server error', error: err?.response?.data || err.message || err });
+  }
+};
+
+export const deleteAccount = async (req, res) => {
+  try {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) {
+      return res.status(403).json({ message: 'A token is required for account deletion' });
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // DB에서 사용자 삭제
+    await deleteUserByGithubId(decoded.githubId);
+
+    res.json({ message: 'User account deleted' });
+  } catch (err) {
+    console.error('Delete Account Error:', err?.response?.data || err.message || err);
     res.status(500).json({ message: 'Internal server error', error: err?.response?.data || err.message || err });
   }
 };
