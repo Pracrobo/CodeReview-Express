@@ -1,7 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-// db_env.js
 const config = {
   MYSQL_HOST: process.env.MYSQL_HOST,
   MYSQL_PORT: Number(process.env.MYSQL_PORT),
