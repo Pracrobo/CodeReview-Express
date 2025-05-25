@@ -1,5 +1,7 @@
 import mysql from "mysql2/promise";
-import config from "./db_env.js";
+import config from "./config.js";
+
+let conn;
 
 const connection_pool = mysql.createPool({
   host: config.MYSQL_HOST,
@@ -8,19 +10,20 @@ const connection_pool = mysql.createPool({
   password: config.MYSQL_PASSWORD,
   database: config.MYSQL_DB,
   waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
+  connectionLimit: 20,
+  queueLimit: 0,
+  connectTimeout: 3000,
 });
 
 // 연결 확인 함수
 export async function testConnection() {
   try {
-    const conn = await connection_pool.getConnection();
+    conn = await connection_pool.getConnection();
     console.log("DB connected successfully.");
-    conn.release();
   } catch (err) {
-    console.error("DB connection error:", err);
-    throw err;
+    console.error("DB connection error:", err.code, err.message);
+  }finally {
+    if (conn) conn.release();
   }
 }
 
