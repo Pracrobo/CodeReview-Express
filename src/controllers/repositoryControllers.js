@@ -1,4 +1,4 @@
-import { findRepository, getRepositories } from "../services/repositorySevices.js";
+import {findRepository, getRepositories} from "../services/repositoryServices.js";
 
 async function searchRepository(req, res) {
   //사용자 계정 가져오기(JWT)
@@ -14,14 +14,15 @@ async function searchRepository(req, res) {
 // 내 저장소 목록 조회
 async function getRepositoryList(req, res) {
   const {userInfo = true, page, per_page} = req.query;
-  
+  const userId = 1;
   if(!userInfo) {
     return res.status(401).json({'error': '권한이 없습니다.'})
   }else{
     if(!page && !per_page) {
-      return res.status(500).json({'error' : '잘못된 서버 요청'})
+      return res.status(400).json({'error' : '잘못된 요청'})
     } else{
-      const repos = await getRepositories()
+      const repos = await getRepositories(userId)
+
       return res.status(200).json({'repositories' : repos});
     }
   }
@@ -39,6 +40,6 @@ function getOverviewRepo(req, res) {}
 //특정 저장소 이슈 목록 및 AI 분석 결과 조회
 function getIsuueList (req, res) {}
 //특정 저장소 코드 컨벤션 문서 조회
-function getCodeConvensation(req, res) {} 
+function getCodeConvention(req, res) {} 
 
-export { searchRepository, getRepositoryList }//getRepoList, addRepoInMyRepo, deleteRepoInMyRepo, getOverviewRepo, getIsuueList, getCodeConvensation  };
+export { searchRepository, getRepositoryList};// , addRepoInMyRepo, deleteRepoInMyRepo, getOverviewRepo, getIsuueList, getCodeConvention  };
