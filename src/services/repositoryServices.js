@@ -11,11 +11,11 @@ async function getRepositories(userId) {
  const response = await repoModel.selectMyRepositories(userId)
  return response;
 }
-// async function addRepository(githubRepositoryInfo) {
-//   const response = await repoModel.insertRepository(githubRepositoryInfo)
-//   return response;
-// }
 
+async function addRepository(githubRepositoryInfo) {
+  const response = await repoModel.insertRepository(githubRepositoryInfo)
+  return response;
+}
 // // 1. 사용자 트래킹 목록에 저장소 id 있는지 확인
 // async function getUserTrackingStatusForRepo(userId, githubRepositoryId) {
 //   const response = await repoModel.selectTrack(userId, githubRepositoryId);
@@ -47,6 +47,7 @@ function getIsuueList () {}
 //특정 저장소 코드 컨벤션 문서 조회
 function getCodeConvention() {} 
 //function pagination()
+
 // }
 // const pageProcess = async(page, perPage) => {
 //   const currentPage = 1;
@@ -59,4 +60,4 @@ function getCodeConvention() {}
 //   return pageInfo
 // }
 
-export {findRepository, getRepositories}; //addRepository,  getUserTrackingStatusForRepo,  addRepositoryToUserTrackedList};
+export {findRepository, getRepositories, addRepository}; //  getUserTrackingStatusForRepo,  addRepositoryToUserTrackedList};
