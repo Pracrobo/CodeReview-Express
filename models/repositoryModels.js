@@ -63,7 +63,7 @@ async function insertTrack(userId, githubRepoId) {
     return rows;
   } catch (error) {
     console.error("Error occurred during insert:", error.message);
-    return error.message;
+    return { status: false, error: error.message };
   }
 }
 
