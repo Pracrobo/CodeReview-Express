@@ -53,7 +53,7 @@ async function deleteRepositoryToUserTrakedList (userId, githubRepoId) {
   return deleteResponse;
 }
 //'특정 저장소 개요 정보 조회
-function getOverViewRepository(userId, githubRepoId)) {
+async function getOverViewRepository(userId, githubRepoId) {
   const response = await repoModel.selectOverviewRepoAndIssue(userId, githubRepoId);
   if(response.error) {
     throw new Error('');
