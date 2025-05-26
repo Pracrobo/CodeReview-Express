@@ -1,4 +1,4 @@
-import { findRepository, getRepositories, addRepositoryToUserTrackedList, getUserTrackingStatusForRepo, deleteRepositoryToUserTrakedList} from "../services/repositoryServices.js";
+import { findRepository, getRepositories, addRepositoryToUserTrackedList, getUserTrackingStatusForRepo, deleteRepositoryToUserTrackedList} from "../services/repositoryServices.js";
 
 // 저장소 검색, 단어로 fulltext
 async function searchRepository(req, res) {
@@ -92,7 +92,7 @@ async function deleteRepositoryInTracker (req, res) {
     return res.status(400).json({ error: '추가할 GitHub 저장소 ID가 요청에 포함되지 않았습니다.' });
   }
   try {
-    const isdeleted = await deleteRepositoryToUserTrakedList(userId, githubRepoId);
+    const isdeleted = await deleteRepositoryToUserTrackedList(userId, githubRepoId);
     if(isdeleted.affectedRows > 0) {
       return res.status(204).json({"message" : "삭제 완료"})
     }else{

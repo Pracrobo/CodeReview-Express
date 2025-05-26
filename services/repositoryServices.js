@@ -40,7 +40,7 @@ async function addRepositoryToUserTrackedList(userId, githubRepositoryId) {
 
 
 //'내 저장소'에서 특정 저장소 삭제
-async function deleteRepositoryToUserTrakedList (userId, githubRepoId) {
+async function deleteRepositoryToUserTrackedList (userId, githubRepoId) {
   const deleteResponse = await repoModel.deleteTrack(userId, githubRepoId);
   if(deleteResponse.error) {
     throw new Error('DELETE_FAILED');
@@ -75,4 +75,4 @@ function getCodeConvention() {}
 //   return pageInfo
 // }
 
-export {findRepository, getRepositories,  getUserTrackingStatusForRepo,  addRepositoryToUserTrackedList, deleteRepositoryToUserTrakedList};
+export {findRepository, getRepositories,  getUserTrackingStatusForRepo,  addRepositoryToUserTrackedList, deleteRepositoryToUserTrackedList};
