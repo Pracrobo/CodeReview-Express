@@ -9,8 +9,19 @@ export const login = (req, res) => {
   res.redirect(githubAuthUrl);
 };
 
+// GET /github/callback: code를 프론트엔드로 리다이렉트
+export const githubRedirect = (req, res) => {
+  const code = req.query.code;
+  const frontendUrl = process.env.FRONTEND_URL;
+  res.redirect(`${frontendUrl}/oauth/callback?code=${code}`);
+};
+
+// POST /github/callback: code를 받아 토큰 등 JSON 응답
 export const callback = async (req, res) => {
-  const { code } = req.query;
+  const code = req.body.code;
+  if (!code) {
+    return res.status(400).json({ message: 'code is required' });
+  }
   try {
     const accessToken = await githubService.getAccessToken(code);
     const userInfo = await githubService.getUserInfo(accessToken);
@@ -38,21 +49,24 @@ export const callback = async (req, res) => {
     // JWT 발급
     const token = jwt.sign(
       {
-        id: user ? user.user_id : undefined,
-        githubId: user ? user.github_user_id : userInfo.id,
-        username: user ? user.username : userInfo.login,
-        email: user ? user.email : email,
-        avatar_url: user ? user.avatar_url : userInfo.avatar_url,
+        id: user.user_id,
+        githubId: user.github_user_id,
+        username: user.username,
+        email: user.email,
+        avatar_url: user.avatar_url,
       },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
 
-    // 프론트엔드로 리다이렉트
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    res.redirect(
-      `${frontendUrl}/oauth/callback?token=${token}&username=${encodeURIComponent(user.username)}&email=${encodeURIComponent(user.email)}&avatar_url=${encodeURIComponent(user.avatar_url)}&access_token=${accessToken}`
-    );
+    // 프론트엔드로 JSON 응답
+    res.json({
+      token,
+      accessToken,
+      username: user.username,
+      email: user.email,
+      avatar_url: user.avatar_url,
+    });
   } catch (err) {
     console.error('OAuth Callback Error:', err?.response?.data || err.message || err);
     res.status(500).json({ message: 'Internal server error', error: err?.response?.data || err.message || err });
