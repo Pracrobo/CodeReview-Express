@@ -1,4 +1,7 @@
 import { expressjwt } from 'express-jwt';
+import morgan from 'morgan';
+
+export const logger = morgan('dev');
 
 export const verifyJWT = expressjwt({
   secret: process.env.JWT_SECRET,
