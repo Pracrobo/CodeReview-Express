@@ -76,11 +76,15 @@ export const callback = async (req, res) => {
 // 로그아웃 및 GitHub 연동 해제
 export const logout = async (req, res) => {
   try {
-    const accessToken = req.body.accessToken;
-    if (!accessToken) {
+    const { githubId } = req.user;
+
+    // DB에서 사용자 정보 조회 (accessToken 필요)
+    const user = await findUserByGithubId(githubId);
+    if (!user || !user.accessToken) {
       return res.status(400).json({ message: 'accessToken이 필요합니다.' });
     }
-    await githubService.revokeAccessToken(accessToken);
+
+    await githubService.revokeAccessToken(user.accessToken);
     res.json({ message: '로그아웃 및 GitHub 연동 해제 완료' });
   } catch (err) {
     console.error('Logout Error:', err?.response?.data || err.message || err);
