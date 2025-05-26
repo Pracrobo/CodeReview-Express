@@ -42,18 +42,18 @@ export const callback = async (req, res) => {
         githubId: userInfo.id,
         username: userInfo.login,
         email,
-        avatarUrl: userInfo.avatar_url, // camelCase로 변경
+        avatarUrl: userInfo.avatar_url,
       });
     }
 
     // JWT 발급
     const token = jwt.sign(
       {
-        id: user.userId,
-        githubId: user.githubId,
+        id: user.user_id,
+        githubId: user.github_user_id,
         username: user.username,
         email: user.email,
-        avatarUrl: user.avatarUrl,
+        avatar_url: user.avatar_url,
       },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
@@ -65,7 +65,7 @@ export const callback = async (req, res) => {
       accessToken,
       username: user.username,
       email: user.email,
-      avatarUrl: user.avatarUrl,
+      avatar_url: user.avatar_url,
     });
   } catch (err) {
     console.error('OAuth Callback Error:', err?.response?.data || err.message || err);
@@ -73,28 +73,30 @@ export const callback = async (req, res) => {
   }
 };
 
-// 로그아웃 및 GitHub 연동 해제
 export const logout = async (req, res) => {
   try {
-    const accessToken = req.body.accessToken;
-    if (!accessToken) {
-      return res.status(400).json({ message: 'accessToken이 필요합니다.' });
+    const { access_token } = req.body;
+    if (!access_token) {
+      return res.status(400).json({ message: 'access_token is required' });
     }
-    await githubService.revokeAccessToken(accessToken);
-    res.json({ message: '로그아웃 및 GitHub 연동 해제 완료' });
+    await githubService.revokeAccessToken(access_token);
+    res.json({ message: 'Logged out and GitHub app authorization revoked' });
   } catch (err) {
     console.error('Logout Error:', err?.response?.data || err.message || err);
-    res.status(500).json({ message: '내부 서버 오류', error: err?.response?.data || err.message || err });
+    res.status(500).json({ message: 'Internal server error', error: err?.response?.data || err.message || err });
   }
 };
 
 export const deleteAccount = async (req, res) => {
   try {
-    // verifyJWT 미들웨어에서 이미 토큰 검증 완료
-    const { githubId } = req.user;
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) {
+      return res.status(403).json({ message: 'A token is required for account deletion' });
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // DB에서 사용자 삭제
-    await deleteUserByGithubId(githubId);
+    await deleteUserByGithubId(decoded.githubId);
 
     res.json({ message: 'User account deleted' });
   } catch (err) {
@@ -102,11 +104,11 @@ export const deleteAccount = async (req, res) => {
       'Delete Account Error:',
       err?.response?.data || err.message || err
     );
-    res
-      .status(500)
-      .json({
+    res.status(500).json({
         message: '서버 내부 오류',
         error: err?.response?.data || err.message || err,
       });
+    console.error('Delete Account Error:', err?.response?.data || err.message || err);
+    res.status(500).json({ message: 'Internal server error', error: err?.response?.data || err.message || err });
   }
 };
