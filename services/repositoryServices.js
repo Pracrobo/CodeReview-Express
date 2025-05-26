@@ -23,9 +23,12 @@ async function findRepository(word){
       lastAnalyzedAt: row.last_analyzed_at,
       createdAt: row.created_at,
       updatedAt: row.updated_at
-  }));
-  return data;
-}};
+    }));
+    return data;
+  }else{
+    return false;
+  }
+};
 
 // 내 저장소 목록 조회
 async function getRepositories(userId) {

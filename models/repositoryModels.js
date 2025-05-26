@@ -8,9 +8,8 @@ async function selectRepository(word) {
       [word]
     );
     if (results.length > 0) {
-      console.log(results);
       return results;
-    }else {
+    } else {
       return false;
     }
   } catch (err) {
