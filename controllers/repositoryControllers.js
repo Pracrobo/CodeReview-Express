@@ -95,7 +95,7 @@ async function deleteRepositoryInTracker (req, res) {
   try {
     const isdeleted = await deleteRepositoryToUserTrackedList(userId, githubRepoId);
     if(isdeleted.affectedRows > 0) {
-      return res.status(204).json({"message" : "삭제 완료"})
+      return res.status(200).json({"message" : "삭제 완료"})
     }else{
       return res.status(403).json({"message" : "이미 삭제됨"});
     }
