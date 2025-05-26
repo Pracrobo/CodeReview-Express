@@ -107,6 +107,7 @@ async function deleteRepositoryInTracker (req, res) {
   }
 }
 //'특정 저장소 개요 정보 조회
+/*
 async function getOverviewRepo(req, res) {
   const userInfo = true; // 실제 배포 시 req.user 사용
   const userId = 1;  
@@ -115,6 +116,7 @@ async function getOverviewRepo(req, res) {
  // const result = await getOverViewRepository(githubRepoId);
 
 }
+ */
 //특정 저장소 이슈 목록 및 AI 분석 결과 조회
 function getIssueList (req, res) {}
 //특정 저장소 코드 컨벤션 문서 조회
