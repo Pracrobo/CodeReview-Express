@@ -4,6 +4,7 @@ import { findRepository, getRepositories, addRepositoryToUserTrackedList, getUse
 async function searchRepository(req, res) {
   //사용자 계정 가져오기
   //const { userInfo } = req.user;
+  const userInfo = true;
   const {query, page , per_page} = req.query;
   // 응답 추가하기
   if(userInfo) {
@@ -41,7 +42,7 @@ async function getRepositoryList(req, res) {
 async function addRepositoryInTracker(req, res) {
   const userInfo = true; // 실제 배포 시 req.user 사용
   const userId = 1;
-  const githubRepoId = req.query;
+  const githubRepoId = req.query.githubRepoId;
 
   
   if (!githubRepoId) {
@@ -56,15 +57,17 @@ async function addRepositoryInTracker(req, res) {
     }
     // 2. 트래킹 추가
     const results = await addRepositoryToUserTrackedList(userId, githubRepoId);
-    if(results.data) {
-      results.data.forEach(result => {
-        return res.status(201).json({
-          repoId: result.repo_id,
-          githubRepoId: result.github_repo_id,
-          fullName: result.full_name,
-          readme_summary_gpt: result.readme_summary_gpt,
-          message: 'Repository added successfully.'
-        });
+    if (results.data) {
+      const formattedResults = results.data.map(result => ({
+        repoId: result.repo_id,
+        githubRepoId: result.github_repo_id,
+        fullName: result.full_name,
+        readmeSummary: result.readme_summary_gpt,
+      }));
+
+      return res.status(201).json({
+        message: 'Repository added successfully.',
+        repositories: formattedResults
       });
     }
   } catch (error) {
@@ -109,7 +112,7 @@ async function getOverviewRepo(req, res) {
   const userId = 1;  
   const githubRepoId = req.query.github_repo_id;
 
-  const result = await getOverViewRepository(githubRepoId);
+ // const result = await getOverViewRepository(githubRepoId);
 
 }
 //특정 저장소 이슈 목록 및 AI 분석 결과 조회

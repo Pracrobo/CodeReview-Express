@@ -15,11 +15,6 @@ async function getRepositories(userId) {
   return response;
 }
 
-// async function addRepository(githubRepositoryInfo) {
-//  const response = await repoModel.insertRepository(githubRepositoryInfo)
-//  return response;
-//}
-
 // 1. 사용자 트래킹 목록에 저장소 id 있는지 확인
 async function getUserTrackingStatusForRepo(userId, githubRepositoryId) {
   const result = await repoModel.selectTrack(userId, githubRepositoryId);
@@ -53,6 +48,7 @@ async function deleteRepositoryToUserTrakedList (userId, githubRepoId) {
   return deleteResponse;
 }
 //'특정 저장소 개요 정보 조회
+/*
 async function getOverViewRepository(userId, githubRepoId) {
   const response = await repoModel.selectOverviewRepoAndIssue(userId, githubRepoId);
   if(response.error) {
@@ -60,6 +56,7 @@ async function getOverViewRepository(userId, githubRepoId) {
   }
   return response;
 }
+  */
 //특정 저장소 이슈 목록 및 AI 분석 결과 조회
 function getIsuueList () {}
 //특정 저장소 코드 컨벤션 문서 조회

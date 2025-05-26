@@ -4,7 +4,7 @@ import pool from "../database/index.js";
 async function selectRepository(word) {
   try {
     const [results] = await pool.query(
-      `SELECT * FROM repositories WHERE MATCH(full_name) AGAINST(? IN BOOLEAN MODE)`,
+      `SELECT * FROM repositories WHERE MATCH(full_name, description) AGAINST(? IN BOOLEAN MODE)`,
       [word]
     );
     return results;
@@ -76,7 +76,7 @@ async function deleteTrack(userId, githubRepoId) {
     return error.message;
   }
 }
-
+/*
 async function selectOverviewRepoAndIssue(userId, githubRepoId) {
   const [rows] = await pool.query(
     `SELECT r.*, i.*  FROM repositories r 
@@ -85,12 +85,12 @@ async function selectOverviewRepoAndIssue(userId, githubRepoId) {
     `
   )
 }
-  
+*/  
   export default {
     selectRepository,
     selectTrackRepositories,
     insertTrack,
     selectTrack,
     deleteTrack,
-    selectOverviewRepoAndIssue
+ //   selectOverviewRepoAndIssue
 };
