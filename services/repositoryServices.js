@@ -3,30 +3,38 @@ import repoModel from "../models/repositoryModels.js";
 
 // 내가 저장한 저장소 목록 중 특정 단어로 검색한 결과 가져오기
 async function findRepository(word){
-  const response = await repoModel.selectRepository(word); 
-  if(response) {
-    const data = response.map(row => ({
-      userId: row.user_id,
-      repoId: row.repo_id,
-      githubRepoId: row.github_repo_id,
-      fullName: row.full_name,
-      description: row.description,
-      htmlUrl: row.html_url,
-      programmingLanguage: row.programming_language,
-      languagePercentage: row.language_percentage,
-      licenseSpdxId: row.license_spdx_id,
-      readmeSummaryGpt: row.readme_summary_gpt,
-      star: row.star,
-      fork: row.fork,
-      prTotalCount: row.pr_total_count,
-      issueTotalCount: row.issue_total_count,
-      lastAnalyzedAt: row.last_analyzed_at,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at
-    }));
-    return data;
-  }else{
-    return false;
+  try{
+    const response = await repoModel.selectRepository(word); 
+    if(response) {
+      const data = response.map(row => ({
+        userId: row.user_id,
+        repoId: row.repo_id,
+        githubRepoId: row.github_repo_id,
+        fullName: row.full_name,
+        description: row.description,
+        htmlUrl: row.html_url,
+        programmingLanguage: row.programming_language,
+        languagePercentage: row.language_percentage,
+        licenseSpdxId: row.license_spdx_id,
+        readmeSummaryGpt: row.readme_summary_gpt,
+        star: row.star,
+        fork: row.fork,
+        prTotalCount: row.pr_total_count,
+        issueTotalCount: row.issue_total_count,
+        lastAnalyzedAt: row.last_analyzed_at,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      }));
+      return {status: true, data : data};
+    }else{
+      return { status: true, data: [] };
+    }
+  } catch (err) {
+    return {
+      status: false,
+      message: "서버 오류로 검색에 실패했습니다.",
+      error: err,
+    };
   }
 };
 

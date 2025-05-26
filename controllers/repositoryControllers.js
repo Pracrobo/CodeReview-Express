@@ -12,10 +12,13 @@ async function searchRepository(req, res) {
         return res.status(400).json({'error' : '저장소 검색에 실패했습니다.'}) //잘못된 요청
     } else{
       const repo = await findRepository(query);
-      if (repo) {
+      if (repo.status &&  repo.data.length > 0) {
         return res.status(200).json({'repositories' : repo })
-      }else{
+      }else if(repo.status){
         return res.status(200).json({'data': [], 'message' : '검색 결과가 없습니다.'})
+      }else{
+        console.log(repo.error);
+        return res.status(500).json({'message': repo.message})
       }
     }
   }else {
