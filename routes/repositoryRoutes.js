@@ -16,8 +16,8 @@ router.post("/tracked", addRepositoryInTracker);
 //'내 저장소'에서 특정 저장소 삭제
 router.delete("/tracked", deleteRepositoryInTracker);
 
-// //'특정 저장소 개요 정보 조회
-// app.get("/repositories/:github_repo_id/overview", getOverviewRepo);
+//'특정 저장소 개요 정보 조회
+// router.get("/overview", getOverviewRepo);
 
 // //특정 저장소 이슈 목록 및 AI 분석 결과 조회
 // app.get("/repositories/:github_repo_id/issues", getIsuueList);

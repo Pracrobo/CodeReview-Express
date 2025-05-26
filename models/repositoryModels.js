@@ -76,26 +76,21 @@ async function deleteTrack(userId, githubRepoId) {
     return error.message;
   }
 }
-  // async function insertRepository(userId, githubRepositoryInfo ){
-  //   try{
-  //     await pool.query(
-  //       `INSERT INTO ? (github_repo_id, full_name, description, html_url,
-  //       programming_language, language_percentage, license_spdx_id, readme_summary_gpt,
-  //       star, fork, pr_total_count, issue_total_count,
-  //       last_analyzed_at, created_at, updated_at) VALUES 
-  //       ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
-  //       ?, ?, ?, ?, ?)`, []
-  //     )
-  //     return true
-  //   }catch {
-  //     return false
-  //   }
-  // }
+
+async function selectOverviewRepoAndIssue(userId, githubRepoId) {
+  const [rows] = await pool.query(
+    `SELECT r.*, i.*  FROM repositories r 
+    JOIN issues i ON r.repo_id = i.repo_id
+    WHERE i.repo_id = ?;
+    `
+  )
+}
   
   export default {
     selectRepository,
     selectTrackRepositories,
     insertTrack,
     selectTrack,
-    deleteTrack
+    deleteTrack,
+    selectOverviewRepoAndIssue
 };

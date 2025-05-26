@@ -53,7 +53,13 @@ async function deleteRepositoryToUserTrakedList (userId, githubRepoId) {
   return deleteResponse;
 }
 //'특정 저장소 개요 정보 조회
-function getOverviewRepo() {}
+function getOverViewRepository(userId, githubRepoId)) {
+  const response = await repoModel.selectOverviewRepoAndIssue(userId, githubRepoId);
+  if(response.error) {
+    throw new Error('');
+  }
+  return response;
+}
 //특정 저장소 이슈 목록 및 AI 분석 결과 조회
 function getIsuueList () {}
 //특정 저장소 코드 컨벤션 문서 조회

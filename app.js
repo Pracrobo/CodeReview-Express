@@ -1,8 +1,8 @@
 import dotenv from 'dotenv';
 dotenv.config();
 import express from 'express';
-import authRoutes from './routes/auth.js';
-import repoRoutes from "./routes/repositoryRoutes.js";
+// import authRoutes from '../routes/auth.js';
+import repoRoutes from "../routes/repositoryRoutes.js";
 import cors from 'cors';
 
 const app = express();
@@ -15,7 +15,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use('/auth', authRoutes);
+// app.use('/auth', authRoutes);
 app.use("/repositories", repoRoutes);
 
 app.get('/', (req, res) => {
