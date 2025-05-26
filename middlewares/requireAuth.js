@@ -1,3 +1,4 @@
+
 function requireAuth(req, res, next) {
   if (!req.user) {
       console.warn("User information missing for repository addition attempt.");
@@ -6,4 +7,4 @@ function requireAuth(req, res, next) {
   next();
 }
 
-module.exports = requireAuth;
+export default requireAuth;

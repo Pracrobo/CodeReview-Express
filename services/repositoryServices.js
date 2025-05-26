@@ -4,29 +4,69 @@ import repoModel from "../models/repositoryModels.js";
 // 내가 저장한 저장소 목록 중 특정 단어로 검색한 결과 가져오기
 async function findRepository(word){
   const response = await repoModel.selectRepository(word); 
-  return response;
+  const data = response.map(row => ({
+      userId: row.user_id,
+      repoId: row.repo_id,
+      githubRepoId: row.github_repo_id,
+      fullName: row.full_name,
+      description: row.description,
+      htmlUrl: row.html_url,
+      programmingLanguage: row.programming_language,
+      languagePercentage: row.language_percentage,
+      licenseSpdxId: row.license_spdx_id,
+      readmeSummaryGpt: row.readme_summary_gpt,
+      star: row.star,
+      fork: row.fork,
+      prTotalCount: row.pr_total_count,
+      issueTotalCount: row.issue_total_count,
+      lastAnalyzedAt: row.last_analyzed_at,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+  }));
+  return data;
 }
+
 // 내 저장소 목록 조회
 async function getRepositories(userId) {
   const response = await repoModel.selectTrackRepositories(userId);
   if (!response.status) {
     throw response.error;
   }
-  return response;
+  const data = response.data.map(row => ({
+    userId: userId,
+    repoId: row.repo_id,
+    githubRepoId: row.github_repo_id,
+    fullName: row.full_name,
+    description: row.description,
+    htmlUrl: row.html_url,
+    isTrackedByCurrentUser: true,
+    programmingLanguage: row.programming_language,
+    languagePercentage: row.language_percentage,
+    licenseSpdxId: row.license_spdx_id,
+    readmeSummaryGpt: row.readme_summary_gpt,
+    star: row.star,
+    fork: row.fork,
+    prTotalCount: row.pr_total_count,
+    issueTotalCount: row.issue_total_count,
+    lastAnalyzedAt: row.last_analyzed_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  }));
+  return data;
 }
 
 // 1. 사용자 트래킹 목록에 저장소 id 있는지 확인
 async function getUserTrackingStatusForRepo(userId, githubRepositoryId) {
-  const result = await repoModel.selectTrack(userId, githubRepositoryId);
-  if (!result.status) {
+  const results = await repoModel.selectTrack(userId, githubRepositoryId);
+  if (!results.status) {
     console.log("DB 조회 실패");
     throw new Error('DB 조회 실패');
-  } else if (result.tracked) {
-    console.log("트래킹 중인 레포 있음:", result.data);
-    return true;
+  } else if (results.tracked) {
+    console.log("트래킹 중인 레포 있음");
+    return {status: true}
   } else {
     console.log("트래킹 안 된 레포");
-    return false;
+    return {status: false};
   }
 }
 //'내 저장소'에 특정 저장소 추가(트래킹 목록에 추가)
@@ -34,8 +74,9 @@ async function addRepositoryToUserTrackedList(userId, githubRepositoryId) {
   const insertResponse = await repoModel.insertTrack(userId, githubRepositoryId);
   if (insertResponse.error) {
     throw new Error('INSERT_FAILED');
+  }else{
+    return await getRepositories(userId)
   }
-  return getRepositories(userId)
 }
 
 
@@ -47,7 +88,7 @@ async function deleteRepositoryToUserTrackedList (userId, githubRepoId) {
   }
   return deleteResponse;
 }
-//'특정 저장소 개요 정보 조회
+// TODO: 특정 저장소 개요 정보 조회
 /*
 async function getOverViewRepository(userId, githubRepoId) {
   const response = await repoModel.selectOverviewRepoAndIssue(userId, githubRepoId);
@@ -63,7 +104,7 @@ function getIsuueList () {}
 function getCodeConvention() {} 
 //function pagination()
 
-// }
+//  TODO: 
 // const pageProcess = async(page, perPage) => {
 //   const currentPage = 1;
 //   const totalPage = 1;

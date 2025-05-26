@@ -7,7 +7,12 @@ async function selectRepository(word) {
       `SELECT * FROM repositories WHERE MATCH(full_name, description) AGAINST(? IN BOOLEAN MODE)`,
       [word]
     );
-    return results;
+    if (results.length > 0) {
+      console.log(results);
+      return results;
+    }else {
+      return false;
+    }
   } catch (err) {
     console.error("selectRepository query error:", err);
     throw err;
@@ -56,7 +61,6 @@ async function insertTrack(userId, githubRepoId) {
       `INSERT INTO user_tracked_repositories(user_id, repo_id) VALUES (?, ?)`,
       [userId, githubRepoId]
     );
-    console.log("Insert successful:", rows);
     return rows;
   } catch (error) {
     console.error("Error occurred during insert:", error.message);
@@ -76,7 +80,7 @@ async function deleteTrack(userId, githubRepoId) {
     return error.message;
   }
 }
-/*
+/* TODO:
 async function selectOverviewRepoAndIssue(userId, githubRepoId) {
   const [rows] = await pool.query(
     `SELECT r.*, i.*  FROM repositories r 

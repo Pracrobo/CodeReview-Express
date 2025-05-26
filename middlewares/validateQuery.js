@@ -7,4 +7,4 @@ function validatePagination(req, res, next) {
   next();
 }
 
-module.exports = validatePagination;
+export default validatePagination;

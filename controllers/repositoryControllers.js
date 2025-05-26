@@ -26,8 +26,8 @@ async function getRepositoryList(req, res) {
 
   try {
     const repos = await getRepositories(userId);
-    if (repos.data.length > 0) {
-      return res.status(200).json({'repositories': repos.data });
+    if (repos.length > 0) {
+      return res.status(200).json({'repositories': repos });
     } else {
       return res.status(200).json({'message' : '저장한 레포지토리가 없습니다.'});
     }
@@ -52,22 +52,16 @@ async function addRepositoryInTracker(req, res) {
   try {
     // 1. 트래킹 여부 확인
     const isTracking = await getUserTrackingStatusForRepo(userId, githubRepoId);
-    if (isTracking) {
+    if (isTracking.status) {
       return res.status(409).json({ message: '이미 트래킹 중인 저장소입니다.' });
     }
     // 2. 트래킹 추가
-    const results = await addRepositoryToUserTrackedList(userId, githubRepoId);
-    if (results.data) {
-      const formattedResults = results.data.map(result => ({
-        repoId: result.repo_id,
-        githubRepoId: result.github_repo_id,
-        fullName: result.full_name,
-        readmeSummary: result.readme_summary_gpt,
-      }));
-
+    const result = await addRepositoryToUserTrackedList(userId, githubRepoId);
+    if (result) {
+      console.log("githubRepoId :", githubRepoId, "저장소에 추가 완료");
       return res.status(201).json({
-        message: 'Repository added successfully.',
-        repositories: formattedResults
+        repositories: result,
+        message: 'Repository added successfully.'
       });
     }
   } catch (error) {
@@ -106,7 +100,7 @@ async function deleteRepositoryInTracker (req, res) {
     }
   }
 }
-//'특정 저장소 개요 정보 조회
+// TODO: 특정 저장소 개요 정보 조회
 /*
 async function getOverviewRepo(req, res) {
   const userInfo = true; // 실제 배포 시 req.user 사용

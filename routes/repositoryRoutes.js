@@ -16,6 +16,7 @@ router.post("/tracked", addRepositoryInTracker);
 //'내 저장소'에서 특정 저장소 삭제
 router.delete("/tracked", deleteRepositoryInTracker);
 
+// TODO:
 //'특정 저장소 개요 정보 조회
 // router.get("/overview", getOverviewRepo);
 
