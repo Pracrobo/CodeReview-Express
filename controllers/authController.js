@@ -54,6 +54,7 @@ export const callback = async (req, res) => {
         username: user.username,
         email: user.email,
         avatarUrl: user.avatarUrl,
+        githubAccessToken: accessToken,
       },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
@@ -76,9 +77,9 @@ export const callback = async (req, res) => {
 // 로그아웃 및 GitHub 연동 해제
 export const logout = async (req, res) => {
   try {
-    const accessToken = req.body.accessToken;
+    const accessToken = req.user.githubAccessToken; 
     if (!accessToken) {
-      return res.status(400).json({ message: 'accessToken이 필요합니다.' });
+      return res.status(400).json({ message: 'GitHub 액세스 토큰을 찾을 수 없습니다. 다시 로그인해주세요.' });
     }
     await githubService.revokeAccessToken(accessToken);
     res.json({ message: '로그아웃 및 GitHub 연동 해제 완료' });
