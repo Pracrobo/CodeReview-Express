@@ -105,6 +105,11 @@ async function deleteRepositoryInTracker (req, res) {
         error: error.message || '서버 처리 중 알 수 없는 오류가 발생했습니다. 다시 시도해주세요.'
       });
     }
+    // 추가된 폴백 오류 응답
+    console.error("Error in deleteRepositoryInTracker controller:", error);
+    return res.status(500).json({
+      error: '저장소 삭제 중 서버에서 오류가 발생했습니다. 다시 시도해주세요.'
+    });
   }
 }
 // TODO: 특정 저장소 개요 정보 조회
