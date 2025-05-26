@@ -4,7 +4,7 @@ import pool from "../database/index.js";
 async function selectRepository(word) {
   try {
     const [results] = await pool.query(
-      `SELECT * FROM repositories WHERE MATCH(full_name, description) AGAINST(? IN BOOLEAN MODE)`,
+      `SELECT * FROM repositories WHERE MATCH(full_name) AGAINST(? IN BOOLEAN MODE)`,
       [word]
     );
     if (results.length > 0) {

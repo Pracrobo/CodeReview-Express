@@ -21,9 +21,9 @@ router.delete("/tracked", deleteRepositoryInTracker);
 // router.get("/overview", getOverviewRepo);
 
 // //특정 저장소 이슈 목록 및 AI 분석 결과 조회
-// app.get("/repositories/:github_repo_id/issues", getIsuueList);
+// app.get("/issues", getIssueList);
 
 // //특정 저장소 코드 컨벤션 문서 조회
-// app.get("/repositories/:github_repo_id/convention", getCodeConvensation);
+// app.get("/convention", getCodeConvention);
 
 export default router;

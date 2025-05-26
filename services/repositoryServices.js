@@ -4,7 +4,8 @@ import repoModel from "../models/repositoryModels.js";
 // 내가 저장한 저장소 목록 중 특정 단어로 검색한 결과 가져오기
 async function findRepository(word){
   const response = await repoModel.selectRepository(word); 
-  const data = response.map(row => ({
+  if(response) {
+    const data = response.map(row => ({
       userId: row.user_id,
       repoId: row.repo_id,
       githubRepoId: row.github_repo_id,
@@ -24,7 +25,7 @@ async function findRepository(word){
       updatedAt: row.updated_at
   }));
   return data;
-}
+}};
 
 // 내 저장소 목록 조회
 async function getRepositories(userId) {
@@ -99,7 +100,7 @@ async function getOverViewRepository(userId, githubRepoId) {
 }
   */
 //특정 저장소 이슈 목록 및 AI 분석 결과 조회
-function getIsuueList () {}
+function getIssueList () {}
 //특정 저장소 코드 컨벤션 문서 조회
 function getCodeConvention() {} 
 //function pagination()
