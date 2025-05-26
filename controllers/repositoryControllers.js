@@ -85,12 +85,12 @@ async function addRepositoryInTracker(req, res) {
  
 //'내 저장소'에서 특정 저장소 삭제
 async function deleteRepositoryInTracker (req, res) {
-  const userInfo = true; // 실제 배포 시 req.user 사용
+  const userInfo = true; // TODO: 실제 배포 시 req.user 사용
   const userId = 1;
   const githubRepoId = req.query.github_repo_id;
   
   if (!githubRepoId) {
-    return res.status(400).json({ error: '추가할 GitHub 저장소 ID가 요청에 포함되지 않았습니다.' });
+    return res.status(400).json({ error: '삭제할 GitHub 저장소 ID가 요청에 포함되지 않았습니다.' });
   }
   try {
     const isdeleted = await deleteRepositoryToUserTrackedList(userId, githubRepoId);
