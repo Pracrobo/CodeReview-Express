@@ -9,20 +9,20 @@ async function searchRepository(req, res) {
   // 응답 추가하기
   if(userInfo) {
     if(!query) {
-        return res.status(400).json({'error' : '저장소 검색에 실패했습니다.'}) //잘못된 요청
+        return res.status(400).json({error : '저장소 검색에 실패했습니다.'}) //잘못된 요청
     } else{
       const repo = await findRepository(query);
       if (repo.status &&  repo.data.length > 0) {
         return res.status(200).json({'repositories' : repo })
       }else if(repo.status){
-        return res.status(200).json({'data': [], 'message' : '검색 결과가 없습니다.'})
+        return res.status(200).json({data: [], message : '검색 결과가 없습니다.'})
       }else{
         console.log(repo.error);
-        return res.status(500).json({'message': repo.message})
+        return res.status(500).json({message: repo.message})
       }
     }
   }else {
-    return res.status(401).json({'message': '로그인 해야 사용 가능'})
+    return res.status(401).json({message: '로그인 해야 사용 가능'})
   }
 }
 
@@ -36,7 +36,7 @@ async function getRepositoryList(req, res) {
     if (repos.length > 0) {
       return res.status(200).json({'repositories': repos });
     } else {
-      return res.status(200).json({'message' : '저장한 레포지토리가 없습니다.'});
+      return res.status(200).json({message : '저장한 레포지토리가 없습니다.'});
     }
   } catch (err) {
     console.error("getRepositories error:", err);
@@ -53,7 +53,7 @@ async function addRepositoryInTracker(req, res) {
 
   
   if (!githubRepoId) {
-    return res.status(400).json({ error: '추가할 GitHub 저장소 ID가 요청에 포함되지 않았습니다.' });
+    return res.status(400).json({ error: '추가할 GitHub 저장소가 없습니다.' });
   }
 
   try {
@@ -72,14 +72,14 @@ async function addRepositoryInTracker(req, res) {
       });
     }
   } catch (error) {
-    if (error.message?.includes('NOT_FOUND')) {
-      return res.status(404).json({ error: '요청하신 GitHub 저장소를 찾을 수 없습니다.' });
-    }else{
-      console.error("Error in addRepositoriesInTracker controller:", error);
+    if (error.message.includes('SELECT_FAILED')) {
+      console.error("DB insertError of addRepositoriesInTrackerFunction controller:", error);
       return res.status(500).json({
-        error: error.message || '서버 처리 중 알 수 없는 오류가 발생했습니다. 다시 시도해주세요.'
-      }
-    )}
+        error: '서버 처리 중 알 수 없는 오류가 발생했습니다. 다시 시도해주세요.'
+      })
+    } else if (error.message.includes('INSERT_FAILED')) {
+      return res.status(404).json({ error: '요청하신 GitHub 저장소를 찾을 수 없습니다.' });
+    }
   }
 }  
  
@@ -90,19 +90,19 @@ async function deleteRepositoryInTracker (req, res) {
   const githubRepoId = req.query.github_repo_id;
   
   if (!githubRepoId) {
-    return res.status(400).json({ error: '추가할 GitHub 저장소 ID가 요청에 포함되지 않았습니다.' });
+    return res.status(400).json({ error: '추가할 GitHub 저장소가 없습니다.' });
   }
   try {
     const isdeleted = await deleteRepositoryToUserTrackedList(userId, githubRepoId);
     if(isdeleted.affectedRows > 0) {
-      return res.status(204).json({"message" : "삭제 완료"})
+      return res.status(204).json({message : "삭제 완료"})
     }else{
-      return res.status(403).json({"message" : "이미 삭제됨"});
+      return res.status(403).json({message : "이미 삭제됨"});
     }
   } catch (error) {
     if (error.message?.includes('DELETE_FAILED')) {
       return res.status(500).json({
-        error: error.message || '서버 처리 중 알 수 없는 오류가 발생했습니다. 다시 시도해주세요.'
+        error: '서버 처리 중 알 수 없는 오류가 발생했습니다. 다시 시도해주세요.'
       });
     }
   }

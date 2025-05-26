@@ -42,7 +42,7 @@ async function findRepository(word){
 async function getRepositories(userId) {
   const response = await repoModel.selectTrackRepositories(userId);
   if (!response.status) {
-    throw response.error;
+    throw new Error('SELECT_FAILED');
   }
   const data = response.data.map(row => ({
     userId: userId,
@@ -71,13 +71,10 @@ async function getRepositories(userId) {
 async function getUserTrackingStatusForRepo(userId, githubRepositoryId) {
   const results = await repoModel.selectTrack(userId, githubRepositoryId);
   if (!results.status) {
-    console.log("DB 조회 실패");
-    throw new Error('DB 조회 실패');
+    throw new Error('SELECT_FAILED');
   } else if (results.tracked) {
-    console.log("트래킹 중인 레포 있음");
     return {status: true}
   } else {
-    console.log("트래킹 안 된 레포");
     return {status: false};
   }
 }

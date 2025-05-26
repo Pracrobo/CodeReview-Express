@@ -47,10 +47,9 @@ async function selectTrack(userId, githubRepoId) {
     } else {
       return { status: true, tracked: false };
     }
-    
   } catch (err) {
     console.error('DB select error:', err);
-    return { status: false, tracked: false };
+    return { status: false, tracked: false , message: err};
   }
 }
 
