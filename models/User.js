@@ -43,3 +43,21 @@ export async function deleteUserByGithubId(githubId) {
   const pool = getConnectionPool();
   await pool.query('DELETE FROM users WHERE github_user_id = ?', [githubId]);
 }
+
+// 프로 사용자 플랜 상태 업데이트
+export async function updateProPlanStatus(userId) {
+  const pool = getConnectionPool();
+  await pool.query(
+    `UPDATE users
+     SET is_pro_plan = 1,
+         pro_plan_activated_at = NOW(),
+         pro_plan_expires_at = 
+           CASE
+             WHEN pro_plan_expires_at > NOW() THEN DATE_ADD(pro_plan_expires_at, INTERVAL 1 MONTH)
+             ELSE DATE_ADD(NOW(), INTERVAL 1 MONTH)
+           END,
+         updated_at = NOW()
+     WHERE user_id = ?`,
+    [userId]
+  );
+}
