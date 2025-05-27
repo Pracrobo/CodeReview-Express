@@ -8,7 +8,7 @@ import {
 
 // 저장소 검색
 async function searchRepository(req, res) {
-  // req.user는 requireAuth 미들웨어를 통해 주입됨
+  // req.user는 authenticate 미들웨어를 통해 주입됨
   const { query } = req.query;
 
   if (!query) {
@@ -43,7 +43,7 @@ async function searchRepository(req, res) {
 
 // 내 저장소 목록 조회
 async function getRepositoryList(req, res) {
-  const userId = req.user.id; // requireAuth 미들웨어에서 주입된 사용자 ID
+  const userId = req.user.id; // authenticate 미들웨어에서 주입된 사용자 ID
 
   try {
     const repositories = await getUserRepositories(userId);
@@ -61,9 +61,9 @@ async function getRepositoryList(req, res) {
   }
 }
 
-//'내 저장소'에 특정 저장소 추가
+// '내 저장소'에 특정 저장소 추가
 async function addRepositoryInTracker(req, res) {
-  const userId = req.user.id; // requireAuth 미들웨어에서 주입된 사용자 ID
+  const userId = req.user.id; // authenticate 미들웨어에서 주입된 사용자 ID
   const { githubRepoId } = req.body; // 요청 본문에서 githubRepoId를 받도록 변경 (또는 req.query 유지)
 
   if (!githubRepoId) {
@@ -98,9 +98,9 @@ async function addRepositoryInTracker(req, res) {
   }
 }
 
-//'내 저장소'에서 특정 저장소 삭제
+// '내 저장소'에서 특정 저장소 삭제
 async function deleteRepositoryInTracker(req, res) {
-  const userId = req.user.id; // requireAuth 미들웨어에서 주입된 사용자 ID
+  const userId = req.user.id; // authenticate 미들웨어에서 주입된 사용자 ID
   const { githubRepoId } = req.query; // 삭제는 주로 query parameter나 path parameter 사용
 
   if (!githubRepoId) {
