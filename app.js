@@ -6,6 +6,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import routes from './routes/index.js';
 import errorHandler from './middlewares/errorHandler.js';
+import { handleAuthError } from './middlewares/authMiddleware.js';
 
 const app = express();
 
@@ -23,7 +24,11 @@ const morganFormat =
   process.env.NODE_ENV === 'development' ? 'dev' : 'combined';
 app.use(morgan(morganFormat));
 
+// 라우터 등록
 app.use('/', routes);
+
+// 에러 처리 미들웨어 (라우터 등록 후)
+app.use(handleAuthError);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
