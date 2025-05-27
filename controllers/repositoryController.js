@@ -4,7 +4,7 @@ import {
   addRepositoryToTracking,
   checkUserTrackingStatus,
   removeRepositoryFromTracking,
-} from '../services/repositoryService.js';
+} from '../services/repositoryService.js'; // 경로 수정
 
 // 저장소 검색
 async function searchRepository(req, res) {

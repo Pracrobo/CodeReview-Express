@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { findUserByGithubId, createUser } from '../models/User.js';
-import { githubService } from './githubService.js';
+import { githubService } from './githubApiService.js';
 
 export const processGithubLogin = async (code) => {
   if (!code) {
