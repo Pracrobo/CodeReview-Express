@@ -1,6 +1,6 @@
-import getConnectionPool from '../database/index.js';
+import { getConnectionPool } from '../database/database.js';
 
-// snake_case → camelCase 변환 함수
+// DB 조회 결과(snake_case)를 camelCase로 변환
 function toCamelCaseUser(user) {
   if (!user) return user;
   return {
@@ -12,6 +12,7 @@ function toCamelCaseUser(user) {
   };
 }
 
+// GitHub ID로 사용자 조회
 export async function findUserByGithubId(githubId) {
   const pool = getConnectionPool();
   const [rows] = await pool.query(
@@ -21,6 +22,7 @@ export async function findUserByGithubId(githubId) {
   return toCamelCaseUser(rows[0]);
 }
 
+// 새 사용자 생성
 export async function createUser({ githubId, username, email, avatarUrl }) {
   const pool = getConnectionPool();
   const [result] = await pool.query(
@@ -32,14 +34,12 @@ export async function createUser({ githubId, username, email, avatarUrl }) {
     githubId,
     username,
     email,
-    avatarUrl
+    avatarUrl,
   };
 }
 
+// GitHub ID로 사용자 삭제
 export async function deleteUserByGithubId(githubId) {
   const pool = getConnectionPool();
-  await pool.query(
-    'DELETE FROM users WHERE github_user_id = ?',
-    [githubId]
-  );
+  await pool.query('DELETE FROM users WHERE github_user_id = ?', [githubId]);
 }
