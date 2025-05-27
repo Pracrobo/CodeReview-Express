@@ -5,8 +5,8 @@ import repoModel from "../models/repositoryModels.js";
 async function findRepository(word){
   try{
     const response = await repoModel.selectRepository(word); 
-    if(response) {
-      const data = response.map(row => ({
+    if(response.status) {
+      const data = response.data.map(row => ({
         userId: row.user_id,
         repoId: row.repo_id,
         githubRepoId: row.github_repo_id,

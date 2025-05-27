@@ -1,5 +1,7 @@
 // repositoryModel.js
-import pool from "../database/index.js";
+import getConnectionPool from "../database/index.js";
+
+const pool = getConnectionPool();
 
 async function selectRepository(word) {
   try {
