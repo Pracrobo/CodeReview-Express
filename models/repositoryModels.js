@@ -8,13 +8,13 @@ async function selectRepository(word) {
       [word]
     );
     if (results.length > 0) {
-      return results;
+      return { status: true, data: results };
     } else {
-      return false;
+      return { status: true, data: [] };
     }
   } catch (err) {
     console.error("selectRepository query error:", err);
-    throw err;
+    return { status: false, error: err };
   }
 }
 
@@ -62,7 +62,7 @@ async function insertTrack(userId, githubRepoId) {
     return rows;
   } catch (error) {
     console.error("Error occurred during insert:", error.message);
-    return error.message;
+    return { status: false, error: error.message };
   }
 }
 

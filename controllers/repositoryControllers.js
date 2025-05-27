@@ -85,17 +85,17 @@ async function addRepositoryInTracker(req, res) {
  
 //'내 저장소'에서 특정 저장소 삭제
 async function deleteRepositoryInTracker (req, res) {
-  const userInfo = true; // 실제 배포 시 req.user 사용
+  const userInfo = true; // TODO: 실제 배포 시 req.user 사용
   const userId = 1;
-  const githubRepoId = req.query.github_repo_id;
+  const githubRepoId = req.query.githubRepoId;
   
   if (!githubRepoId) {
-    return res.status(400).json({ error: '추가할 GitHub 저장소가 없습니다.' });
+    return res.status(400).json({ error: '삭제할 GitHub 저장소가 없습니다.' });
   }
   try {
     const isdeleted = await deleteRepositoryToUserTrackedList(userId, githubRepoId);
     if(isdeleted.affectedRows > 0) {
-      return res.status(204).json({message : "삭제 완료"})
+      return res.status(200).json({message : "삭제 완료"})
     }else{
       return res.status(403).json({message : "이미 삭제됨"});
     }
@@ -105,6 +105,11 @@ async function deleteRepositoryInTracker (req, res) {
         error: '서버 처리 중 알 수 없는 오류가 발생했습니다. 다시 시도해주세요.'
       });
     }
+    // 추가된 폴백 오류 응답
+    console.error("Error in deleteRepositoryInTracker controller:", error);
+    return res.status(500).json({
+      error: '저장소 삭제 중 서버에서 오류가 발생했습니다. 다시 시도해주세요.'
+    });
   }
 }
 // TODO: 특정 저장소 개요 정보 조회

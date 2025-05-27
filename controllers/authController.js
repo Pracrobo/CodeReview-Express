@@ -1,7 +1,8 @@
 import { githubService } from '../services/githubService.js';
 import jwt from 'jsonwebtoken';
+import { findUserByGithubId, createUser, deleteUserByGithubId } from '../models/userRepository.js';
 
-const users = []; // TODO: 실제 서비스에서는 DB 사용
+// GitHub 로그인 페이지로 리다이렉트
 
 export const login = (req, res) => {
   const clientId = process.env.GITHUB_CLIENT_ID;
@@ -10,8 +11,20 @@ export const login = (req, res) => {
   res.redirect(githubAuthUrl);
 };
 
+// GitHub에서 받은 code를 프론트엔드로 리다이렉트
+export const githubRedirect = (req, res) => {
+  const code = req.query.code;
+  const frontendUrl = process.env.FRONTEND_URL;
+  res.redirect(`${frontendUrl}/oauth/callback?code=${code}`);
+};
+
+// code를 받아 토큰 및 사용자 정보 발급
 export const callback = async (req, res) => {
-  const { code } = req.query;
+  const code = req.body.code;
+  if (!code) {
+    return res.status(400).json({ message: '코드가 필요합니다.' });
+  }
+
   try {
     const accessToken = await githubService.getAccessToken(code);
     const userInfo = await githubService.getUserInfo(accessToken);
@@ -24,65 +37,75 @@ export const callback = async (req, res) => {
       email = primaryEmail ? primaryEmail.email : (emails[0]?.email || '');
     }
 
-    // 사용자 정보 저장
-    let user = users.find(u => u.githubId === userInfo.id);
+
+    // DB에서 사용자 조회 또는 생성
+    let user = await findUserByGithubId(userInfo.id);
     if (!user) {
-      user = {
-        id: users.length + 1,
+      user = await createUser({
         githubId: userInfo.id,
         username: userInfo.login,
-        avatar_url: userInfo.avatar_url,
         email,
-        accessToken,
-      };
-      users.push(user);
-    } else {
-      user.email = email;
-      user.avatar_url = userInfo.avatar_url;
-      user.accessToken = accessToken;
+        avatarUrl: userInfo.avatar_url,
+      });
     }
 
-    // JWT 발급 (avatar_url 포함)
+    // JWT 발급
     const token = jwt.sign(
       {
-        id: user.id,
+        id: user.userId,
         githubId: user.githubId,
         username: user.username,
         email: user.email,
-        avatar_url: user.avatar_url,
+        avatarUrl: user.avatarUrl,
+        githubAccessToken: accessToken,
+
       },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
 
-    // 프론트엔드로 리다이렉트 (avatar_url도 전달)
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    res.redirect(
-      `${frontendUrl}/oauth/callback?token=${token}&username=${encodeURIComponent(user.username)}&email=${encodeURIComponent(user.email)}&avatar_url=${encodeURIComponent(user.avatar_url)}`
-    );
+    // 프론트엔드로 JSON 응답
+    res.json({
+      token,
+      accessToken,
+      username: user.username,
+      email: user.email,
+      avatarUrl: user.avatarUrl,
+    });
   } catch (err) {
     console.error('OAuth Callback Error:', err?.response?.data || err.message || err);
-    res.status(500).json({ message: 'Internal server error', error: err?.response?.data || err.message || err });
+    res.status(500).json({ message: '내부 서버 오류', error: err?.response?.data || err.message || err });
   }
 };
 
+// 로그아웃 및 GitHub 연동 해제
 export const logout = async (req, res) => {
   try {
-    const token = req.headers['authorization']?.split(' ')[1];
-    if (!token) {
-      return res.status(403).json({ message: 'A token is required for logout' });
+    const accessToken = req.user.githubAccessToken;
+    if (!accessToken) {
+      return res.status(400).json({ message: 'GitHub 액세스 토큰을 찾을 수 없습니다. 다시 로그인해주세요.' });
     }
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = users.find(u => u.id === decoded.id);
-
-    if (user && user.accessToken) {
-      await githubService.revokeAccessToken(user.accessToken);
-      user.accessToken = null;
-    }
-
-    res.json({ message: 'Logged out and GitHub app authorization revoked' });
+    await githubService.revokeAccessToken(accessToken);
+    res.json({ message: '로그아웃 및 GitHub 연동 해제 완료' });
   } catch (err) {
     console.error('Logout Error:', err?.response?.data || err.message || err);
-    res.status(500).json({ message: 'Internal server error', error: err?.response?.data || err.message || err });
+    res.status(500).json({ message: '내부 서버 오류', error: err?.response?.data || err.message || err });
+  }
+};
+
+// 계정 삭제
+export const deleteAccount = async (req, res) => {
+  try {
+    // verifyJWT 미들웨어에서 이미 토큰 검증 완료
+    const { githubId } = req.user;
+
+    // DB에서 사용자 삭제
+    await deleteUserByGithubId(githubId);
+
+    res.json({ message: '계정이 삭제되었습니다.' });
+  } catch (err) {
+    console.error('Delete Account Error:', err?.response?.data || err.message || err);
+    res.status(500).json({message: '서버 내부 오류', error: err?.response?.data || err.message || err });
+
   }
 };
