@@ -11,8 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code (Optional - for context)
-        uses: actions/checkout@v4 # 서버에서 직접 git pull 하므로 이 스텝은 참고용
+# Removed unused checkout step
 
       - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@v1.2.2
