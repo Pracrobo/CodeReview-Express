@@ -1,6 +1,6 @@
 import { githubService } from '../services/githubService.js';
 import jwt from 'jsonwebtoken';
-import { findUserByGithubId, createUser, deleteUserByGithubId } from '../database/userRepository.js';
+import { findUserByGithubId, createUser, deleteUserByGithubId } from '../models/userRepository.js';
 
 // GitHub 로그인 페이지로 리다이렉트
 export const login = (req, res) => {
@@ -54,6 +54,7 @@ export const callback = async (req, res) => {
         username: user.username,
         email: user.email,
         avatarUrl: user.avatarUrl,
+        githubAccessToken: accessToken,
       },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
@@ -76,9 +77,9 @@ export const callback = async (req, res) => {
 // 로그아웃 및 GitHub 연동 해제
 export const logout = async (req, res) => {
   try {
-    const accessToken = req.body.accessToken;
+    const accessToken = req.user.githubAccessToken;
     if (!accessToken) {
-      return res.status(400).json({ message: 'accessToken이 필요합니다.' });
+      return res.status(400).json({ message: 'GitHub 액세스 토큰을 찾을 수 없습니다. 다시 로그인해주세요.' });
     }
     await githubService.revokeAccessToken(accessToken);
     res.json({ message: '로그아웃 및 GitHub 연동 해제 완료' });
@@ -99,13 +100,7 @@ export const deleteAccount = async (req, res) => {
 
     res.json({ message: '계정이 삭제되었습니다.' });
   } catch (err) {
-    console.error(
-      'Delete Account Error:',
-      err?.response?.data || err.message || err
-    );
-    res.status(500).json({
-      message: '서버 내부 오류',
-      error: err?.response?.data || err.message || err,
-    });
+    console.error('Delete Account Error:', err?.response?.data || err.message || err);
+    res.status(500).json({message: '서버 내부 오류', error: err?.response?.data || err.message || err });
   }
 };

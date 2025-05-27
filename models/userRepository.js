@@ -1,4 +1,4 @@
-import getConnectionPool from './index.js';
+import getConnectionPool from '../database/index.js';
 
 // snake_case → camelCase 변환 함수
 function toCamelCaseUser(user) {
@@ -8,7 +8,7 @@ function toCamelCaseUser(user) {
     githubId: user.github_user_id,
     username: user.username,
     email: user.email,
-    avatarUrl: user.avatar_url, // camelCase로 변환
+    avatarUrl: user.avatar_url,
   };
 }
 
