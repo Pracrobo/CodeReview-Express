@@ -1,12 +1,12 @@
-import repoModel from "../models/repositoryModels.js";
+import repoModel from '../models/repositoryModel.js';
 // 비즈니스 로직 담당
 
 // 내가 저장한 저장소 목록 중 특정 단어로 검색한 결과 가져오기
-async function findRepository(word){
-  try{
-    const response = await repoModel.selectRepository(word); 
-    if(response.status) {
-      const data = response.data.map(row => ({
+async function findRepository(word) {
+  try {
+    const response = await repoModel.selectRepository(word);
+    if (response.status) {
+      const data = response.data.map((row) => ({
         userId: row.user_id,
         repoId: row.repo_id,
         githubRepoId: row.github_repo_id,
@@ -23,20 +23,20 @@ async function findRepository(word){
         issueTotalCount: row.issue_total_count,
         lastAnalyzedAt: row.last_analyzed_at,
         createdAt: row.created_at,
-        updatedAt: row.updated_at
+        updatedAt: row.updated_at,
       }));
-      return {status: true, data : data};
-    }else{
+      return { status: true, data: data };
+    } else {
       return { status: true, data: [] };
     }
   } catch (err) {
     return {
       status: false,
-      message: "서버 오류로 검색에 실패했습니다.",
+      message: '서버 오류로 검색에 실패했습니다.',
       error: err,
     };
   }
-};
+}
 
 // 내 저장소 목록 조회
 async function getRepositories(userId) {
@@ -44,7 +44,7 @@ async function getRepositories(userId) {
   if (!response.status) {
     throw new Error('SELECT_FAILED');
   }
-  const data = response.data.map(row => ({
+  const data = response.data.map((row) => ({
     userId: userId,
     repoId: row.repo_id,
     githubRepoId: row.github_repo_id,
@@ -62,7 +62,7 @@ async function getRepositories(userId) {
     issueTotalCount: row.issue_total_count,
     lastAnalyzedAt: row.last_analyzed_at,
     createdAt: row.created_at,
-    updatedAt: row.updated_at
+    updatedAt: row.updated_at,
   }));
   return data;
 }
@@ -73,26 +73,28 @@ async function getUserTrackingStatusForRepo(userId, githubRepositoryId) {
   if (!results.status) {
     throw new Error('SELECT_FAILED');
   } else if (results.tracked) {
-    return {status: true}
+    return { status: true };
   } else {
-    return {status: false};
+    return { status: false };
   }
 }
 //'내 저장소'에 특정 저장소 추가(트래킹 목록에 추가)
 async function addRepositoryToUserTrackedList(userId, githubRepositoryId) {
-  const insertResponse = await repoModel.insertTrack(userId, githubRepositoryId);
+  const insertResponse = await repoModel.insertTrack(
+    userId,
+    githubRepositoryId
+  );
   if (insertResponse.error) {
     throw new Error('INSERT_FAILED');
-  }else{
-    return await getRepositories(userId)
+  } else {
+    return await getRepositories(userId);
   }
 }
 
-
 //'내 저장소'에서 특정 저장소 삭제
-async function deleteRepositoryToUserTrackedList (userId, githubRepoId) {
+async function deleteRepositoryToUserTrackedList(userId, githubRepoId) {
   const deleteResponse = await repoModel.deleteTrack(userId, githubRepoId);
-  if(deleteResponse.error) {
+  if (deleteResponse.error) {
     throw new Error('DELETE_FAILED');
   }
   return deleteResponse;
@@ -108,12 +110,12 @@ async function getOverViewRepository(userId, githubRepoId) {
 }
   */
 //특정 저장소 이슈 목록 및 AI 분석 결과 조회
-function getIssueList () {}
+function getIssueList() {}
 //특정 저장소 코드 컨벤션 문서 조회
-function getCodeConvention() {} 
+function getCodeConvention() {}
 //function pagination()
 
-//  TODO: 
+//  TODO:
 // const pageProcess = async(page, perPage) => {
 //   const currentPage = 1;
 //   const totalPage = 1;
@@ -125,4 +127,10 @@ function getCodeConvention() {}
 //   return pageInfo
 // }
 
-export {findRepository, getRepositories,  getUserTrackingStatusForRepo,  addRepositoryToUserTrackedList, deleteRepositoryToUserTrackedList};
+export {
+  findRepository,
+  getRepositories,
+  getUserTrackingStatusForRepo,
+  addRepositoryToUserTrackedList,
+  deleteRepositoryToUserTrackedList,
+};
