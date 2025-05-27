@@ -235,6 +235,57 @@ VALUES (
         '2025-05-21 16:00:00',
         '2014-08-19 04:33:40',
         '2025-05-22 11:00:00'
+    ),
+    (
+        800000001,
+        'tanstack/react-query',
+        '🤖 강력한 비동기 상태 관리 및 서버 상태 유틸리티 라이브러리',
+        'https://github.com/tanstack/react-query',
+        'TypeScript',
+        87,
+        'MIT',
+        'React Query는 React 애플리케이션에서 서버 상태를 가져오고, 캐싱하고, 동기화하고, 업데이트하는 작업을 쉽게 만들어주는 라이브러리입니다. 복잡한 상태 관리 코드 없이도 비동기 데이터를 효율적으로 관리할 수 있습니다.',
+        35200,
+        2100,
+        15,
+        42,
+        '2023-05-15 00:00:00',
+        '2020-01-10 10:00:00',
+        '2023-05-20 10:00:00'
+    ),
+    (
+        800000002,
+        'vercel/next.js',
+        'React 프레임워크로 풀스택 웹 애플리케이션을 구축하세요',
+        'https://github.com/vercel/next.js',
+        'JavaScript',
+        90,
+        'MIT',
+        'Next.js는 풀스택 웹 애플리케이션 구축을 위한 React 프레임워크입니다. 서버 사이드 렌더링, 정적 사이트 생성 등 다양한 기능을 제공합니다.',
+        98700,
+        24300,
+        200,
+        156,
+        '2023-05-18 00:00:00',
+        '2016-10-25 00:00:00',
+        '2023-05-19 00:00:00'
+    ),
+    (
+        800000003,
+        'honggildong/my-project',
+        '개인 프로젝트 저장소',
+        'https://github.com/honggildong/my-project',
+        'Python',
+        100,
+        'MIT',
+        '홍길동의 개인 프로젝트입니다. 다양한 실험과 학습 내용을 포함하고 있습니다.',
+        5,
+        1,
+        2,
+        8,
+        '2023-05-19 00:00:00',
+        '2022-08-01 00:00:00',
+        '2023-05-20 00:00:00'
     );
 -- 사용자 추적 저장소 데이터 삽입
 INSERT INTO user_tracked_repositories (
@@ -355,6 +406,86 @@ VALUES (
         '["installation", "bug", "high-priority"]',
         '2025-05-21 10:00:00',
         '2025-05-21 10:15:00'
+    ),
+    (
+        5,
+        8,
+        90001,
+        1234,
+        'useQuery가 SSR에서 제대로 작동하지 않는 문제',
+        'Next.js 앱에서 useQuery를 사용할 때 SSR 중에 데이터를 가져오지 못하는 문제가 있습니다. 서버 컴포넌트에서 사용할 때 특히 문제가 됩니다.\n\n재현 단계:\n1. Next.js 13 앱 라우터 프로젝트 생성\n2. 서버 컴포넌트에서 useQuery 사용 시도\n3. \'useQuery는 클라이언트 컴포넌트에서만 사용할 수 있습니다\' 오류 발생\n\n예상 동작: SSR 중에도 데이터를 가져올 수 있어야 합니다.',
+        'user123',
+        'open',
+        88,
+        'https://github.com/tanstack/react-query/issues/1234',
+        '이 이슈는 React Query의 useQuery 훅이 Next.js 13의 서버 컴포넌트에서 작동하지 않는 문제에 관한 것입니다. 이는 React 훅이 서버 컴포넌트에서 지원되지 않기 때문에 발생하는 제한사항입니다.',
+        JSON_ARRAY('bug', 'help wanted'),
+        '2023-05-10 00:00:00',
+        '2023-05-11 00:00:00'
+    ),
+    (
+        6,
+        8,
+        90002,
+        1235,
+        'useMutation 타입 추론 개선 제안',
+        'useMutation 훅의 타입 추론을 개선하여 더 나은 개발자 경험을 제공하면 좋겠습니다. 현재는 복잡한 제네릭 타입을 직접 지정해야 하는 경우가 많습니다.',
+        'devUser456',
+        'open',
+        75,
+        'https://github.com/tanstack/react-query/issues/1235',
+        'useMutation 훅의 TypeScript 타입 추론을 개선하여 개발자 경험을 향상시키자는 제안입니다.',
+        JSON_ARRAY('enhancement', 'typescript'),
+        '2023-05-12 00:00:00',
+        '2023-05-13 00:00:00'
+    ),
+    (
+        7,
+        8,
+        90003,
+        1236,
+        '문서에 React 18 관련 내용 추가 필요',
+        'React 18의 새로운 기능과 함께 React Query를 사용하는 방법에 대한 문서가 필요합니다. 특히 Suspense와의 통합에 대한 가이드가 있으면 좋겠습니다.',
+        'docWriter789',
+        'open',
+        70,
+        'https://github.com/tanstack/react-query/issues/1236',
+        'React 18의 새로운 기능(특히 Suspense)과 React Query 통합 사용법에 대한 문서 추가 요청입니다.',
+        JSON_ARRAY('documentation', 'good first issue'),
+        '2023-05-14 00:00:00',
+        '2023-05-15 00:00:00'
+    ),
+    (
+        8,
+        8,
+        90004,
+        1237,
+        '캐시 무효화 API 개선',
+        '특정 조건에서 캐시를 무효화하는 더 유연한 API가 필요합니다. 현재는 queryKey 기반으로만 무효화할 수 있어 제한적입니다.',
+        'cacheExpert',
+        'closed',
+        80,
+        'https://github.com/tanstack/react-query/issues/1237',
+        '더 유연한 조건으로 캐시를 무효화할 수 있는 API 개선에 대한 이슈였으며, 해결되었습니다.',
+        JSON_ARRAY('enhancement', 'fixed'),
+        '2023-05-05 00:00:00',
+        '2023-05-08 00:00:00'
+    ),
+    (
+        9,
+        9,
+        90005,
+        45678,
+        'App Router에서 getStaticProps 대체 방법 문서화 필요',
+        'Next.js 13 App Router에서 기존 Pages Router의 getStaticProps를 대체하는 방법에 대한 명확한 문서가 필요합니다. 데이터 페칭 전략에 대한 상세 가이드가 포함되면 좋겠습니다.',
+        'nextUser123',
+        'open',
+        90,
+        'https://github.com/vercel/next.js/issues/45678',
+        'Next.js 13의 App Router 환경에서 Pages Router의 getStaticProps와 유사한 기능을 구현하는 방법에 대한 문서화 요청입니다.',
+        JSON_ARRAY('documentation', 'app-router'),
+        '2023-05-16 00:00:00',
+        '2023-05-17 00:00:00'
     );
 -- 챗봇 대화 데이터 삽입
 INSERT INTO chat_bot_conversations (
@@ -386,6 +517,13 @@ VALUES (
         5,
         '2025-05-18 16:20:00',
         '2025-05-19 10:15:00'
+    ),
+    (
+        5,
+        1,
+        8,
+        '2024-05-23 10:00:00',
+        '2024-05-23 10:05:00'
     );
 -- 챗봇 메시지 데이터 삽입
 INSERT INTO chat_bot_messages (
@@ -453,6 +591,18 @@ VALUES (
         'Agent',
         'VS Code 확장 개발은 yo code 제너레이터로 시작할 수 있습니다. TypeScript 템플릿을 추천드립니다.',
         '2025-05-18 16:21:00'
+    ),
+    (
+        5,
+        'User',
+        '이 프로젝트에 기여하려면 어떻게 해야 하나요?',
+        '2024-05-23 10:00:00'
+    ),
+    (
+        5,
+        'Agent',
+        'tanstack/react-query 프로젝트에 기여하는 방법은 다음과 같습니다:\n1. 저장소를 포크(Fork)하세요.\n2. 새 브랜치를 생성하세요 (예: feature/your-feature-name).\n3. 변경사항을 커밋하세요.\n4. 브랜치를 푸시하세요.\n5. Pull Request를 생성하세요.\n자세한 내용은 CONTRIBUTING.md 파일을 참고하세요.',
+        '2024-05-23 10:01:00'
     );
 -- 추천 코드 스니펫 데이터 삽입
 INSERT INTO recommended_code_snippets (
@@ -524,4 +674,37 @@ VALUES (
         85.40,
         'TensorFlow 2.x 호환성을 검증하는 테스트 코드 예제입니다.',
         '2025-05-18 12:20:00'
+    ),
+    (
+        7,
+        5,
+        'src/useQuery.ts',
+        NULL,
+        NULL,
+        'export function useQuery(options) {\n  const queryClient = useQueryClient()\n  // React 훅 사용\n  const [state, setState] = React.useState()\n  \n  // 이 부분이 서버 컴포넌트에서 문제가 됨\n  React.useEffect(() => {\n    // 데이터 페칭 로직\n  }, [])\n  \n  return state\n}',
+        95.00,
+        'useQuery 훅의 핵심 로직으로, React.useEffect 사용 부분이 서버 컴포넌트에서 문제를 야기합니다. 이 문제를 해결하기 위해서는 Next.js 13 앱 라우터에서 "use client" 지시문을 사용하여 클라이언트 컴포넌트를 명시적으로 선언하고, 그 안에서 useQuery를 사용해야 합니다.',
+        '2023-05-21 10:00:00'
+    ),
+    (
+        8,
+        5,
+        'examples/nextjs/pages/index.tsx',
+        NULL,
+        NULL,
+        '// Next.js 페이지 컴포넌트\nexport default function Home() {\n  // 클라이언트 사이드에서만 작동\n  const { data, isLoading } = useQuery({\n    queryKey: [\'todos\'],\n    queryFn: fetchTodos,\n  })\n  \n  if (isLoading) return <div>로딩 중...</div>\n  \n  return (\n    <div>\n      {data.map(todo => (\n        <div key={todo.id}>{todo.title}</div>\n      ))}\n    </div>\n  )\n}',
+        85.00,
+        'Next.js 페이지 컴포넌트에서 useQuery를 사용하는 예시입니다. 클라이언트 사이드에서 정상 작동하며, 서버 컴포넌트에서는 직접 fetch를 사용하거나 클라이언트 컴포넌트로 분리해야 합니다.',
+        '2023-05-21 10:05:00'
+    ),
+    (
+        9,
+        5,
+        'src/core/queryClient.ts',
+        NULL,
+        NULL,
+        '// class QueryClient { ... } \n // 이 파일은 QueryClient의 핵심 로직을 담고 있으며, \n // useQuery가 내부적으로 이 클라이언트를 사용하여 상태를 관리합니다. \n // 서버 컴포넌트 호환성을 위해서는 클라이언트 인스턴스 생성 및 주입 방식을 고려해야 할 수 있습니다.',
+        80.00,
+        'QueryClient 핵심 로직 파일입니다. 서버 컴포넌트와의 호환성을 위해서는 QueryClient 인스턴스가 클라이언트 측에서 관리되도록 해야 합니다.',
+        '2023-05-21 10:10:00'
     );
