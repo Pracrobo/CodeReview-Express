@@ -1,18 +1,18 @@
 import jwt from 'jsonwebtoken';
 import { findUserByGithubId, createUser } from '../models/User.js';
-import { githubService } from './githubApiService.js';
+import { githubApiService } from './githubApiService.js';
 
 export const processGithubLogin = async (code) => {
   if (!code) {
     throw new Error('GitHub 인증 코드가 필요합니다.');
   }
 
-  const accessToken = await githubService.getAccessToken(code);
-  const githubUser = await githubService.getUserInfo(accessToken);
+  const accessToken = await githubApiService.getAccessToken(code);
+  const githubUser = await githubApiService.getUserInfo(accessToken);
 
   let email = githubUser.email;
   if (!email) {
-    const emails = await githubService.getUserEmails(accessToken);
+    const emails = await githubApiService.getUserEmails(accessToken);
     const primaryEmail = emails.find((e) => e.primary && e.verified);
     email = primaryEmail?.email || emails[0]?.email || '';
   }
@@ -54,5 +54,5 @@ export const revokeGithubToken = async (githubAccessToken) => {
   if (!githubAccessToken) {
     throw new Error('GitHub 액세스 토큰이 필요합니다.');
   }
-  await githubService.revokeAccessToken(githubAccessToken);
+  await githubApiService.revokeAccessToken(githubAccessToken);
 };

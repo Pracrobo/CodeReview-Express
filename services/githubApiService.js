@@ -4,7 +4,7 @@ import querystring from 'querystring';
 const GITHUB_API_URL = 'https://api.github.com';
 const GITHUB_OAUTH_URL = 'https://github.com/login/oauth';
 
-export const githubService = {
+export const githubApiService = {
   // GitHub OAuth 코드로 액세스 토큰 요청
   async getAccessToken(code) {
     try {
