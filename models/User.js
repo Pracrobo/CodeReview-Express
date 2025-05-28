@@ -9,6 +9,11 @@ function toCamelCaseUser(user) {
     username: user.username,
     email: user.email,
     avatarUrl: user.avatar_url,
+    isProPlan: !!user.is_pro_plan,
+    proPlanActivatedAt: user.pro_plan_activated_at,
+    proPlanExpiresAt: user.pro_plan_expires_at,
+    createdAt: user.created_at,
+    updatedAt: user.updated_at,
   };
 }
 
