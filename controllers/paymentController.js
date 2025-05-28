@@ -35,6 +35,8 @@ export const getPaymentStatus = async (req, res) => {
       avatarUrl: user.avatarUrl,
       isProPlan: user.isProPlan || false,
       proPlanExpiresAt: user.proPlanExpiresAt || null,
+      createdAt: user.createdAt || null,
+      updatedAt: user.updatedAt || null,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
