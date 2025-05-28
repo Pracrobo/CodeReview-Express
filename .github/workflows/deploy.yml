@@ -1,0 +1,36 @@
+name: Deploy Express Server
+
+on:
+  push:
+    branches:
+      - main # main 브랜치에 푸시(병합)될 때 실행
+
+jobs:
+  deploy:
+    name: Deploy Express App to Server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            echo "Navigating to project directory..."
+            cd ${{ secrets.SERVER_EXPRESS_APP_PATH }}
+
+            echo "Pulling latest changes from main branch..."
+            git checkout main
+            git reset --hard HEAD # 로컬 변경사항 무시하고 원격 저장소 상태로 강제 업데이트
+            git pull origin main
+
+            echo "Installing/updating production dependencies..."
+            npm install --omit=dev # 개발 의존성 제외하고 설치
+
+            echo "Restarting PM2 process: ${{ secrets.PM2_EXPRESS_APP_NAME }}"
+            pm2 restart ${{ secrets.PM2_EXPRESS_APP_NAME }}
+            
+            echo "Deployment to Express server successful!"
