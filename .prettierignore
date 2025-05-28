@@ -1,0 +1,25 @@
+# 의존성 디렉토리
+node_modules/
+
+# 빌드 출력
+dist/
+build/
+
+# 로그 파일
+*.log
+
+# 환경 설정 파일
+.env
+.env.local
+.env.development
+.env.production
+
+# package-lock.json (자동 생성 파일)
+package-lock.json
+
+# 데이터베이스 관련
+*.sql
+*.db
+
+# 기타 설정 파일
+.gitignore
