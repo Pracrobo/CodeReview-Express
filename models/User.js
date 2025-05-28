@@ -53,8 +53,8 @@ export async function updateProPlanStatus(userId) {
          pro_plan_activated_at = NOW(),
          pro_plan_expires_at = 
            CASE
-             WHEN pro_plan_expires_at > NOW() THEN DATE_ADD(pro_plan_expires_at, INTERVAL 1 MONTH)
-             ELSE DATE_ADD(NOW(), INTERVAL 1 MONTH)
+             WHEN pro_plan_expires_at > NOW() THEN DATE_ADD(pro_plan_expires_at, INTERVAL 1 MONTH) - INTERVAL 1 SECOND
+             ELSE DATE_ADD(NOW(), INTERVAL 1 MONTH) - INTERVAL 1 SECOND
            END,
          updated_at = NOW()
      WHERE user_id = ?`,

@@ -1,13 +1,13 @@
-import { updateProPlanStatus } from '../models/User.js';
-import { findUserByGithubId } from '../models/User.js';
+import { findUserByGithubId, updateProPlanStatus } from '../models/User.js';
 
 export const paymentComplete = async (req, res) => {
   try {
     const { id } = req.user;
-    if (!id) {
-      return res.status(400).json({ success: false, message: '사용자 정보가 없습니다.' });
-    }
+    if (!id) return res.status(400).json({ success: false, message: '사용자 정보가 없습니다.' });
+
+    // users 테이블의 is_pro_plan, pro_plan_expires_at 갱신
     await updateProPlanStatus(id);
+
     res.json({ success: true, message: 'Pro 플랜이 활성화되었습니다.' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
