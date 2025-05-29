@@ -9,6 +9,11 @@ function toCamelCaseUser(user) {
     username: user.username,
     email: user.email,
     avatarUrl: user.avatar_url,
+    isProPlan: !!user.is_pro_plan,
+    proPlanActivatedAt: user.pro_plan_activated_at,
+    proPlanExpiresAt: user.pro_plan_expires_at,
+    createdAt: user.created_at,
+    updatedAt: user.updated_at,
   };
 }
 
@@ -42,4 +47,22 @@ export async function createUser({ githubId, username, email, avatarUrl }) {
 export async function deleteUserByGithubId(githubId) {
   const pool = getConnectionPool();
   await pool.query('DELETE FROM users WHERE github_user_id = ?', [githubId]);
+}
+
+// 프로 사용자 플랜 상태 업데이트
+export async function updateProPlanStatus(githubId) {
+  const pool = getConnectionPool();
+  await pool.query(
+    `UPDATE users
+     SET is_pro_plan = 1,
+         pro_plan_activated_at = NOW(),
+         pro_plan_expires_at = 
+           CASE
+             WHEN pro_plan_expires_at > NOW() THEN DATE_ADD(pro_plan_expires_at, INTERVAL 1 MONTH) - INTERVAL 1 SECOND
+             ELSE DATE_ADD(NOW(), INTERVAL 1 MONTH) - INTERVAL 1 SECOND
+           END,
+         updated_at = NOW()
+     WHERE github_user_id = ?`,
+    [githubId]
+  );
 }
