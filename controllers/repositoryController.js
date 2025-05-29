@@ -44,12 +44,10 @@ async function searchRepository(req, res) {
 // 내 저장소 목록 조회
 async function getRepositoryList(req, res) {
   const userId = req.user.id; // authenticate 미들웨어에서 주입된 사용자 ID
-
   try {
     const repositories = await getUserRepositories(userId);
     return res.status(200).json({
-      success: true,
-      repositories,
+      data: repositories,
       message:
         repositories.length === 0 ? '추적 중인 저장소가 없습니다.' : null,
     });

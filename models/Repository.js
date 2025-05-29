@@ -2,6 +2,30 @@ import { getConnectionPool } from '../database/database.js';
 
 const pool = getConnectionPool();
 
+
+// DB 조회 결과(snake_case)를 camelCase로 변환
+function toCamelCaseRepositories(rows) {
+  return rows.map((row) => ({
+    repoId: row.repo_id,
+    githubRepoId: row.github_repo_id,
+    fullName: row.full_name,
+    description: row.description,
+    htmlUrl: row.html_url,
+    isTrackedByCurrentUser: true,
+    programmingLanguage: row.programming_language,
+    languagePercentage: row.language_percentage,
+    licenseSpdxId: row.license_spdx_id,
+    readmeSummaryGpt: row.readme_summary_gpt,
+    star: row.star,
+    fork: row.fork,
+    prTotalCount: row.pr_total_count,
+    issueTotalCount: row.issue_total_count,
+    lastAnalyzedAt: row.last_analyzed_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }));
+}
+
 // 저장소 이름으로 검색 (Full-text search)
 async function selectRepository(word) {
   try {
@@ -25,10 +49,10 @@ async function selectTrackRepositories(userId) {
     WHERE utr.user_id = ?`,
       [userId]
     );
-    return { status: true, data: rows };
+    return toCamelCaseRepositories(rows);
   } catch (error) {
     console.error('트래킹 저장소 조회 쿼리 오류:', error);
-    return { status: false, error, data: [] };
+    return { status: false, data: [], error: error.message};
   }
 }
 

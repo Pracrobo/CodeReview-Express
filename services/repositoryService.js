@@ -1,5 +1,6 @@
 import repoModel from '../models/Repository.js';
 
+
 async function searchRepositories(word) {
   try {
     const response = await repoModel.selectRepository(word);
@@ -12,37 +13,15 @@ async function searchRepositories(word) {
     return {
       success: false,
       data: [],
-      message: '서버 오류로 검색에 실패했습니다.',
+      message: '서버 오류로 검색에 실패했습니다.' + error.message,
     };
   }
 }
 
 async function getUserRepositories(userId) {
   const response = await repoModel.selectTrackRepositories(userId);
-  if (!response.status) {
-    throw new Error('저장소 목록 조회에 실패했습니다.');
-  }
-
-  return response.data.map((row) => ({
-    repoId: row.repo_id,
-    githubRepoId: row.github_repo_id,
-    fullName: row.full_name,
-    description: row.description,
-    htmlUrl: row.html_url,
-    isTrackedByCurrentUser: true,
-    programmingLanguage: row.programming_language,
-    languagePercentage: row.language_percentage,
-    licenseSpdxId: row.license_spdx_id,
-    readmeSummaryGpt: row.readme_summary_gpt,
-    star: row.star,
-    fork: row.fork,
-    prTotalCount: row.pr_total_count,
-    issueTotalCount: row.issue_total_count,
-    lastAnalyzedAt: row.last_analyzed_at,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  }));
-}
+  return response;  
+};
 
 async function checkUserTrackingStatus(userId, githubRepositoryId) {
   const response = await repoModel.selectTrack(userId, githubRepositoryId);
