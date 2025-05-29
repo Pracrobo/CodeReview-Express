@@ -50,7 +50,7 @@ export async function deleteUserByGithubId(githubId) {
 }
 
 // 프로 사용자 플랜 상태 업데이트
-export async function updateProPlanStatus(userId) {
+export async function updateProPlanStatus(githubId) {
   const pool = getConnectionPool();
   await pool.query(
     `UPDATE users
@@ -62,7 +62,7 @@ export async function updateProPlanStatus(userId) {
              ELSE DATE_ADD(NOW(), INTERVAL 1 MONTH) - INTERVAL 1 SECOND
            END,
          updated_at = NOW()
-     WHERE user_id = ?`,
-    [userId]
+     WHERE github_user_id = ?`,
+    [githubId]
   );
 }
