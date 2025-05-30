@@ -9,7 +9,7 @@ import { authenticate } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
-// GitHub 저장소 검색
+// 내 저장소의 저장소중 검색
 router.get('/search', authenticate, searchRepository);
 
 // 내 저장소 목록 조회

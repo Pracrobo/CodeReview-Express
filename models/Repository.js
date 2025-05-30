@@ -5,7 +5,7 @@ const pool = getConnectionPool();
 
 // DB 조회 결과(snake_case)를 camelCase로 변환
 function toCamelCaseRepositories(rows) {
-  return rows.map((row) => ({
+  const data = rows.map((row) => ({
     repoId: row.repo_id,
     githubRepoId: row.github_repo_id,
     fullName: row.full_name,
@@ -24,6 +24,7 @@ function toCamelCaseRepositories(rows) {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }));
+  return {success: true, data: data};
 }
 
 // 저장소 이름으로 검색 (Full-text search)
@@ -33,10 +34,10 @@ async function selectRepository(word) {
       `SELECT * FROM repositories WHERE MATCH(full_name) AGAINST(? IN BOOLEAN MODE)`,
       [`*${word}*`] // 부분 일치 검색을 위해 와일드카드 추가 (Boolean Mode에서는 단어 단위 검색이 기본)
     );
-    return { status: true, data: rows };
+    return { success: true, data: rows };
   } catch (error) {
     console.error('저장소 검색 쿼리 오류:', error);
-    return { status: false, error: error.message };
+    return { success: false, error: error.message };
   }
 }
 
@@ -52,7 +53,7 @@ async function selectTrackRepositories(userId) {
     return toCamelCaseRepositories(rows);
   } catch (error) {
     console.error('트래킹 저장소 조회 쿼리 오류:', error);
-    return { status: false, error: error.message };
+    return { success: false, error: error.message };
   }
 }
 
@@ -64,13 +65,13 @@ async function selectTrack(userId, githubRepoId) {
       [userId, githubRepoId]
     );
     if( rows.length > 0){
-      return { status: true, tracked: true };
+      return { success: true, tracked: true };
     }else {
-      return { status: true, tracked: false };
+      return { success: true, tracked: false };
     }
   } catch (error) {
     console.error('트래킹 상태 확인 쿼리 오류:', error);
-    return { status: false, error: error.message};
+    return { success: false, error: error.message};
   }
 }
 
@@ -81,10 +82,10 @@ async function insertTrack(userId, githubRepoId) {
       `INSERT INTO user_tracked_repositories(user_id, repo_id) VALUES (?, ?)`,
       [userId, githubRepoId]
     );
-    return { status: true, data: result };
+    return { success: true, data: result };
   } catch (error) {
     console.error('트래킹 추가 쿼리 오류:', error);
-    return { status: false, error: error.message };
+    return { success: false, error: error.message };
   }
 }
 
@@ -95,10 +96,10 @@ async function deleteTrack(userId, githubRepoId) {
       `DELETE FROM user_tracked_repositories WHERE user_id = ? AND repo_id = ?`,
       [userId, githubRepoId]
     );
-    return { status: true, data: result }; // affectedRows는 result.affectedRows로 접근
+    return { success: true, data: result }; // affectedRows는 result.affectedRows로 접근
   } catch (error) {
-    console.error('트래킹 삭제 쿼리 오류:', error);
-    return { status: false, error: error.message };
+    console.error('트래킹 삭제 쿼리 오류:', error.message);
+    return { success: false, error: error.message };
   }
 }
 
