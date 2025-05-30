@@ -29,14 +29,14 @@ function toCamelCaseRepositories(rows) {
 // 저장소 이름으로 검색 (Full-text search)
 async function selectRepository(word) {
   try {
-    const [results] = await pool.query(
+    const [rows] = await pool.query(
       `SELECT * FROM repositories WHERE MATCH(full_name) AGAINST(? IN BOOLEAN MODE)`,
       [`*${word}*`] // 부분 일치 검색을 위해 와일드카드 추가 (Boolean Mode에서는 단어 단위 검색이 기본)
     );
-    return { status: true, data: results };
+    return { status: true, data: rows };
   } catch (error) {
     console.error('저장소 검색 쿼리 오류:', error);
-    return { status: false, error, data: [] };
+    return { status: false, error: error.message };
   }
 }
 
@@ -52,7 +52,7 @@ async function selectTrackRepositories(userId) {
     return toCamelCaseRepositories(rows);
   } catch (error) {
     console.error('트래킹 저장소 조회 쿼리 오류:', error);
-    return { status: false, data: [], error: error.message};
+    return { status: false, error: error.message };
   }
 }
 
@@ -63,10 +63,14 @@ async function selectTrack(userId, githubRepoId) {
       `SELECT * FROM user_tracked_repositories WHERE user_id = ? AND repo_id = ?`,
       [userId, githubRepoId]
     );
-    return { status: true, tracked: rows.length > 0, data: rows };
+    if( rows.length > 0){
+      return { status: true, tracked: true };
+    }else {
+      return { status: true, traked: false };
+    }
   } catch (error) {
     console.error('트래킹 상태 확인 쿼리 오류:', error);
-    return { status: false, tracked: false, error };
+    return { status: false, error: error.message };
   }
 }
 

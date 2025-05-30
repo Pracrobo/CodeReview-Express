@@ -20,7 +20,6 @@ async function searchRepository(req, res) {
 
   try {
     const result = await searchRepositories(query);
-
     if (result.success) {
       return res.status(200).json({
         success: true,
@@ -36,7 +35,7 @@ async function searchRepository(req, res) {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: '서버 오류로 검색에 실패했습니다.',
+      message: error.message,
     });
   }
 }
@@ -67,20 +66,20 @@ async function addRepositoryInTracker(req, res) {
   if (!githubRepoId) {
     return res.status(400).json({
       success: false,
-      message: '추가할 GitHub 저장소 ID가 필요합니다.',
+      message: 'GitHub repository의 repo_id가 필요합니다.',
     });
   }
 
   try {
     const isTracked = await checkUserTrackingStatus(userId, githubRepoId);
 
-    if (isTracked) {
+    if (isTracked.status && isTracked.tracked) {
       return res.status(409).json({
         success: false,
         message: '이미 트래킹 중인 저장소입니다.',
       });
     }
-
+  
     const repositories = await addRepositoryToTracking(userId, githubRepoId);
 
     return res.status(201).json({
