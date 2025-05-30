@@ -34,7 +34,6 @@ export const processGithubLogin = async (code) => {
     username: user.username,
     email: user.email,
     avatarUrl: user.avatarUrl,
-    githubAccessToken: accessToken,
   };
 
   const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, {
@@ -46,7 +45,6 @@ export const processGithubLogin = async (code) => {
     username: user.username,
     email: user.email,
     avatarUrl: user.avatarUrl,
-    githubAccessToken: accessToken,
   };
 };
 

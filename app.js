@@ -7,8 +7,10 @@ import morgan from 'morgan';
 import routes from './routes/index.js';
 import errorHandler from './middlewares/errorHandler.js';
 import { handleAuthError } from './middlewares/authMiddleware.js';
+import cookieParser from 'cookie-parser';
 
 const app = express();
+app.use(cookieParser());
 
 app.use(
   cors({
