@@ -72,9 +72,8 @@ async function addRepositoryInTracker(req, res) {
   }
 
   try {
-    const isTracked = await checkUserTrackingStatus(userId, githubRepoId);
-
-    if (isTracked.tracked) {
+    const result = await checkUserTrackingStatus(userId, githubRepoId);
+    if (result.tracked) {
       return res.status(409).json({
         success: false,
         message: '이미 트래킹 중인 저장소입니다.'
