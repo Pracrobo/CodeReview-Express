@@ -35,7 +35,7 @@ async function searchRepository(req, res) {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: 'DB 저장소 검색 중 오류가 발생했습니다.' + error.message
     });
   }
 }
@@ -53,7 +53,7 @@ async function getRepositoryList(req, res) {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: 'DB 트래킹된 저장소 목록 조회 중 오류가 발생했습니다.' + error.message,
     });
   }
 }
@@ -90,7 +90,7 @@ async function addRepositoryInTracker(req, res) {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: 'DB 트래킹 저장소 추가 중 오류가 발생했습니다.'  + error.message,
     });
   }
 }
@@ -127,7 +127,7 @@ async function deleteRepositoryInTracker(req, res) {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: 'DB 트래킹 저장소 삭제 중 오류가 발생했습니다.' + error.message,
     });
   }
 }
