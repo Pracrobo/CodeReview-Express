@@ -23,9 +23,22 @@ export const callback = async (req, res, next) => {
 
   try {
     const authResult = await processGithubLogin(code);
+
+    // githubAccessToken을 HttpOnly 쿠키로만 저장
+    res.cookie('githubAccessToken', authResult.githubAccessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 1000, // 1시간
+    });
+
+    const { token, username, email, avatarUrl } = authResult;
     res.json({
       success: true,
-      ...authResult,
+      token,
+      username,
+      email,
+      avatarUrl,
     });
   } catch (error) {
     res.status(400).json({

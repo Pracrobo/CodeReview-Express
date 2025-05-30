@@ -7,12 +7,12 @@ export const processGithubLogin = async (code) => {
     throw new Error('GitHub 인증 코드가 필요합니다.');
   }
 
-  const accessToken = await githubApiService.getAccessToken(code);
-  const githubUser = await githubApiService.getUserInfo(accessToken);
+  const githubAccessToken = await githubApiService.getAccessToken(code);
+  const githubUser = await githubApiService.getUserInfo(githubAccessToken);
 
   let email = githubUser.email;
   if (!email) {
-    const emails = await githubApiService.getUserEmails(accessToken);
+    const emails = await githubApiService.getUserEmails(githubAccessToken);
     const primaryEmail = emails.find((e) => e.primary && e.verified);
     email = primaryEmail?.email || emails[0]?.email || '';
   }
@@ -34,7 +34,6 @@ export const processGithubLogin = async (code) => {
     username: user.username,
     email: user.email,
     avatarUrl: user.avatarUrl,
-    githubAccessToken: accessToken,
   };
 
   const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, {
@@ -43,10 +42,10 @@ export const processGithubLogin = async (code) => {
 
   return {
     token,
+    githubAccessToken, // 이 줄 추가
     username: user.username,
     email: user.email,
     avatarUrl: user.avatarUrl,
-    githubAccessToken: accessToken,
   };
 };
 
