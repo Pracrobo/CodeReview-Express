@@ -7,8 +7,7 @@ async function searchRepositories(word) {
     throw new Error('저장소 검색에 실패했습니다.' + response.error);
   }
   return response.data || [];
-   
-}
+};
 
 async function getUserRepositories(userId) {
   const response = await repoModel.selectTrackRepositories(userId);
@@ -23,8 +22,8 @@ async function checkUserTrackingStatus(userId, githubRepositoryId) {
   if (!response.status) {
     throw new Error('트래킹 상태 확인에 실패했습니다.' + response.error);
   }
-  return response;
-}
+  return response.tracked;
+};
 
 async function addRepositoryToTracking(userId, githubRepositoryId) {
   const response = await repoModel.insertTrack(userId, githubRepositoryId);
@@ -32,7 +31,7 @@ async function addRepositoryToTracking(userId, githubRepositoryId) {
     throw new Error('저장소 추가에 실패했습니다.' + response.error);
   }
   return await getUserRepositories(userId);
-}
+};
 
 async function removeRepositoryFromTracking(userId, githubRepoId) {
   const response = await repoModel.deleteTrack(userId, githubRepoId);
@@ -40,9 +39,9 @@ async function removeRepositoryFromTracking(userId, githubRepoId) {
     throw new Error('저장소 삭제에 실패했습니다.' + response.error);
   }
   return response.data;
-}
+};
 
-export {
+export default {
   searchRepositories,
   getUserRepositories,
   checkUserTrackingStatus,

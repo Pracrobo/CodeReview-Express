@@ -70,7 +70,7 @@ async function selectTrack(userId, githubRepoId) {
     }
   } catch (error) {
     console.error('트래킹 상태 확인 쿼리 오류:', error);
-    return { status: false, error: error.message };
+    return { status: false, error: error.message};
   }
 }
 
