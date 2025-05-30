@@ -66,7 +66,7 @@ async function selectTrack(userId, githubRepoId) {
     if( rows.length > 0){
       return { status: true, tracked: true };
     }else {
-      return { status: true, traked: false };
+      return { status: true, tracked: false };
     }
   } catch (error) {
     console.error('트래킹 상태 확인 쿼리 오류:', error);
