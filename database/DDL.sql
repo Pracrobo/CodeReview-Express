@@ -15,6 +15,8 @@ CREATE TABLE `users` (
   `username` VARCHAR(255) NOT NULL,
   `avatar_url` VARCHAR(500) NULL,
   `email` VARCHAR(320) NULL UNIQUE,
+  `refresh_token` VARCHAR(500) NULL,
+  `refresh_token_expires_in` TIMESTAMP NULL,
   `is_pro_plan` BOOLEAN NOT NULL DEFAULT FALSE COMMENT '현재 Pro 플랜 활성 상태 여부',
   `pro_plan_activated_at` TIMESTAMP NULL COMMENT 'Pro 플랜 시작일 또는 마지막 갱신일',
   `pro_plan_expires_at` TIMESTAMP NULL COMMENT 'Pro 플랜 만료일 (NULL이면 무기한 또는 다른 로직)',
@@ -27,6 +29,7 @@ CREATE TABLE `users` (
     OR `email` IS NULL
   )
 );
+
 -- licenses 테이블
 CREATE TABLE `licenses` (
   `license_spdx_id` VARCHAR(50) NOT NULL,
@@ -153,6 +156,8 @@ CREATE INDEX `IX_users_email` ON `users`(`email`);
 CREATE INDEX `IX_users_is_pro_plan` ON `users`(`is_pro_plan`);
 CREATE INDEX `IX_users_pro_plan_expires_at` ON `users`(`pro_plan_expires_at`);
 CREATE INDEX `IX_users_created_at` ON `users`(`created_at`);
+CREATE INDEX `IX_users_refresh_token` ON `users`(`refresh_token`);
+CREATE INDEX `IX_users_refresh_token_expires_in` ON `users`(`refresh_token_expires_in`);
 -- repositories
 CREATE INDEX `IX_repositories_full_name` ON `repositories`(`full_name`);
 CREATE INDEX `IX_repositories_license_spdx_id` ON `repositories`(`license_spdx_id`);

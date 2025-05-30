@@ -4,6 +4,8 @@ INSERT INTO users(
         username,
         avatar_url,
         email,
+        refresh_token,
+        refresh_token_expires_in,
         is_pro_plan,
         pro_plan_activated_at,
         pro_plan_expires_at,
@@ -15,6 +17,8 @@ VALUES (
         '김앨리스',
         'https://avatars.githubusercontent.com/u/9911991?v=4',
         'alice.kim@example.com',
+        'token_alice_123abc',
+        '2025-06-29 10:00:00',
         1,
         '2024-01-01 10:00:00',
         '2025-01-01 10:00:00',
@@ -26,6 +30,8 @@ VALUES (
         '이밥',
         'https://avatars.githubusercontent.com/u/8822882?v=4',
         'bob.lee@example.com',
+        NULL,
+        NULL,
         0,
         NULL,
         NULL,
@@ -37,6 +43,8 @@ VALUES (
         '박찰리',
         'https://avatars.githubusercontent.com/u/7733773?v=4',
         'charlie.park@example.com',
+        'token_charlie_xyz789',
+        '2025-07-29 14:30:00',
         1,
         '2024-06-01 14:30:00',
         '2025-06-01 14:30:00',
@@ -292,51 +300,44 @@ INSERT INTO user_tracked_repositories (
         user_id,
         repo_id,
         tracked_at,
-        last_viewed_at,
-        is_favorite
+        last_viewed_at
     )
 VALUES (
         1,
         1,
         '2025-05-20 10:15:30',
-        '2025-05-21 08:00:00',
-        false
+        '2025-05-21 08:00:00'
     ),
     (
         1,
         6,
         '2025-05-19 09:00:00',
-        '2025-05-21 15:30:00',
-        false
+        '2025-05-21 15:30:00'
     ),
     (
         1,
         3,
         '2025-05-18 14:20:00',
-        '2025-05-22 09:45:00',
-        false
+        '2025-05-22 09:45:00'
     ),
     (
         2,
         2,
         '2025-05-17 11:30:00',
-        '2025-05-20 16:20:00',
-        false
+        '2025-05-20 16:20:00'
     ),
-    (2, 4, '2025-05-16 13:15:00', NULL, false),
+    (2, 4, '2025-05-16 13:15:00', NULL),
     (
         3,
         5,
         '2025-05-15 10:00:00',
-        '2025-05-21 12:30:00',
-        true
+        '2025-05-21 12:30:00'
     ),
     (
         3,
         7,
         '2025-05-14 16:45:00',
-        '2025-05-22 08:15:00',
-        true
+        '2025-05-22 08:15:00'
     );
 -- 이슈 데이터 샘플 삽입
 INSERT INTO issues (
