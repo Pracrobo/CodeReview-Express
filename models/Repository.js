@@ -36,10 +36,10 @@ async function selectRepository(word) {
     );
     return { success: true, data: rows };
   } catch (error) {
-    console.error('저장소 검색 쿼리 오류:', error);
-    return { success: false, error: error.message };
+    console.error('저장소 검색 쿼리 오류:', error.message);
+    return { success: false };
   }
-}
+};
 
 // 사용자가 트래킹하는 저장소 목록 조회
 async function selectTrackRepositories(userId) {
@@ -52,8 +52,8 @@ async function selectTrackRepositories(userId) {
     );
     return toCamelCaseRepositories(rows);
   } catch (error) {
-    console.error('트래킹 저장소 조회 쿼리 오류:', error);
-    return { success: false, error: error.message };
+    console.error('트래킹 저장소 조회 쿼리 오류:', error.message);
+    return { success: false };
   }
 }
 
@@ -70,8 +70,8 @@ async function selectTrack(userId, githubRepoId) {
       return { success: true, tracked: false };
     }
   } catch (error) {
-    console.error('트래킹 상태 확인 쿼리 오류:', error);
-    return { success: false, error: error.message};
+    console.error('트래킹 상태 확인 쿼리 오류:', error.message);
+    return { success: false };
   }
 }
 
@@ -84,8 +84,8 @@ async function insertTrack(userId, githubRepoId) {
     );
     return { success: true, data: result };
   } catch (error) {
-    console.error('트래킹 추가 쿼리 오류:', error);
-    return { success: false, error: error.message };
+    console.error('트래킹 추가 쿼리 오류:', error.message);
+    return { success: false };
   }
 }
 
@@ -99,7 +99,7 @@ async function deleteTrack(userId, githubRepoId) {
     return { success: true, data: result }; // affectedRows는 result.affectedRows로 접근
   } catch (error) {
     console.error('트래킹 삭제 쿼리 오류:', error.message);
-    return { success: false, error: error.message };
+    return { success: false };
   }
 }
 

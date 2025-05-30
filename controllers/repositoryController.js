@@ -33,9 +33,10 @@ async function searchRepository(req, res) {
       });
     }
   } catch (error) {
+    console.error('저장소 검색 중 오류:', error.message);
     return res.status(500).json({
       success: false,
-      message: 'DB 저장소 검색 중 오류가 발생했습니다.' + error.message
+      message: '저장소 검색 중 오류가 발생했습니다.'
     });
   }
 }
@@ -51,9 +52,10 @@ async function getRepositoryList(req, res) {
         repositories.data.length === 0 ? '추적 중인 저장소가 없습니다.' : null,
     });
   } catch (error) {
+    console.error('저장소 목록 조회 중 오류:', error.message);
     return res.status(500).json({
       success: false,
-      message: 'DB 트래킹된 저장소 목록 조회 중 오류가 발생했습니다.' + error.message,
+      message: '트래킹된 저장소 목록 조회 중 오류가 발생했습니다.'
     });
   }
 }
@@ -75,7 +77,7 @@ async function addRepositoryInTracker(req, res) {
     if (isTracked.tracked) {
       return res.status(409).json({
         success: false,
-        message: '이미 트래킹 중인 저장소입니다.',
+        message: '이미 트래킹 중인 저장소입니다.'
       });
     }
   
@@ -84,12 +86,13 @@ async function addRepositoryInTracker(req, res) {
     return res.status(201).json({
       success: true,
       data: repositories.data,
-      message: '저장소가 성공적으로 추가되었습니다.',
+      message: '저장소가 성공적으로 추가되었습니다.'
     });
   } catch (error) {
+    console.error('저장소 추가 중 오류:', error.message);
     return res.status(500).json({
       success: false,
-      message: 'DB 트래킹 저장소 추가 중 오류가 발생했습니다.'  + error.message,
+      message: '트래킹 저장소 추가 중 오류가 발생했습니다.'
     });
   }
 }
@@ -101,7 +104,7 @@ async function deleteRepositoryInTracker(req, res) {
   if (!githubRepoId) {
     return res.status(400).json({
       success: false,
-      message: '삭제할 GitHub 저장소 ID가 필요합니다.',
+      message: '삭제할 GitHub 저장소 ID가 필요합니다.'
     });
   }
 
@@ -123,9 +126,10 @@ async function deleteRepositoryInTracker(req, res) {
       });
     }
   } catch (error) {
+    console.error('저장소 삭제 중 오류:', error.message);
     return res.status(500).json({
       success: false,
-      message: 'DB 트래킹 저장소 삭제 중 오류가 발생했습니다.' + error
+      message: '트래킹 저장소 삭제 중 오류가 발생했습니다.'
     });
   }
 }
