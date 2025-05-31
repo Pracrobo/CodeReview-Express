@@ -42,18 +42,18 @@ export const processGithubLogin = async (code) => {
 
   return {
     token,
-    githubAccessToken,
     username: user.username,
     email: user.email,
     avatarUrl: user.avatarUrl,
+    githubAccessToken,
   };
 };
 
-export const disconnectGithub = async (githubAccessToken) => {
+export const unlinkGithub = async (githubAccessToken) => {
   if (!githubAccessToken) {
     throw new Error('GitHub 액세스 토큰이 필요합니다.');
   }
-  await githubApiService.disconnectGithub(githubAccessToken);
+  await githubApiService.unlinkGithub(githubAccessToken);
 };
 
 export const logoutGithub = async (githubAccessToken) => {

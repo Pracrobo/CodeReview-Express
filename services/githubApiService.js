@@ -55,7 +55,7 @@ export const githubApiService = {
   },
 
   // GitHub 애플리케이션 연동 해제 (grant 엔드포인트 사용)
-  async disconnectGithub(accessToken) {
+  async unlinkGithub(accessToken) {
     try {
       const basicAuth = Buffer.from(
         `${process.env.GITHUB_CLIENT_ID}:${process.env.GITHUB_CLIENT_SECRET}`

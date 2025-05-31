@@ -1,11 +1,11 @@
 import {
   processGithubLogin,
   logoutGithub,
-  disconnectGithub,
+  unlinkGithub,
 } from '../services/authService.js';
 import { deleteUserByGithubId } from '../models/User.js';
 
-// 중복된 쿠키 삭제 로직을 함수로 분리
+// GitHub 액세스 토큰 쿠키 삭제 헬퍼 함수
 function clearGithubAccessTokenCookie(res) {
   res.clearCookie('githubAccessToken', {
     httpOnly: true,
@@ -58,10 +58,9 @@ export const callback = async (req, res, next) => {
   }
 };
 
-// 로그아웃: GitHub 액세스 토큰 철회
+// GitHub 로그아웃
 export const logout = async (req, res) => {
   try {
-    // 쿠키에서 토큰 읽기
     const githubAccessToken = req.cookies.githubAccessToken;
 
     if (!githubAccessToken) {
@@ -73,7 +72,6 @@ export const logout = async (req, res) => {
 
     await logoutGithub(githubAccessToken);
 
-    // 쿠키 삭제 (공통 함수 사용)
     clearGithubAccessTokenCookie(res);
 
     res.json({
@@ -91,7 +89,6 @@ export const logout = async (req, res) => {
 // GitHub 계정 연동 해제
 export const unlink = async (req, res) => {
   try {
-    // 쿠키에서 토큰 읽기
     const githubAccessToken = req.cookies.githubAccessToken;
 
     if (!githubAccessToken) {
@@ -101,9 +98,8 @@ export const unlink = async (req, res) => {
       });
     }
 
-    await disconnectGithub(githubAccessToken);
+    await unlinkGithub(githubAccessToken);
 
-    // 쿠키 삭제 (공통 함수 사용)
     clearGithubAccessTokenCookie(res);
 
     res.json({
@@ -118,7 +114,7 @@ export const unlink = async (req, res) => {
   }
 };
 
-// 계정 삭제
+// GitHub 계정 데이터 삭제
 export const deleteAccount = async (req, res) => {
   try {
     const { githubId } = req.user;
