@@ -1,6 +1,7 @@
 import {
   processGithubLogin,
   logoutGithub,
+  disconnectGithub,
 } from '../services/authService.js';
 import { deleteUserByGithubId } from '../models/User.js';
 
@@ -73,6 +74,40 @@ export const logout = async (req, res) => {
     res.json({
       success: true,
       message: '로그아웃이 완료되었습니다.',
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// GitHub 계정 연동 해제
+export const unlink = async (req, res) => {
+  try {
+    // 쿠키에서 토큰 읽기
+    const githubAccessToken = req.cookies.githubAccessToken;
+
+    if (!githubAccessToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'GitHub 액세스 토큰 정보가 없습니다.',
+      });
+    }
+
+    await disconnectGithub(githubAccessToken);
+
+    // 쿠키 삭제
+    res.clearCookie('githubAccessToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    });
+
+    res.json({
+      success: true,
+      message: 'GitHub 계정 연동이 해제되었습니다.',
     });
   } catch (error) {
     res.status(500).json({

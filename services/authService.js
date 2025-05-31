@@ -42,7 +42,7 @@ export const processGithubLogin = async (code) => {
 
   return {
     token,
-    githubAccessToken, // 이 줄 추가
+    githubAccessToken,
     username: user.username,
     email: user.email,
     avatarUrl: user.avatarUrl,
