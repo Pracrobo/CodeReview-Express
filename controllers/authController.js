@@ -5,6 +5,15 @@ import {
 } from '../services/authService.js';
 import { deleteUserByGithubId } from '../models/User.js';
 
+// 중복된 쿠키 삭제 로직을 함수로 분리
+function clearGithubAccessTokenCookie(res) {
+  res.clearCookie('githubAccessToken', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+  });
+}
+
 // GitHub 로그인 페이지로 리다이렉트
 export const login = (req, res) => {
   const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}&redirect_uri=${process.env.GITHUB_REDIRECT_URI}&scope=user:email&allow_signup=true&prompt=login`;
@@ -64,12 +73,8 @@ export const logout = async (req, res) => {
 
     await logoutGithub(githubAccessToken);
 
-    // 쿠키 삭제
-    res.clearCookie('githubAccessToken', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-    });
+    // 쿠키 삭제 (공통 함수 사용)
+    clearGithubAccessTokenCookie(res);
 
     res.json({
       success: true,
@@ -98,12 +103,8 @@ export const unlink = async (req, res) => {
 
     await disconnectGithub(githubAccessToken);
 
-    // 쿠키 삭제
-    res.clearCookie('githubAccessToken', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-    });
+    // 쿠키 삭제 (공통 함수 사용)
+    clearGithubAccessTokenCookie(res);
 
     res.json({
       success: true,
