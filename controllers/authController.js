@@ -1,7 +1,7 @@
 import {
   processGithubLogin,
-  revokeGithubToken,
-} from '../services/authService.js'; // 경로 수정
+  logoutGithub,
+} from '../services/authService.js';
 import { deleteUserByGithubId } from '../models/User.js';
 
 // GitHub 로그인 페이지로 리다이렉트
@@ -51,7 +51,8 @@ export const callback = async (req, res, next) => {
 // 로그아웃: GitHub 액세스 토큰 철회
 export const logout = async (req, res) => {
   try {
-    const { githubAccessToken } = req.user;
+    // 쿠키에서 토큰 읽기
+    const githubAccessToken = req.cookies.githubAccessToken;
 
     if (!githubAccessToken) {
       return res.status(400).json({
@@ -60,7 +61,14 @@ export const logout = async (req, res) => {
       });
     }
 
-    await revokeGithubToken(githubAccessToken);
+    await logoutGithub(githubAccessToken);
+
+    // 쿠키 삭제
+    res.clearCookie('githubAccessToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    });
 
     res.json({
       success: true,

@@ -49,9 +49,16 @@ export const processGithubLogin = async (code) => {
   };
 };
 
-export const revokeGithubToken = async (githubAccessToken) => {
+export const disconnectGithub = async (githubAccessToken) => {
   if (!githubAccessToken) {
     throw new Error('GitHub 액세스 토큰이 필요합니다.');
   }
-  await githubApiService.revokeAccessToken(githubAccessToken);
+  await githubApiService.disconnectGithub(githubAccessToken);
+};
+
+export const logoutGithub = async (githubAccessToken) => {
+  if (!githubAccessToken) {
+    throw new Error('GitHub 액세스 토큰이 필요합니다.');
+  }
+  await githubApiService.logoutGithub(githubAccessToken);
 };
