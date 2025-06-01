@@ -11,10 +11,18 @@ const pool = getConnectionPool();
 // Flask에서 분석 완료 콜백 처리
 async function handleAnalysisComplete(req, res) {
   try {
-    const { repo_name, status, error_message } = req.body;
+    console.log('Flask 콜백 요청 받음:', {
+      body: req.body,
+      headers: req.headers,
+      method: req.method,
+      url: req.url,
+    });
+
+    const { repo_name, status, error_message, user_id } = req.body;
 
     // 기본 검증
     if (!repo_name) {
+      console.error('repo_name이 누락됨:', req.body);
       return res.status(400).json({
         success: false,
         message: '저장소 이름이 필요합니다.',
@@ -23,6 +31,7 @@ async function handleAnalysisComplete(req, res) {
     }
 
     if (!status) {
+      console.error('status가 누락됨:', req.body);
       return res.status(400).json({
         success: false,
         message: '분석 상태가 필요합니다.',
@@ -34,6 +43,7 @@ async function handleAnalysisComplete(req, res) {
 
     // GitHub URL 구성
     const repoUrl = `https://github.com/${repo_name}`;
+    console.log(`구성된 GitHub URL: ${repoUrl}`);
 
     try {
       // 저장소 정보 조회
@@ -47,6 +57,10 @@ async function handleAnalysisComplete(req, res) {
           errorType: 'REPOSITORY_NOT_FOUND',
         });
       }
+
+      console.log(
+        `저장소 정보 조회 성공: ${repo_name}, GitHub ID: ${repositoryInfo.githubRepoId}`
+      );
 
       // DB에서 저장소 조회
       const repoResult = await Repository.selectRepositoryByGithubId(
@@ -63,6 +77,7 @@ async function handleAnalysisComplete(req, res) {
       }
 
       const repoId = repoResult.data.id;
+      console.log(`DB에서 저장소 조회 성공: ${repo_name}, DB ID: ${repoId}`);
 
       if (status === 'completed') {
         console.log(`분석 완료 처리 시작: ${repo_name}`);
@@ -121,46 +136,10 @@ async function handleAnalysisComplete(req, res) {
           // 언어 정보 처리 실패는 전체 분석 완료를 막지 않음
         }
 
-        // README 요약 및 라이선스 정보 처리
-        let readmeSummary = null;
+        // 라이선스 정보 조회 (빠른 처리)
         let licenseInfo = null;
-
         try {
-          console.log(`README 및 라이선스 정보 조회 시작: ${repo_name}`);
-
-          // README 내용 조회
-          const readmeData = await githubApiService.getRepositoryReadme(
-            repoUrl
-          );
-          if (readmeData && readmeData.content) {
-            console.log(
-              `README 조회 완료: ${repo_name}, 크기: ${readmeData.size} bytes`
-            );
-
-            // Flask에 README 요약 요청
-            const summaryResult = await flaskService.requestReadmeSummary(
-              repo_name,
-              readmeData.content
-            );
-
-            if (summaryResult.success && summaryResult.data) {
-              readmeSummary = summaryResult.data.summary;
-              console.log(`README 요약 완료: ${repo_name}`);
-            } else {
-              console.warn(
-                `README 요약 실패: ${repo_name} - ${summaryResult.error}`
-              );
-              // 기본 설명 사용 (GitHub description 또는 저장소 이름 기반)
-              readmeSummary =
-                repositoryInfo.description || `${repo_name} 저장소입니다.`;
-            }
-          } else {
-            console.log(`README 파일이 없습니다: ${repo_name}`);
-            readmeSummary =
-              repositoryInfo.description || `${repo_name} 저장소입니다.`;
-          }
-
-          // 라이선스 정보 조회
+          console.log(`라이선스 정보 조회 시작: ${repo_name}`);
           const licenseData = await githubApiService.getRepositoryLicense(
             repoUrl
           );
@@ -172,17 +151,14 @@ async function handleAnalysisComplete(req, res) {
           } else {
             console.log(`라이선스 정보가 없습니다: ${repo_name}`);
           }
-        } catch (readmeError) {
+        } catch (licenseError) {
           console.error(
-            `README/라이선스 처리 중 오류: ${repo_name}`,
-            readmeError
+            `라이선스 정보 조회 중 오류: ${repo_name}`,
+            licenseError
           );
-          // README/라이선스 처리 실패는 전체 분석 완료를 막지 않음
-          readmeSummary =
-            repositoryInfo.description || `${repo_name} 저장소입니다.`;
         }
 
-        // 분석 완료 상태 업데이트 (README 요약 및 라이선스 정보 포함)
+        // 기본 분석 완료 상태 업데이트 (라이선스 정보만 포함)
         const updateData = {
           analysisStatus: 'completed',
           analysisProgress: 100,
@@ -190,11 +166,6 @@ async function handleAnalysisComplete(req, res) {
           analysisCompletedAt: new Date(),
           analysisErrorMessage: null,
         };
-
-        // README 요약이 있으면 추가
-        if (readmeSummary) {
-          updateData.readmeSummaryGpt = readmeSummary;
-        }
 
         // 라이선스 정보가 있으면 추가
         if (licenseInfo) {
@@ -208,6 +179,36 @@ async function handleAnalysisComplete(req, res) {
 
         if (updateResult.success) {
           console.log(`분석 완료 상태 업데이트 성공: ${repo_name}`);
+
+          // 요청한 사용자의 트래킹 목록에 저장소 추가
+          if (user_id) {
+            try {
+              const trackingResult = await Repository.insertTrack(
+                user_id,
+                repoId
+              );
+              if (trackingResult.success) {
+                console.log(
+                  `사용자 ${user_id}의 트래킹 목록에 저장소 추가 완료: ${repo_name}`
+                );
+              } else {
+                console.error(
+                  `사용자 ${user_id}의 트래킹 목록 추가 실패: ${repo_name}`,
+                  trackingResult.error
+                );
+              }
+            } catch (trackingError) {
+              console.error(
+                `사용자 ${user_id}의 트래킹 목록 추가 중 오류: ${repo_name}`,
+                trackingError
+              );
+            }
+          } else {
+            console.log(
+              `사용자 ID가 없어서 트래킹 목록 추가를 건너뜁니다: ${repo_name}`
+            );
+          }
+
           return res.status(200).json({
             success: true,
             message: '분석이 성공적으로 완료되었습니다.',
@@ -215,7 +216,6 @@ async function handleAnalysisComplete(req, res) {
               repoName: repo_name,
               status: 'completed',
               repoId: repoId,
-              readmeSummary: readmeSummary,
               licenseInfo: licenseInfo,
             },
           });

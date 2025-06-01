@@ -122,13 +122,14 @@ async function upsertRepository(repositoryData) {
       star,
       fork,
       issueTotalCount,
+      readmeSummaryGpt,
     } = repositoryData;
 
     const [result] = await pool.query(
       `INSERT INTO repositories (
         github_repo_id, full_name, description, html_url, 
-        license_spdx_id, star, fork, issue_total_count
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        license_spdx_id, star, fork, issue_total_count, readme_summary_gpt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         full_name = VALUES(full_name),
         description = VALUES(description),
@@ -137,6 +138,7 @@ async function upsertRepository(repositoryData) {
         star = VALUES(star),
         fork = VALUES(fork),
         issue_total_count = VALUES(issue_total_count),
+        readme_summary_gpt = VALUES(readme_summary_gpt),
         updated_at = CURRENT_TIMESTAMP`,
       [
         githubRepoId,
@@ -147,6 +149,7 @@ async function upsertRepository(repositoryData) {
         star,
         fork,
         issueTotalCount,
+        readmeSummaryGpt,
       ]
     );
 
@@ -207,6 +210,12 @@ async function updateRepositoryAnalysisStatus(repoId, updateData) {
     if (updateData.readmeSummaryGpt !== undefined) {
       fields.push('readme_summary_gpt = ?');
       values.push(updateData.readmeSummaryGpt);
+    }
+
+    // Description 업데이트 (번역된 description)
+    if (updateData.description !== undefined) {
+      fields.push('description = ?');
+      values.push(updateData.description);
     }
 
     // 라이선스 정보 업데이트
@@ -567,7 +576,7 @@ async function selectTrackRepositoriesWithLanguages(userId) {
            FROM repository_languages rl2 
            WHERE rl2.repo_id = r.repo_id
          )
-       WHERE utr.user_id = ?
+       WHERE utr.user_id = ? AND r.analysis_status = 'completed'
        ORDER BY utr.tracked_at DESC`,
       [userId]
     );

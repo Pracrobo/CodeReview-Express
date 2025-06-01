@@ -186,6 +186,118 @@ async function analyzeRepository(req, res) {
 
       const { repoId } = recentAnalysisResult.data;
 
+      // README 요약이 없는 경우 백그라운드에서 처리
+      if (!recentAnalysisResult.data.readmeSummaryGpt) {
+        console.log(
+          '기존 분석 결과에 README 요약이 없어 백그라운드에서 처리 시작'
+        );
+
+        setImmediate(async () => {
+          try {
+            // GitHub에서 README 조회
+            const readmeData = await githubApiService.getRepositoryReadme(
+              repoUrl
+            );
+
+            if (readmeData && readmeData.content) {
+              console.log(`README 조회 성공: ${repositoryInfo.fullName}`);
+
+              // Flask에 README 요약 요청
+              const summaryResult = await flaskService.requestReadmeSummary(
+                repositoryInfo.fullName,
+                readmeData.content
+              );
+
+              if (summaryResult.success && summaryResult.data.summary) {
+                // DB에 README 요약 저장
+                await Repository.updateRepositoryAnalysisStatus(repoId, {
+                  readmeSummaryGpt: summaryResult.data.summary,
+                });
+                console.log(
+                  `README 요약 완료 및 저장: ${repositoryInfo.fullName}`
+                );
+              } else {
+                console.warn(
+                  `README 요약 실패: ${repositoryInfo.fullName}`,
+                  summaryResult.error
+                );
+              }
+            } else {
+              console.log(
+                `README 파일을 찾을 수 없습니다: ${repositoryInfo.fullName}`
+              );
+            }
+          } catch (error) {
+            console.error(
+              `README 요약 백그라운드 처리 중 오류: ${repositoryInfo.fullName}`,
+              error
+            );
+          }
+        });
+      }
+
+      // Description 번역 처리 (기존 분석 결과 사용 시)
+      let shouldUpdateDescription = false;
+      let translatedDescription = repositoryInfo.description;
+
+      // 현재 DB의 description과 GitHub의 description이 다르거나, 영어인 경우 번역 처리
+      if (repositoryInfo.description && repositoryInfo.description.trim()) {
+        const currentDescription = recentAnalysisResult.data.description;
+
+        // GitHub description이 변경되었거나, 현재 DB의 description이 영어인 것 같은 경우
+        if (
+          currentDescription !== repositoryInfo.description ||
+          (currentDescription && _isLikelyEnglish(currentDescription))
+        ) {
+          setImmediate(async () => {
+            try {
+              console.log(
+                `Description 번역 시작 (기존 분석): ${repositoryInfo.fullName}`
+              );
+
+              const translationResult = await flaskService.requestTranslation(
+                repositoryInfo.description,
+                'auto',
+                'ko'
+              );
+
+              if (
+                translationResult.success &&
+                translationResult.data.translated_text
+              ) {
+                // DB에 번역된 description 저장
+                await Repository.updateRepositoryAnalysisStatus(repoId, {
+                  description: translationResult.data.translated_text,
+                });
+                console.log(
+                  `Description 번역 완료 및 저장: ${repositoryInfo.fullName}`
+                );
+                console.log(
+                  `원본: "${repositoryInfo.description}" -> 번역: "${translationResult.data.translated_text}"`
+                );
+              } else {
+                console.warn(
+                  `Description 번역 실패: ${repositoryInfo.fullName}`,
+                  translationResult.error
+                );
+                // 번역 실패 시 원본 description으로 업데이트
+                await Repository.updateRepositoryAnalysisStatus(repoId, {
+                  description: repositoryInfo.description,
+                });
+                console.log(
+                  `번역 실패로 원본 description 저장: ${repositoryInfo.fullName}`
+                );
+              }
+            } catch (error) {
+              console.error(
+                `Description 번역 백그라운드 처리 중 오류: ${repositoryInfo.fullName}`,
+                error
+              );
+            }
+          });
+        }
+      }
+
       // 사용자 트래킹에 추가
       await Repository.insertTrack(userId, repoId);
 
@@ -206,16 +318,87 @@ async function analyzeRepository(req, res) {
       });
     }
 
-    // 6. 저장소 정보를 DB에 저장/업데이트
+    // 6. README 요약 처리 (새로운 분석인 경우)
+    let readmeSummary = null;
+    try {
+      console.log(`README 조회 시작: ${repositoryInfo.fullName}`);
+      const readmeData = await githubApiService.getRepositoryReadme(repoUrl);
+
+      if (readmeData && readmeData.content) {
+        console.log(`README 조회 성공: ${repositoryInfo.fullName}`);
+
+        // Flask에 README 요약 요청
+        const summaryResult = await flaskService.requestReadmeSummary(
+          repositoryInfo.fullName,
+          readmeData.content
+        );
+
+        if (summaryResult.success && summaryResult.data.summary) {
+          readmeSummary = summaryResult.data.summary;
+          console.log(`README 요약 완료: ${repositoryInfo.fullName}`);
+        } else {
+          console.warn(
+            `README 요약 실패: ${repositoryInfo.fullName}`,
+            summaryResult.error
+          );
+        }
+      } else {
+        console.log(
+          `README 파일을 찾을 수 없습니다: ${repositoryInfo.fullName}`
+        );
+      }
+    } catch (error) {
+      console.error(`README 처리 중 오류: ${repositoryInfo.fullName}`, error);
+      // README 처리 실패는 전체 분석을 막지 않음
+    }
+
+    // 7. Description 번역 처리
+    let translatedDescription = repositoryInfo.description;
+    if (repositoryInfo.description && repositoryInfo.description.trim()) {
+      try {
+        console.log(`Description 번역 시작: ${repositoryInfo.fullName}`);
+
+        const translationResult = await flaskService.requestTranslation(
+          repositoryInfo.description,
+          'auto',
+          'ko'
+        );
+
+        if (
+          translationResult.success &&
+          translationResult.data.translated_text
+        ) {
+          translatedDescription = translationResult.data.translated_text;
+          console.log(`Description 번역 완료: ${repositoryInfo.fullName}`);
+        } else {
+          console.warn(
+            `Description 번역 실패: ${repositoryInfo.fullName}`,
+            translationResult.error
+          );
+          // 번역 실패 시 원본 텍스트 사용
+          translatedDescription =
+            translationResult.originalText || repositoryInfo.description;
+        }
+      } catch (error) {
+        console.error(
+          `Description 번역 중 오류: ${repositoryInfo.fullName}`,
+          error
+        );
+        // 번역 실패는 전체 분석을 막지 않음, 원본 description 사용
+      }
+    }
+
+    // 8. 저장소 정보를 DB에 저장/업데이트 (README 요약 및 번역된 description 포함)
     const upsertResult = await Repository.upsertRepository({
       githubRepoId: repositoryInfo.githubRepoId,
       fullName: repositoryInfo.fullName,
-      description: repositoryInfo.description,
+      description: translatedDescription, // 번역된 description 사용
       htmlUrl: repositoryInfo.htmlUrl,
       licenseSpdxId: repositoryInfo.licenseSpdxId,
       star: repositoryInfo.star,
       fork: repositoryInfo.fork,
       issueTotalCount: repositoryInfo.openIssuesCount,
+      readmeSummaryGpt: readmeSummary, // README 요약 포함
     });
 
     if (!upsertResult.success) {
@@ -228,7 +411,7 @@ async function analyzeRepository(req, res) {
 
     const { repoId } = upsertResult.data;
 
-    // 7. 분석 상태를 'analyzing'으로 설정
+    // 9. 분석 상태를 'analyzing'으로 설정
     const analysisStartResult = await Repository.startRepositoryAnalysis(
       repoId
     );
@@ -241,10 +424,10 @@ async function analyzeRepository(req, res) {
       });
     }
 
-    // 8. 사용자 트래킹에 추가
+    // 10. 사용자 트래킹에 추가
     await Repository.insertTrack(userId, repoId);
 
-    // 9. Flask 서버에 인덱싱 요청 (비동기)
+    // 11. Flask 서버에 인덱싱 요청 (비동기)
     setImmediate(async () => {
       try {
         // 분석 상태 업데이트
@@ -254,7 +437,8 @@ async function analyzeRepository(req, res) {
 
         const flaskResult = await flaskService.requestRepositoryIndexing(
           repoUrl,
-          repositoryInfo
+          repositoryInfo,
+          userId
         );
 
         if (flaskResult.success) {
@@ -300,7 +484,7 @@ async function analyzeRepository(req, res) {
       }
     });
 
-    // 10. 즉시 응답 반환
+    // 12. 즉시 응답 반환
     return res.status(200).json({
       success: true,
       message: '저장소 분석이 시작되었습니다.',
@@ -688,7 +872,31 @@ async function getRepositoryLanguages(req, res) {
   }
 }
 
-export {
+// 헬퍼 함수: 텍스트가 영어인지 간단히 판별
+function _isLikelyEnglish(text) {
+  if (!text || typeof text !== 'string') {
+    return false;
+  }
+
+  // 한글 문자가 있으면 한국어로 판단
+  const koreanRegex = /[\uac00-\ud7af]/;
+  if (koreanRegex.test(text)) {
+    return false;
+  }
+
+  // 영어 알파벳이 전체 문자의 50% 이상이면 영어로 판단
+  const englishChars = text.match(/[a-zA-Z]/g);
+  const totalChars = text.replace(/\s/g, '').length;
+
+  if (totalChars === 0) {
+    return false;
+  }
+
+  const englishRatio = englishChars ? englishChars.length / totalChars : 0;
+  return englishRatio >= 0.5;
+}
+
+export default {
   searchRepository,
   getRepositoryList,
   addRepositoryInTracker,

@@ -4,20 +4,27 @@ const FLASK_API_URL = process.env.FLASK_API_URL || 'http://localhost:3002';
 
 export const flaskService = {
   // Flask 서버에 저장소 인덱싱 요청
-  async requestRepositoryIndexing(repoUrl, repositoryInfo) {
+  async requestRepositoryIndexing(repoUrl, repositoryInfo, userId = null) {
     try {
       // Express 서버의 콜백 URL 구성
       const expressBaseUrl =
         process.env.EXPRESS_BASE_URL || 'http://localhost:3001';
-      const callbackUrl = `${expressBaseUrl}/api/internal/analysis-complete`;
+      const callbackUrl = `${expressBaseUrl}/internal/analysis-complete`;
+
+      const requestData = {
+        repo_url: repoUrl,
+        repository_info: repositoryInfo, // 추가 정보 전달
+        callback_url: callbackUrl, // 콜백 URL 추가
+      };
+
+      // 사용자 ID가 있으면 추가
+      if (userId) {
+        requestData.user_id = userId;
+      }
 
       const response = await axios.post(
-        `${FLASK_API_URL}/api/repository/index`,
-        {
-          repo_url: repoUrl,
-          repository_info: repositoryInfo, // 추가 정보 전달
-          callback_url: callbackUrl, // 콜백 URL 추가
-        },
+        `${FLASK_API_URL}/repository/index`,
+        requestData,
         {
           headers: {
             'Content-Type': 'application/json',
@@ -64,7 +71,7 @@ export const flaskService = {
   async getRepositoryAnalysisStatus(repoName) {
     try {
       const response = await axios.get(
-        `${FLASK_API_URL}/api/repository/status/${repoName}`,
+        `${FLASK_API_URL}/repository/status/${repoName}`,
         {
           headers: {
             'Content-Type': 'application/json',
@@ -93,7 +100,7 @@ export const flaskService = {
       console.log(`Flask에 README 요약 요청: ${repoName}`);
 
       const response = await axios.post(
-        `${FLASK_API_URL}/api/repository/summarize-readme`,
+        `${FLASK_API_URL}/repository/summarize-readme`,
         {
           repo_name: repoName,
           readme_content: readmeContent,
@@ -150,7 +157,7 @@ export const flaskService = {
   async searchRepository(repoName, query, searchType = 'code') {
     try {
       const response = await axios.post(
-        `${FLASK_API_URL}/api/repository/search`,
+        `${FLASK_API_URL}/repository/search`,
         {
           repo_name: repoName,
           query: query,
@@ -192,6 +199,76 @@ export const flaskService = {
           status: 500,
         };
       }
+    }
+  },
+
+  // Flask 서버에 텍스트 번역 요청
+  async requestTranslation(
+    text,
+    sourceLanguage = 'auto',
+    targetLanguage = 'ko'
+  ) {
+    try {
+      console.log(`Flask에 번역 요청: ${text.length}자`);
+
+      const response = await axios.post(
+        `${FLASK_API_URL}/repository/translate`,
+        {
+          text: text,
+          source_language: sourceLanguage,
+          target_language: targetLanguage,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          timeout: 30000, // 30초 타임아웃
+        }
+      );
+
+      if (response.data && response.data.status === 'success') {
+        console.log(
+          `번역 완료: ${text.length}자 -> ${response.data.data.translated_text.length}자`
+        );
+        return {
+          success: true,
+          data: response.data.data,
+          message: response.data.message,
+        };
+      } else {
+        console.error('번역 실패:', response.data);
+        return {
+          success: false,
+          error: response.data?.message || '번역 실패',
+          originalText: text, // 실패 시 원본 텍스트 반환
+        };
+      }
+    } catch (error) {
+      console.error('번역 요청 오류:', error.message);
+
+      // 타임아웃 오류 처리
+      if (error.code === 'ECONNABORTED') {
+        return {
+          success: false,
+          error: '번역 요청 시간이 초과되었습니다.',
+          originalText: text,
+        };
+      }
+
+      // Flask 서버 연결 오류 처리
+      if (error.code === 'ECONNREFUSED') {
+        return {
+          success: false,
+          error: 'Flask 서버에 연결할 수 없습니다.',
+          originalText: text,
+        };
+      }
+
+      return {
+        success: false,
+        error: error.message || '번역 요청 중 오류가 발생했습니다.',
+        originalText: text,
+      };
     }
   },
 

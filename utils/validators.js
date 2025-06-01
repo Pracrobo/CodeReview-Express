@@ -5,7 +5,6 @@
 
 // 설정값들 (Flask의 config.py에서 가져옴)
 const CONFIG = {
-  MAX_REPO_SIZE_MB: 3, // 최대 저장소 크기 (MB)
   MAX_QUERY_LENGTH: 1000, // 최대 검색어 길이
   MAX_REPOSITORIES: 100, // 최대 저장소 개수 제한
   REQUEST_TIMEOUT: 300, // 요청 타임아웃 (초)
@@ -101,50 +100,6 @@ function validateRepoName(repoName) {
 }
 
 /**
- * 저장소 크기 검증
- * @param {number} sizeKB - 저장소 크기 (KB)
- * @param {string} repoName - 저장소 이름 (오류 메시지용)
- * @throws {ValidationError} - 크기 초과 시
- */
-function validateRepositorySize(sizeKB, repoName = '') {
-  const maxSizeKB = CONFIG.MAX_REPO_SIZE_MB * 1024;
-
-  if (sizeKB > maxSizeKB) {
-    const sizeMB = (sizeKB / 1024).toFixed(1);
-    const maxSizeMB = CONFIG.MAX_REPO_SIZE_MB.toFixed(1);
-
-    const errorMessage = repoName
-      ? `저장소 '${repoName}'의 크기가 제한을 초과했습니다. 현재: ${sizeMB}MB, 최대: ${maxSizeMB}MB`
-      : `저장소 크기가 제한을 초과했습니다. 현재: ${sizeMB}MB, 최대: ${maxSizeMB}MB`;
-
-    throw new ValidationError(errorMessage, 'REPOSITORY_SIZE_EXCEEDED');
-  }
-}
-
-/**
- * 언어 크기 검증 (Flask의 GitHub 서비스에서 사용)
- * @param {number} sizeBytes - 언어 코드 크기 (바이트)
- * @param {string} repoUrl - 저장소 URL (오류 메시지용)
- * @throws {ValidationError} - 크기 초과 시
- */
-function validateLanguageSize(sizeBytes, repoUrl = '') {
-  const maxBytes = CONFIG.MAX_REPO_SIZE_MB * 1024 * 1024;
-  const sizeMB = sizeBytes / (1024 * 1024);
-
-  if (sizeBytes > maxBytes) {
-    const errorMessage = repoUrl
-      ? `저장소 '${repoUrl}'의 주 언어 코드 크기가 제한을 초과했습니다. 현재: ${sizeMB.toFixed(
-          1
-        )}MB, 최대: ${CONFIG.MAX_REPO_SIZE_MB.toFixed(1)}MB`
-      : `언어 코드 크기가 제한을 초과했습니다. 현재: ${sizeMB.toFixed(
-          1
-        )}MB, 최대: ${CONFIG.MAX_REPO_SIZE_MB.toFixed(1)}MB`;
-
-    throw new ValidationError(errorMessage, 'REPOSITORY_SIZE_EXCEEDED');
-  }
-}
-
-/**
  * 검색 요청 데이터 유효성 검증
  * @param {Object} data - 검증할 검색 요청 데이터
  * @returns {Object} - 검증된 데이터 { repoName, query, searchType }
@@ -212,6 +167,7 @@ function validateSearchRequest(data) {
  * @throws {ValidationError} - 검증 실패 시
  */
 function validateGitHubRepoInfo(repoInfo) {
+  console.log('repoInfo', repoInfo);
   if (!repoInfo) {
     throw new ValidationError(
       '저장소 정보를 찾을 수 없습니다.',
@@ -225,16 +181,6 @@ function validateGitHubRepoInfo(repoInfo) {
       '비공개 저장소는 분석할 수 없습니다. 공개 저장소만 지원됩니다.',
       'REPOSITORY_ACCESS_DENIED'
     );
-  }
-
-  // 저장소가 포크인지 확인 (선택적 검증)
-  if (repoInfo.fork) {
-    console.warn(`저장소 '${repoInfo.full_name}'는 포크된 저장소입니다.`);
-  }
-
-  // 저장소 크기 검증 (GitHub API는 KB 단위로 반환)
-  if (repoInfo.size) {
-    validateRepositorySize(repoInfo.size, repoInfo.full_name);
   }
 
   // 저장소가 아카이브되었는지 확인
@@ -265,14 +211,13 @@ function validateLanguagesData(languagesData, repoUrl = '') {
     return; // 언어 데이터가 없는 것은 허용 (빈 저장소 등)
   }
 
-  // 주 언어의 크기 검증
+  // 언어 데이터가 있는지만 확인하고 크기 검증은 하지 않음
   const languages = Object.entries(languagesData);
   if (languages.length > 0) {
-    const [primaryLanguage, primaryLanguageBytes] = languages.reduce((a, b) =>
-      a[1] > b[1] ? a : b
+    console.log(
+      `저장소 '${repoUrl}'의 언어 정보:`,
+      languages.map(([lang, bytes]) => `${lang}: ${bytes} bytes`).join(', ')
     );
-
-    validateLanguageSize(primaryLanguageBytes, repoUrl);
   }
 }
 
@@ -324,8 +269,6 @@ export {
   ValidationError,
   validateRepoUrl,
   validateRepoName,
-  validateRepositorySize,
-  validateLanguageSize,
   validateSearchRequest,
   validateGitHubRepoInfo,
   validateLanguagesData,
