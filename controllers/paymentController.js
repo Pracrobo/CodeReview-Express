@@ -28,18 +28,18 @@ export const getPaymentStatus = async (req, res) => {
   }
 
   try {
-    const user = await findUserByGithubId(githubId);
-    if (!user) {
+    const dbUser = await findUserByGithubId(githubId);
+    if (!dbUser) {
       return res.status(404).json({ success: false, message: '사용자 정보를 찾을 수 없습니다.' });
     }
     return res.json({
-      username: user.username,
-      email: user.email,
-      avatarUrl: user.avatarUrl,
-      isProPlan: user.isProPlan || false,
-      proPlanExpiresAt: user.proPlanExpiresAt || null,
-      createdAt: user.createdAt || null,
-      updatedAt: user.updatedAt || null,
+      username: dbUser.username,
+      email: dbUser.email,
+      avatarUrl: dbUser.avatarUrl,
+      isProPlan: dbUser.isProPlan || false,
+      proPlanExpiresAt: dbUser.proPlanExpiresAt || null,
+      createdAt: dbUser.createdAt || null,
+      updatedAt: dbUser.updatedAt || null,
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: '플랜 정보 조회 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.' });

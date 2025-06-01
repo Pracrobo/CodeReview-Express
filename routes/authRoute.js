@@ -8,7 +8,7 @@ import {
   unlink,
   deleteAccount,
 } from '../controllers/authController.js';
-import { authenticate } from '../middlewares/authMiddleware.js'; // 통합 인증 미들웨어
+import { authenticate } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
@@ -21,16 +21,16 @@ router.get('/github/callback', githubRedirect);
 // 프론트엔드에서 받은 코드로 로그인 처리 및 토큰 발급
 router.post('/github/callback', callback);
 
-// 액세스 토큰 갱신 - 인증 불필요 (refreshToken 쿠키 기반)
+// 액세스 토큰 갱신
 router.post('/token/refresh', refreshAccessToken);
 
-// GitHub 로그아웃 (토큰 철회 및 쿠키 삭제) - 인증 필요
-router.post('/github/logout', authenticate, logout);
+// 로그아웃 (인증 필요)
+router.post('/logout', authenticate, logout);
 
-// GitHub 계정 연동 해제 (grant 엔드포인트) - 인증 필요
-router.post('/github/unlink', authenticate, unlink);
+// 계정 연동 해제 (인증 필요)
+router.post('/unlink', authenticate, unlink);
 
-// 계정 삭제 - 인증 필요
-router.delete('/github/delete', authenticate, deleteAccount);
+// 계정 삭제 (인증 필요)
+router.delete('/delete', authenticate, deleteAccount);
 
 export default router;

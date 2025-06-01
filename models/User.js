@@ -1,19 +1,21 @@
 import { getConnectionPool } from '../database/database.js';
 
 // DB 조회 결과(snake_case)를 camelCase로 변환
-function toCamelCaseUser(user) {
-  if (!user) return user;
+export function mapUserToCamelCase(userRow) {
+  if (!userRow) return userRow;
   return {
-    userId: user.user_id,
-    githubId: user.github_user_id,
-    username: user.username,
-    email: user.email,
-    avatarUrl: user.avatar_url,
-    isProPlan: !!user.is_pro_plan,
-    proPlanActivatedAt: user.pro_plan_activated_at,
-    proPlanExpiresAt: user.pro_plan_expires_at,
-    createdAt: user.created_at,
-    updatedAt: user.updated_at,
+    userId: userRow.user_id,
+    githubId: userRow.github_user_id,
+    username: userRow.username,
+    email: userRow.email,
+    avatarUrl: userRow.avatar_url,
+    refreshToken: userRow.refresh_token,
+    refreshTokenExpiresAt: userRow.refresh_token_expires_in,
+    isProPlan: !!userRow.is_pro_plan,
+    proPlanActivatedAt: userRow.pro_plan_activated_at,
+    proPlanExpiresAt: userRow.pro_plan_expires_at,
+    createdAt: userRow.created_at,
+    updatedAt: userRow.updated_at,
   };
 }
 
@@ -24,7 +26,7 @@ export async function findUserByGithubId(githubId) {
     'SELECT * FROM users WHERE github_user_id = ?',
     [githubId]
   );
-  return toCamelCaseUser(rows[0]);
+  return mapUserToCamelCase(rows[0]);
 }
 
 // 새 사용자 생성
@@ -68,22 +70,22 @@ export async function updateProPlanStatus(githubId) {
 }
 
 // 사용자 리프레시 토큰 업데이트
-export async function updateUserRefreshToken(userId, hashedRefreshToken, expiresIn) {
+export async function updateUserRefreshToken(userId, hashedRefreshToken, refreshTokenExpiresAt) {
   const pool = getConnectionPool();
   await pool.query(
     'UPDATE users SET refresh_token = ?, refresh_token_expires_in = ? WHERE user_id = ?',
-    [hashedRefreshToken, expiresIn, userId]
+    [hashedRefreshToken, refreshTokenExpiresAt, userId]
   );
 }
 
 // 리프레시 토큰으로 사용자 조회
-export async function getUserByRefreshToken(hashedRefreshToken) {
+export async function findUserByRefreshToken(hashedRefreshToken) {
   const pool = getConnectionPool();
   const [rows] = await pool.query(
     'SELECT * FROM users WHERE refresh_token = ?',
     [hashedRefreshToken]
   );
-  return toCamelCaseUser(rows[0]);
+  return mapUserToCamelCase(rows[0]);
 }
 
 // 사용자 리프레시 토큰 삭제

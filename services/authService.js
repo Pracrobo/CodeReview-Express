@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { findUserByGithubId, createUser, updateUserRefreshToken } from '../models/User.js';
-import { githubApiService } from './githubApiService.js';
 import { generateRefreshToken, hashToken } from '../utils/tokenUtils.js';
+import { githubApiService } from './githubApiService.js';
 
 export const processGithubLogin = async (code) => {
   if (!code) {
@@ -9,52 +9,52 @@ export const processGithubLogin = async (code) => {
   }
 
   const githubAccessToken = await githubApiService.getAccessToken(code);
-  const githubUser = await githubApiService.getUserInfo(githubAccessToken);
+  const githubProfile = await githubApiService.getUserInfo(githubAccessToken);
 
-  let email = githubUser.email;
+  let email = githubProfile.email;
   if (!email) {
-    const emails = await githubApiService.getUserEmails(githubAccessToken);
-    const primaryEmail = emails.find((e) => e.primary && e.verified);
-    email = primaryEmail?.email || emails[0]?.email || '';
+    const githubEmails = await githubApiService.getUserEmails(githubAccessToken);
+    const primaryEmail = githubEmails.find((e) => e.primary && e.verified);
+    email = primaryEmail?.email || githubEmails[0]?.email || '';
   }
 
-  let user = await findUserByGithubId(githubUser.id);
+  let dbUser = await findUserByGithubId(githubProfile.id);
 
-  if (!user) {
-    user = await createUser({
-      githubId: githubUser.id,
-      username: githubUser.login,
+  if (!dbUser) {
+    dbUser = await createUser({
+      githubId: githubProfile.id,
+      username: githubProfile.login,
       email,
-      avatarUrl: githubUser.avatar_url,
+      avatarUrl: githubProfile.avatar_url,
     });
   }
 
-  const tokenPayload = {
-    id: user.userId,
-    githubId: user.githubId,
-    username: user.username,
-    email: user.email,
-    avatarUrl: user.avatarUrl,
+  const jwtPayload = {
+    id: dbUser.userId,
+    githubId: dbUser.githubId,
+    username: dbUser.username,
+    email: dbUser.email,
+    avatarUrl: dbUser.avatarUrl,
   };
 
-  const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '15m' });
+  const accessToken = jwt.sign(jwtPayload, process.env.JWT_SECRET, { expiresIn: '15m' });
 
   // refreshToken 생성 및 해싱
   const refreshToken = generateRefreshToken();
   const hashedRefreshToken = hashToken(refreshToken);
-  const refreshTokenExpiresIn = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7일
+  const refreshTokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7일
 
   // DB에 해시값과 만료일 저장
-  await updateUserRefreshToken(user.userId, hashedRefreshToken, refreshTokenExpiresIn);
+  await updateUserRefreshToken(dbUser.userId, hashedRefreshToken, refreshTokenExpiresAt);
 
   return {
-    token,
-    username: user.username,
-    email: user.email,
-    avatarUrl: user.avatarUrl,
+    accessToken,
+    username: dbUser.username,
+    email: dbUser.email,
+    avatarUrl: dbUser.avatarUrl,
     githubAccessToken,
     refreshToken, // 원본 반환
-    refreshTokenExpiresIn,
+    refreshTokenExpiresAt,
   };
 };
 

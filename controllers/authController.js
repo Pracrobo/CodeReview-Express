@@ -1,9 +1,5 @@
-import {
-  processGithubLogin,
-  logoutGithub,
-  unlinkGithub,
-} from '../services/authService.js';
-import { deleteUserByGithubId, getUserByRefreshToken, clearUserRefreshToken } from '../models/User.js';
+import { processGithubLogin, logoutGithub, unlinkGithub } from '../services/authService.js';
+import { deleteUserByGithubId, findUserByRefreshToken, clearUserRefreshToken } from '../models/User.js';
 import jwt from 'jsonwebtoken';
 import { hashToken } from '../utils/tokenUtils.js';
 
@@ -23,7 +19,7 @@ function clearRefreshTokenCookie(res) {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    path: '/', // path도 명시적으로 지정
+    path: '/',
   });
 }
 
@@ -51,7 +47,8 @@ export const callback = async (req, res, next) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 1000,
+      path: '/',
+      maxAge: 1000 * 60 * 60 * 24 * 7,
     });
 
     // refreshToken 쿠키
@@ -59,13 +56,14 @@ export const callback = async (req, res, next) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/',
+      expires: new Date(authResult.refreshTokenExpiresAt),
     });
 
-    const { token, username, email, avatarUrl } = authResult;
-    res.json({ success: true, token, username, email, avatarUrl });
+    const { accessToken, username, email, avatarUrl } = authResult;
+    res.json({ success: true, accessToken, username, email, avatarUrl });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
@@ -80,19 +78,17 @@ export const logout = async (req, res) => {
 
     if (refreshToken) {
       const hashed = hashToken(refreshToken);
-      const user = await getUserByRefreshToken(hashed);
-      if (user) {
-        await clearUserRefreshToken(user.userId);
+      const dbUser = await findUserByRefreshToken(hashed);
+      if (dbUser) {
+        await clearUserRefreshToken(dbUser.userId);
       }
     }
-
     if (githubAccessToken) {
       await logoutGithub(githubAccessToken);
     }
-
-    res.json({ success: true, message: '로그아웃 되었습니다.' });
+    res.json({ success: true, message: '로그아웃 완료' });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: '로그아웃 중 오류 발생' });
   }
 };
 
@@ -107,19 +103,17 @@ export const unlink = async (req, res) => {
 
     if (refreshToken) {
       const hashed = hashToken(refreshToken);
-      const user = await getUserByRefreshToken(hashed);
-      if (user) {
-        await clearUserRefreshToken(user.userId);
+      const dbUser = await findUserByRefreshToken(hashed);
+      if (dbUser) {
+        await clearUserRefreshToken(dbUser.userId);
       }
     }
-
     if (githubAccessToken) {
       await unlinkGithub(githubAccessToken);
     }
-
-    res.json({ success: true, message: 'GitHub 연동이 해제되었습니다.' });
+    res.json({ success: true, message: '계정 연동 해제 완료' });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: '계정 연동 해제 중 오류 발생' });
   }
 };
 
@@ -128,19 +122,16 @@ export const deleteAccount = async (req, res) => {
   try {
     const githubId = req.user?.githubId;
     const userId = req.user?.id;
-
     if (!githubId || !userId) {
-      return res.status(400).json({ success: false, message: '사용자 정보가 없습니다.' });
+      return res.status(400).json({ success: false, message: '사용자 인증 정보가 없습니다.' });
     }
-
     clearGithubAccessTokenCookie(res);
     clearRefreshTokenCookie(res);
     await clearUserRefreshToken(userId);
     await deleteUserByGithubId(githubId);
-
-    res.json({ success: true, message: '계정이 삭제되었습니다.' });
+    res.json({ success: true, message: '계정 삭제 완료' });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: '계정 삭제 중 오류 발생' });
   }
 };
 
@@ -150,25 +141,21 @@ export const refreshAccessToken = async (req, res) => {
     if (!refreshToken) {
       return res.status(401).json({ success: false, message: 'refreshToken 없음' });
     }
-
     const hashed = hashToken(refreshToken);
-    const user = await getUserByRefreshToken(hashed);
-
-    if (!user || new Date() > user.refresh_token_expires_in) {
+    const dbUser = await findUserByRefreshToken(hashed);
+    if (!dbUser || new Date() > dbUser.refreshTokenExpiresAt) {
       return res.status(401).json({ success: false, message: 'refreshToken 만료 또는 불일치' });
     }
-
-    const tokenPayload = {
-      id: user.userId,
-      githubId: user.githubId,
-      username: user.username,
-      email: user.email,
-      avatarUrl: user.avatarUrl,
+    const jwtPayload = {
+      id: dbUser.userId,
+      githubId: dbUser.githubId,
+      username: dbUser.username,
+      email: dbUser.email,
+      avatarUrl: dbUser.avatarUrl,
     };
-    const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '15m' });
-
-    res.json({ success: true, token });
+    const accessToken = jwt.sign(jwtPayload, process.env.JWT_SECRET, { expiresIn: '15m' });
+    res.json({ success: true, accessToken });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: '토큰 갱신 중 오류 발생' });
   }
 };
