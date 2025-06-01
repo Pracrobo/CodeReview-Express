@@ -10,7 +10,7 @@ export function mapUserToCamelCase(userRow) {
     email: userRow.email,
     avatarUrl: userRow.avatar_url,
     refreshToken: userRow.refresh_token,
-    refreshTokenExpiresAt: userRow.refresh_token_expires_in,
+    refreshTokenExpiresAt: userRow.refresh_token_expires_at,
     isProPlan: !!userRow.is_pro_plan,
     proPlanActivatedAt: userRow.pro_plan_activated_at,
     proPlanExpiresAt: userRow.pro_plan_expires_at,
@@ -73,7 +73,7 @@ export async function updateProPlanStatus(githubId) {
 export async function updateUserRefreshToken(userId, hashedRefreshToken, refreshTokenExpiresAt) {
   const pool = getConnectionPool();
   await pool.query(
-    'UPDATE users SET refresh_token = ?, refresh_token_expires_in = ? WHERE user_id = ?',
+    'UPDATE users SET refresh_token = ?, refresh_token_expires_at = ? WHERE user_id = ?',
     [hashedRefreshToken, refreshTokenExpiresAt, userId]
   );
 }
@@ -92,7 +92,7 @@ export async function findUserByRefreshToken(hashedRefreshToken) {
 export async function clearUserRefreshToken(userId) {
   const pool = getConnectionPool();
   await pool.query(
-    'UPDATE users SET refresh_token = NULL, refresh_token_expires_in = NULL WHERE user_id = ?',
+    'UPDATE users SET refresh_token = NULL, refresh_token_expires_at = NULL WHERE user_id = ?',
     [userId]
   );
 }

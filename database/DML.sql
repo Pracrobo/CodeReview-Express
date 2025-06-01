@@ -5,7 +5,7 @@ INSERT INTO users(
         avatar_url,
         email,
         refresh_token,
-        refresh_token_expires_in,
+        refresh_token_expires_at,
         is_pro_plan,
         pro_plan_activated_at,
         pro_plan_expires_at,
