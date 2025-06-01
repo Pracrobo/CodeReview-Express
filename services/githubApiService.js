@@ -54,8 +54,8 @@ export const githubApiService = {
     }
   },
 
-  // GitHub 애플리케이션 액세스 토큰 철회
-  async revokeAccessToken(accessToken) {
+  // GitHub 애플리케이션 연동 해제 (grant 엔드포인트 사용)
+  async unlinkGithub(accessToken) {
     try {
       const basicAuth = Buffer.from(
         `${process.env.GITHUB_CLIENT_ID}:${process.env.GITHUB_CLIENT_SECRET}`
@@ -72,7 +72,29 @@ export const githubApiService = {
         }
       );
     } catch (error) {
-      throw new Error(`GitHub 토큰 철회 실패: ${error.message}`);
+      throw new Error(`GitHub 연동 해제 실패: ${error.message}`);
+    }
+  },
+
+  // GitHub 로그아웃 (token 엔드포인트 사용)
+  async logoutGithub(accessToken) {
+    try {
+      const basicAuth = Buffer.from(
+        `${process.env.GITHUB_CLIENT_ID}:${process.env.GITHUB_CLIENT_SECRET}`
+      ).toString('base64');
+
+      await axios.delete(
+        `${GITHUB_API_URL}/applications/${process.env.GITHUB_CLIENT_ID}/token`,
+        {
+          headers: {
+            Authorization: `Basic ${basicAuth}`,
+            Accept: 'application/vnd.github+json',
+          },
+          data: { access_token: accessToken },
+        }
+      );
+    } catch (error) {
+      throw new Error(`GitHub 로그아웃 실패: ${error.message}`);
     }
   },
 };

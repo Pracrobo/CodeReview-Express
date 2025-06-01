@@ -1,8 +1,18 @@
 import {
   processGithubLogin,
-  revokeGithubToken,
-} from '../services/authService.js'; // 경로 수정
+  logoutGithub,
+  unlinkGithub,
+} from '../services/authService.js';
 import { deleteUserByGithubId } from '../models/User.js';
+
+// GitHub 액세스 토큰 쿠키 삭제 헬퍼 함수
+function clearGithubAccessTokenCookie(res) {
+  res.clearCookie('githubAccessToken', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+  });
+}
 
 // GitHub 로그인 페이지로 리다이렉트
 export const login = (req, res) => {
@@ -48,10 +58,10 @@ export const callback = async (req, res, next) => {
   }
 };
 
-// 로그아웃: GitHub 액세스 토큰 철회
+// GitHub 로그아웃
 export const logout = async (req, res) => {
   try {
-    const { githubAccessToken } = req.user;
+    const githubAccessToken = req.cookies.githubAccessToken;
 
     if (!githubAccessToken) {
       return res.status(400).json({
@@ -60,7 +70,9 @@ export const logout = async (req, res) => {
       });
     }
 
-    await revokeGithubToken(githubAccessToken);
+    await logoutGithub(githubAccessToken);
+
+    clearGithubAccessTokenCookie(res);
 
     res.json({
       success: true,
@@ -74,7 +86,35 @@ export const logout = async (req, res) => {
   }
 };
 
-// 계정 삭제
+// GitHub 계정 연동 해제
+export const unlink = async (req, res) => {
+  try {
+    const githubAccessToken = req.cookies.githubAccessToken;
+
+    if (!githubAccessToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'GitHub 액세스 토큰 정보가 없습니다.',
+      });
+    }
+
+    await unlinkGithub(githubAccessToken);
+
+    clearGithubAccessTokenCookie(res);
+
+    res.json({
+      success: true,
+      message: 'GitHub 계정 연동이 해제되었습니다.',
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// GitHub 계정 데이터 삭제
 export const deleteAccount = async (req, res) => {
   try {
     const { githubId } = req.user;
