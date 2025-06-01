@@ -11,6 +11,15 @@ import { githubApiService } from '../services/githubApiService.js';
 import { flaskService } from '../services/flaskService.js';
 import Repository from '../models/Repository.js';
 
+// 새로 추가: 검증 유틸리티
+import {
+  ValidationError,
+  validateRepoUrl,
+  validateGitHubRepoInfo,
+  validateLanguagesData,
+  validateAnalysisRequest,
+} from '../utils/validators.js';
+
 // 저장소 검색
 async function searchRepository(req, res) {
   // req.user는 authenticate 미들웨어를 통해 주입됨
@@ -52,7 +61,8 @@ async function getRepositoryList(req, res) {
   try {
     const repositories = await getUserRepositories(userId);
     return res.status(200).json({
-      data: repositories.data,
+      success: true,
+      repositories: repositories.data,
       message:
         repositories.data.length === 0 ? '추적 중인 저장소가 없습니다.' : null,
     });
@@ -141,31 +151,29 @@ async function deleteRepositoryInTracker(req, res) {
 // 저장소 분석 시작
 async function analyzeRepository(req, res) {
   const userId = req.user.id;
-  const { repoUrl } = req.body;
-
-  if (!repoUrl) {
-    return res.status(400).json({
-      success: false,
-      message: '저장소 URL이 필요합니다.',
-    });
-  }
-
-  // GitHub URL 형식 검증
-  const githubUrlPattern =
-    /^https:\/\/github\.com\/[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+\/?$/;
-  if (!githubUrlPattern.test(repoUrl.trim())) {
-    return res.status(400).json({
-      success: false,
-      message: '유효한 GitHub 저장소 URL을 입력해주세요.',
-    });
-  }
 
   try {
-    // 1. GitHub API로 저장소 정보 조회
+    // 1. 요청 데이터 종합 검증
+    const validatedData = validateAnalysisRequest(req.body);
+    const { repoUrl } = validatedData;
+
+    console.log('저장소 분석 요청 검증 완료:', repoUrl);
+
+    // 2. GitHub API로 저장소 정보 조회 및 검증
     console.log('GitHub 저장소 정보 조회 중:', repoUrl);
     const repositoryInfo = await githubApiService.getRepositoryInfo(repoUrl);
 
-    // 2. 1시간 이내 분석 결과 확인
+    // 3. GitHub 저장소 정보 종합 검증
+    validateGitHubRepoInfo(repositoryInfo);
+
+    // 4. 언어 정보 조회 및 검증
+    console.log('저장소 언어 정보 조회 중:', repoUrl);
+    const languagesData = await githubApiService.getRepositoryLanguages(
+      repoUrl
+    );
+    validateLanguagesData(languagesData, repoUrl);
+
+    // 5. 1시간 이내 분석 결과 확인
     const recentAnalysisResult = await Repository.checkRecentAnalysis(
       repositoryInfo.githubRepoId
     );
@@ -198,13 +206,12 @@ async function analyzeRepository(req, res) {
       });
     }
 
-    // 3. 저장소 정보를 DB에 저장/업데이트
+    // 6. 저장소 정보를 DB에 저장/업데이트
     const upsertResult = await Repository.upsertRepository({
       githubRepoId: repositoryInfo.githubRepoId,
       fullName: repositoryInfo.fullName,
       description: repositoryInfo.description,
       htmlUrl: repositoryInfo.htmlUrl,
-      programmingLanguage: repositoryInfo.programmingLanguage,
       licenseSpdxId: repositoryInfo.licenseSpdxId,
       star: repositoryInfo.star,
       fork: repositoryInfo.fork,
@@ -215,12 +222,13 @@ async function analyzeRepository(req, res) {
       return res.status(500).json({
         success: false,
         message: '저장소 정보 저장 중 오류가 발생했습니다.',
+        errorType: 'DATABASE_ERROR',
       });
     }
 
     const { repoId } = upsertResult.data;
 
-    // 4. 분석 상태를 'analyzing'으로 설정
+    // 7. 분석 상태를 'analyzing'으로 설정
     const analysisStartResult = await Repository.startRepositoryAnalysis(
       repoId
     );
@@ -229,13 +237,14 @@ async function analyzeRepository(req, res) {
       return res.status(500).json({
         success: false,
         message: '분석 상태 설정 중 오류가 발생했습니다.',
+        errorType: 'DATABASE_ERROR',
       });
     }
 
-    // 5. 사용자 트래킹에 추가
+    // 8. 사용자 트래킹에 추가
     await Repository.insertTrack(userId, repoId);
 
-    // 6. Flask 서버에 인덱싱 요청 (비동기)
+    // 9. Flask 서버에 인덱싱 요청 (비동기)
     setImmediate(async () => {
       try {
         // 분석 상태 업데이트
@@ -254,12 +263,32 @@ async function analyzeRepository(req, res) {
             analysisCurrentStep: '저장소 분석 진행 중...',
           });
         } else {
-          // Flask 요청 실패
+          // Flask 요청 실패 - 구체적인 오류 메시지 처리
+          let errorMessage = 'Flask 서버 오류';
+          let errorType = 'FLASK_ERROR';
+
+          if (flaskResult.error) {
+            errorMessage = flaskResult.error;
+
+            // 오류 타입 분류
+            if (flaskResult.error.includes('크기가 제한을 초과')) {
+              errorType = 'REPOSITORY_SIZE_EXCEEDED';
+            } else if (flaskResult.error.includes('연결할 수 없습니다')) {
+              errorType = 'FLASK_CONNECTION_ERROR';
+            } else if (flaskResult.error.includes('타임아웃')) {
+              errorType = 'FLASK_TIMEOUT_ERROR';
+            }
+          }
+
           await Repository.updateRepositoryAnalysisStatus(repoId, {
             analysisStatus: 'failed',
-            analysisErrorMessage: flaskResult.error || 'Flask 서버 오류',
+            analysisErrorMessage: errorMessage,
             analysisCurrentStep: '분석 실패',
           });
+
+          console.error(
+            `Flask 요청 실패 - ${repositoryInfo.fullName}: ${errorMessage}`
+          );
         }
       } catch (error) {
         console.error('Flask 인덱싱 요청 중 오류:', error);
@@ -271,7 +300,7 @@ async function analyzeRepository(req, res) {
       }
     });
 
-    // 7. 즉시 응답 반환
+    // 10. 즉시 응답 반환
     return res.status(200).json({
       success: true,
       message: '저장소 분석이 시작되었습니다.',
@@ -289,9 +318,42 @@ async function analyzeRepository(req, res) {
     });
   } catch (error) {
     console.error('저장소 분석 시작 중 오류:', error);
+
+    // ValidationError 처리
+    if (error instanceof ValidationError) {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+        errorType: error.errorType,
+      });
+    }
+
+    // GitHub API 오류 처리
+    if (error.message.includes('저장소를 찾을 수 없습니다')) {
+      return res.status(404).json({
+        success: false,
+        message: '저장소를 찾을 수 없습니다. URL이 올바른지 확인해주세요.',
+        errorType: 'REPOSITORY_NOT_FOUND',
+      });
+    } else if (error.message.includes('접근할 권한이 없습니다')) {
+      return res.status(403).json({
+        success: false,
+        message:
+          '저장소에 접근할 권한이 없습니다. 공개 저장소인지 확인해주세요.',
+        errorType: 'REPOSITORY_ACCESS_DENIED',
+      });
+    } else if (error.message.includes('GitHub 인증이 필요합니다')) {
+      return res.status(401).json({
+        success: false,
+        message: 'GitHub 인증이 필요합니다. 잠시 후 다시 시도해주세요.',
+        errorType: 'GITHUB_AUTH_REQUIRED',
+      });
+    }
+
     return res.status(500).json({
       success: false,
       message: error.message || '저장소 분석 시작 중 오류가 발생했습니다.',
+      errorType: 'INTERNAL_ERROR',
     });
   }
 }
@@ -430,12 +492,28 @@ async function getAnalysisStatus(req, res) {
         if (flaskError.response?.status === 409) {
           console.log('Flask에서 분석 실패 상태 감지, DB 상태 업데이트');
 
+          let errorMessage = 'Flask 서버에서 분석 실패';
+          let errorType = 'FLASK_ERROR';
+
+          // Flask 응답에서 구체적인 오류 메시지 추출
+          if (flaskError.response?.data?.message) {
+            errorMessage = flaskError.response.data.message;
+
+            // 오류 타입 분류
+            if (errorMessage.includes('크기가 제한을 초과')) {
+              errorType = 'REPOSITORY_SIZE_EXCEEDED';
+            } else if (errorMessage.includes('권한')) {
+              errorType = 'REPOSITORY_ACCESS_DENIED';
+            } else if (errorMessage.includes('찾을 수 없습니다')) {
+              errorType = 'REPOSITORY_NOT_FOUND';
+            }
+          }
+
           const failureUpdateData = {
             analysisStatus: 'failed',
             analysisProgress: 0,
             analysisCurrentStep: '분석 실패',
-            analysisErrorMessage:
-              flaskError.response?.data?.message || 'Flask 서버에서 분석 실패',
+            analysisErrorMessage: errorMessage,
           };
 
           await Repository.updateRepositoryAnalysisStatus(
@@ -448,11 +526,32 @@ async function getAnalysisStatus(req, res) {
             status: 'failed',
             progress: 0,
             currentStep: '분석 실패',
-            errorMessage: failureUpdateData.analysisErrorMessage,
+            errorMessage: errorMessage,
+            errorType: errorType,
             etaText: '실패',
           });
         }
       }
+    }
+
+    // 실패 상태인 경우 오류 타입 추가
+    if (result.data.status === 'failed' && result.data.errorMessage) {
+      let errorType = 'UNKNOWN_ERROR';
+      const errorMessage = result.data.errorMessage;
+
+      if (errorMessage.includes('크기가 제한을 초과')) {
+        errorType = 'REPOSITORY_SIZE_EXCEEDED';
+      } else if (errorMessage.includes('권한')) {
+        errorType = 'REPOSITORY_ACCESS_DENIED';
+      } else if (errorMessage.includes('찾을 수 없습니다')) {
+        errorType = 'REPOSITORY_NOT_FOUND';
+      } else if (errorMessage.includes('Flask')) {
+        errorType = 'FLASK_ERROR';
+      } else if (errorMessage.includes('연결')) {
+        errorType = 'CONNECTION_ERROR';
+      }
+
+      result.data.errorType = errorType;
     }
 
     return res.status(200).json({
@@ -468,6 +567,127 @@ async function getAnalysisStatus(req, res) {
   }
 }
 
+// 저장소 조회 시 마지막 조회 시간 업데이트
+async function updateRepositoryLastViewed(req, res) {
+  const userId = req.user.id;
+  const { repoId } = req.params;
+
+  if (!repoId) {
+    return res.status(400).json({
+      success: false,
+      message: '저장소 ID가 필요합니다.',
+    });
+  }
+
+  try {
+    const result = await Repository.updateLastViewedAt(userId, repoId);
+
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        message: '마지막 조회 시간 업데이트 중 오류가 발생했습니다.',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: '마지막 조회 시간이 업데이트되었습니다.',
+    });
+  } catch (error) {
+    console.error('마지막 조회 시간 업데이트 오류:', error);
+    return res.status(500).json({
+      success: false,
+      message: '마지막 조회 시간 업데이트 중 오류가 발생했습니다.',
+    });
+  }
+}
+
+// 저장소 상세 정보 조회
+async function getRepositoryDetails(req, res) {
+  const userId = req.user.id;
+  const { repoId } = req.params;
+
+  if (!repoId) {
+    return res.status(400).json({
+      success: false,
+      message: '저장소 ID가 필요합니다.',
+    });
+  }
+
+  try {
+    // 저장소 상세 정보 조회
+    const result = await Repository.selectRepositoryDetails(repoId, userId);
+
+    if (!result.success) {
+      return res.status(404).json({
+        success: false,
+        message: result.error || '저장소를 찾을 수 없습니다.',
+      });
+    }
+
+    // 저장소 언어 정보 조회
+    const languagesResult = await Repository.selectRepositoryLanguages(repoId);
+
+    // 언어 정보를 저장소 데이터에 추가
+    const repositoryData = {
+      ...result.data,
+      languages: languagesResult.success ? languagesResult.data : [],
+    };
+
+    // 사용자가 트래킹 중인 저장소라면 last_viewed_at 업데이트
+    if (result.data.isTracked) {
+      await Repository.updateLastViewedAt(userId, repoId);
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: repositoryData,
+      message: '저장소 상세 정보를 성공적으로 조회했습니다.',
+    });
+  } catch (error) {
+    console.error('저장소 상세 정보 조회 오류:', error);
+    return res.status(500).json({
+      success: false,
+      message: '저장소 상세 정보 조회 중 오류가 발생했습니다.',
+    });
+  }
+}
+
+// 저장소 언어 정보 조회
+async function getRepositoryLanguages(req, res) {
+  const { repoId } = req.params;
+
+  if (!repoId) {
+    return res.status(400).json({
+      success: false,
+      message: '저장소 ID가 필요합니다.',
+    });
+  }
+
+  try {
+    const result = await Repository.selectRepositoryLanguages(repoId);
+
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        message: '저장소 언어 정보 조회 중 오류가 발생했습니다.',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: result.data,
+      message: '저장소 언어 정보를 성공적으로 조회했습니다.',
+    });
+  } catch (error) {
+    console.error('저장소 언어 정보 조회 오류:', error);
+    return res.status(500).json({
+      success: false,
+      message: '저장소 언어 정보 조회 중 오류가 발생했습니다.',
+    });
+  }
+}
+
 export {
   searchRepository,
   getRepositoryList,
@@ -477,4 +697,7 @@ export {
   getAnalyzingRepositories,
   getRecentlyAnalyzedRepositories,
   getAnalysisStatus,
+  updateRepositoryLastViewed,
+  getRepositoryDetails,
+  getRepositoryLanguages,
 };

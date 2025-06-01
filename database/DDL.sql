@@ -4,6 +4,7 @@ DROP TABLE IF EXISTS `recommended_code_snippets`;
 DROP TABLE IF EXISTS `chat_bot_messages`;
 DROP TABLE IF EXISTS `chat_bot_conversations`;
 DROP TABLE IF EXISTS `issues`;
+DROP TABLE IF EXISTS `repository_languages`;
 DROP TABLE IF EXISTS `repositories`;
 DROP TABLE IF EXISTS `users`;
 DROP TABLE IF EXISTS `licenses`;
@@ -42,15 +43,13 @@ CREATE TABLE `licenses` (
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`license_spdx_id`)
 );
--- repositories 테이블 (분석 상태 컬럼 추가)
+-- repositories 테이블 (분석 상태 컬럼 추가, 언어 관련 컬럼 제거)
 CREATE TABLE `repositories` (
   `repo_id` BIGINT NOT NULL AUTO_INCREMENT,
   `github_repo_id` BIGINT NOT NULL,
   `full_name` VARCHAR(255) NOT NULL,
   `description` TEXT NULL,
   `html_url` VARCHAR(500) NOT NULL,
-  `programming_language` VARCHAR(100) NULL,
-  `language_percentage` TINYINT UNSIGNED NULL COMMENT '언어별 비율 (0-100)',
   `license_spdx_id` VARCHAR(50) NULL COMMENT '해당 repo의 license 종류',
   `readme_summary_gpt` TEXT NULL,
   `star` BIGINT UNSIGNED NOT NULL DEFAULT 0,
@@ -77,16 +76,29 @@ CREATE TABLE `repositories` (
   CONSTRAINT `FK_repositories_licenses` FOREIGN KEY (`license_spdx_id`) REFERENCES `licenses` (`license_spdx_id`) ON DELETE
   SET NULL ON UPDATE CASCADE,
     CHECK (
-      `language_percentage` BETWEEN 0 AND 100
-      OR `language_percentage` IS NULL
-    ),
-    CHECK (
       `star` >= 0
       AND `fork` >= 0
     ),
     CHECK (
       `analysis_progress` BETWEEN 0 AND 100
     )
+);
+-- repository_languages 테이블 (새로 추가)
+CREATE TABLE `repository_languages` (
+  `repo_id` BIGINT NOT NULL,
+  `language_name` VARCHAR(100) NOT NULL,
+  `percentage` DECIMAL(5, 2) NOT NULL COMMENT '해당 언어의 비율 (0.00-100.00)',
+  `bytes_count` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '해당 언어로 작성된 바이트 수',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT `PK_repository_languages` PRIMARY KEY (`repo_id`, `language_name`),
+  CONSTRAINT `FK_repository_languages_repositories` FOREIGN KEY (`repo_id`) REFERENCES `repositories` (`repo_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CHECK (
+    `percentage` BETWEEN 0.00 AND 100.00
+  ),
+  CHECK (
+    `bytes_count` >= 0
+  )
 );
 -- issues 테이블
 CREATE TABLE `issues` (
@@ -175,7 +187,6 @@ CREATE INDEX `IX_users_refresh_token_expires_at` ON `users`(`refresh_token_expir
 -- repositories
 CREATE INDEX `IX_repositories_full_name` ON `repositories`(`full_name`);
 CREATE INDEX `IX_repositories_license_spdx_id` ON `repositories`(`license_spdx_id`);
-CREATE INDEX `IX_repositories_programming_language` ON `repositories`(`programming_language`);
 CREATE INDEX `IX_repositories_star_fork` ON `repositories`(`star` DESC, `fork` DESC);
 CREATE INDEX `IX_repositories_last_analyzed_at` ON `repositories`(`last_analyzed_at`);
 CREATE FULLTEXT INDEX `FT_repositories_full_name` ON `repositories`(`full_name`);
@@ -200,3 +211,6 @@ CREATE INDEX `IX_user_tracked_repositories_tracked_at` ON `user_tracked_reposito
 -- recommended_code_snippets
 CREATE INDEX `IX_recommended_code_snippets_issue_score` ON `recommended_code_snippets`(`issue_id`, `relevance_score` DESC);
 CREATE INDEX `IX_recommended_code_snippets_file_path` ON `recommended_code_snippets`(`file_path`(255));
+-- repository_languages 인덱스
+CREATE INDEX `IX_repository_languages_language_name` ON `repository_languages`(`language_name`);
+CREATE INDEX `IX_repository_languages_percentage` ON `repository_languages`(`percentage` DESC);

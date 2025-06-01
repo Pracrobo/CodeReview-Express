@@ -6,11 +6,17 @@ export const flaskService = {
   // Flask 서버에 저장소 인덱싱 요청
   async requestRepositoryIndexing(repoUrl, repositoryInfo) {
     try {
+      // Express 서버의 콜백 URL 구성
+      const expressBaseUrl =
+        process.env.EXPRESS_BASE_URL || 'http://localhost:3001';
+      const callbackUrl = `${expressBaseUrl}/api/internal/analysis-complete`;
+
       const response = await axios.post(
         `${FLASK_API_URL}/api/repository/index`,
         {
           repo_url: repoUrl,
           repository_info: repositoryInfo, // 추가 정보 전달
+          callback_url: callbackUrl, // 콜백 URL 추가
         },
         {
           headers: {
@@ -58,10 +64,11 @@ export const flaskService = {
   async getRepositoryAnalysisStatus(repoName) {
     try {
       const response = await axios.get(
-        `${FLASK_API_URL}/api/repository/status/${encodeURIComponent(
-          repoName
-        )}`,
+        `${FLASK_API_URL}/api/repository/status/${repoName}`,
         {
+          headers: {
+            'Content-Type': 'application/json',
+          },
           timeout: 10000, // 10초 타임아웃
         }
       );
@@ -69,31 +76,73 @@ export const flaskService = {
       return {
         success: true,
         data: response.data,
-        status: response.status,
       };
     } catch (error) {
       console.error('Flask 상태 조회 오류:', error.message);
+      return {
+        success: false,
+        error: error.message,
+        response: error.response,
+      };
+    }
+  },
 
-      if (error.response) {
+  // Flask 서버에 README 요약 요청
+  async requestReadmeSummary(repoName, readmeContent) {
+    try {
+      console.log(`Flask에 README 요약 요청: ${repoName}`);
+
+      const response = await axios.post(
+        `${FLASK_API_URL}/api/repository/summarize-readme`,
+        {
+          repo_name: repoName,
+          readme_content: readmeContent,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          timeout: 60000, // 60초 타임아웃 (AI 처리 시간 고려)
+        }
+      );
+
+      if (response.data && response.data.status === 'success') {
+        console.log(`README 요약 완료: ${repoName}`);
+        return {
+          success: true,
+          data: response.data.data,
+          message: response.data.message,
+        };
+      } else {
+        console.error(`README 요약 실패: ${repoName}`, response.data);
         return {
           success: false,
-          error: error.response.data?.message || 'Flask 서버 오류',
-          status: error.response.status,
-          data: error.response.data,
+          error: response.data?.message || 'README 요약 실패',
         };
-      } else if (error.request) {
+      }
+    } catch (error) {
+      console.error(`README 요약 요청 오류: ${repoName}`, error.message);
+
+      // 타임아웃 오류 처리
+      if (error.code === 'ECONNABORTED') {
+        return {
+          success: false,
+          error: 'README 요약 요청 시간이 초과되었습니다.',
+        };
+      }
+
+      // Flask 서버 연결 오류 처리
+      if (error.code === 'ECONNREFUSED') {
         return {
           success: false,
           error: 'Flask 서버에 연결할 수 없습니다.',
-          status: 503,
-        };
-      } else {
-        return {
-          success: false,
-          error: `요청 설정 오류: ${error.message}`,
-          status: 500,
         };
       }
+
+      return {
+        success: false,
+        error: error.message || 'README 요약 요청 중 오류가 발생했습니다.',
+      };
     }
   },
 

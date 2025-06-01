@@ -11,8 +11,6 @@ function toCamelCaseRepositories(rows) {
     description: row.description,
     htmlUrl: row.html_url,
     isTrackedByCurrentUser: true,
-    programmingLanguage: row.programming_language,
-    languagePercentage: row.language_percentage,
     licenseSpdxId: row.license_spdx_id,
     readmeSummaryGpt: row.readme_summary_gpt,
     star: row.star,
@@ -120,7 +118,6 @@ async function upsertRepository(repositoryData) {
       fullName,
       description,
       htmlUrl,
-      programmingLanguage,
       licenseSpdxId,
       star,
       fork,
@@ -130,13 +127,12 @@ async function upsertRepository(repositoryData) {
     const [result] = await pool.query(
       `INSERT INTO repositories (
         github_repo_id, full_name, description, html_url, 
-        programming_language, license_spdx_id, star, fork, issue_total_count
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        license_spdx_id, star, fork, issue_total_count
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         full_name = VALUES(full_name),
         description = VALUES(description),
         html_url = VALUES(html_url),
-        programming_language = VALUES(programming_language),
         license_spdx_id = VALUES(license_spdx_id),
         star = VALUES(star),
         fork = VALUES(fork),
@@ -147,7 +143,6 @@ async function upsertRepository(repositoryData) {
         fullName,
         description,
         htmlUrl,
-        programmingLanguage,
         licenseSpdxId,
         star,
         fork,
@@ -208,6 +203,18 @@ async function updateRepositoryAnalysisStatus(repoId, updateData) {
       values.push(updateData.lastAnalyzedAt);
     }
 
+    // README 요약 업데이트
+    if (updateData.readmeSummaryGpt !== undefined) {
+      fields.push('readme_summary_gpt = ?');
+      values.push(updateData.readmeSummaryGpt);
+    }
+
+    // 라이선스 정보 업데이트
+    if (updateData.licenseSpdxId !== undefined) {
+      fields.push('license_spdx_id = ?');
+      values.push(updateData.licenseSpdxId);
+    }
+
     // 분석 완료 시 자동으로 완료 시간 설정
     if (updateData.analysisStatus === 'completed') {
       fields.push('analysis_completed_at = NOW()');
@@ -240,7 +247,7 @@ async function selectAnalyzingRepositories(userId) {
   try {
     const [rows] = await pool.query(
       `SELECT 
-        r.repo_id, r.full_name, r.description, r.html_url, r.programming_language,
+        r.repo_id, r.full_name, r.description, r.html_url,
         r.star, r.fork, r.analysis_status, r.analysis_progress, r.analysis_current_step,
         r.analysis_started_at, r.created_at,
         utr.tracked_at
@@ -275,12 +282,13 @@ async function selectRecentlyAnalyzedRepositories(userId, limit = 10) {
   try {
     const [rows] = await pool.query(
       `SELECT 
-        r.repo_id, r.full_name, r.description, r.html_url, r.programming_language,
+        r.repo_id, r.full_name, r.description, r.html_url,
         r.star, r.fork, r.last_analyzed_at, r.analysis_completed_at,
-        utr.tracked_at
+        utr.tracked_at, utr.last_viewed_at
       FROM repositories r
       JOIN user_tracked_repositories utr ON r.repo_id = utr.repo_id
       WHERE utr.user_id = ? AND r.analysis_status = 'completed'
+        AND (utr.last_viewed_at IS NULL OR utr.last_viewed_at < r.analysis_completed_at)
       ORDER BY r.analysis_completed_at DESC
       LIMIT ?`,
       [userId, limit]
@@ -292,17 +300,33 @@ async function selectRecentlyAnalyzedRepositories(userId, limit = 10) {
       fullName: row.full_name,
       description: row.description,
       htmlUrl: row.html_url,
-      programmingLanguage: row.programming_language,
       star: row.star,
       fork: row.fork,
       lastAnalyzed: row.last_analyzed_at,
       completedAt: row.analysis_completed_at,
-      isNew: true, // 최근 분석 완료된 것들은 새로운 것으로 표시
+      isNew: true, // 조건에 맞는 것들만 조회하므로 모두 새로운 것
     }));
 
     return { success: true, data };
   } catch (error) {
     console.error('최근 분석 완료 저장소 조회 오류:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// 사용자가 저장소를 조회했을 때 last_viewed_at 업데이트
+async function updateLastViewedAt(userId, repoId) {
+  try {
+    const [result] = await pool.query(
+      `UPDATE user_tracked_repositories 
+       SET last_viewed_at = NOW() 
+       WHERE user_id = ? AND repo_id = ?`,
+      [userId, repoId]
+    );
+
+    return { success: true, data: { affectedRows: result.affectedRows } };
+  } catch (error) {
+    console.error('마지막 조회 시간 업데이트 오류:', error.message);
     return { success: false, error: error.message };
   }
 }
@@ -405,9 +429,231 @@ async function startRepositoryAnalysis(repoId) {
   }
 }
 
+// 특정 저장소의 상세 정보 조회 (사용자별)
+async function selectRepositoryDetails(repoId, userId) {
+  try {
+    const [rows] = await pool.query(
+      `SELECT 
+        r.*, 
+        utr.tracked_at, 
+        utr.last_viewed_at, 
+        utr.is_favorite,
+        CASE WHEN utr.user_id IS NOT NULL THEN 1 ELSE 0 END as is_tracked
+      FROM repositories r
+      LEFT JOIN user_tracked_repositories utr ON r.repo_id = utr.repo_id AND utr.user_id = ?
+      WHERE r.repo_id = ?`,
+      [userId, repoId]
+    );
+
+    if (rows.length === 0) {
+      return { success: false, error: '저장소를 찾을 수 없습니다.' };
+    }
+
+    const row = rows[0];
+    const data = {
+      repoId: row.repo_id,
+      githubRepoId: row.github_repo_id,
+      fullName: row.full_name,
+      description: row.description,
+      htmlUrl: row.html_url,
+      licenseSpdxId: row.license_spdx_id,
+      readmeSummaryGpt: row.readme_summary_gpt,
+      star: row.star,
+      fork: row.fork,
+      prTotalCount: row.pr_total_count,
+      issueTotalCount: row.issue_total_count,
+      lastAnalyzedAt: row.last_analyzed_at,
+      analysisStatus: row.analysis_status,
+      analysisProgress: row.analysis_progress,
+      analysisCurrentStep: row.analysis_current_step,
+      analysisErrorMessage: row.analysis_error_message,
+      analysisStartedAt: row.analysis_started_at,
+      analysisCompletedAt: row.analysis_completed_at,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      // 사용자별 정보
+      trackedAt: row.tracked_at,
+      lastViewedAt: row.last_viewed_at,
+      isFavorite: row.is_favorite === 1,
+      isTracked: row.is_tracked === 1,
+    };
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('저장소 상세 정보 조회 오류:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// ===== 새로 추가: 저장소 언어 관련 함수들 =====
+
+// 저장소의 언어 정보 조회
+async function selectRepositoryLanguages(repoId) {
+  try {
+    const [rows] = await pool.query(
+      `SELECT language_name, percentage, bytes_count 
+       FROM repository_languages 
+       WHERE repo_id = ? 
+       ORDER BY percentage DESC`,
+      [repoId]
+    );
+
+    const languages = rows.map((row) => ({
+      languageName: row.language_name,
+      percentage: parseFloat(row.percentage),
+      bytesCount: row.bytes_count,
+    }));
+
+    return { success: true, data: languages };
+  } catch (error) {
+    console.error('저장소 언어 조회 오류:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// 저장소의 언어 정보 삽입/업데이트
+async function upsertRepositoryLanguages(repoId, languages) {
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    // 기존 언어 정보 삭제
+    await connection.query(
+      'DELETE FROM repository_languages WHERE repo_id = ?',
+      [repoId]
+    );
+
+    // 새로운 언어 정보 삽입
+    if (languages && languages.length > 0) {
+      const values = languages.map((lang) => [
+        repoId,
+        lang.language_name,
+        lang.percentage,
+        lang.bytes_count || 0,
+      ]);
+
+      await connection.query(
+        `INSERT INTO repository_languages (repo_id, language_name, percentage, bytes_count) 
+         VALUES ?`,
+        [values]
+      );
+    }
+
+    await connection.commit();
+    return { success: true };
+  } catch (error) {
+    await connection.rollback();
+    console.error('저장소 언어 정보 삽입/업데이트 오류:', error.message);
+    return { success: false, error: error.message };
+  } finally {
+    connection.release();
+  }
+}
+
+// 저장소 목록과 함께 주요 언어 정보 조회 (사용자 트래킹 저장소)
+async function selectTrackRepositoriesWithLanguages(userId) {
+  try {
+    const [rows] = await pool.query(
+      `SELECT 
+        r.*,
+        rl.language_name as primary_language,
+        rl.percentage as primary_language_percentage
+       FROM user_tracked_repositories utr
+       JOIN repositories r ON utr.repo_id = r.repo_id
+       LEFT JOIN repository_languages rl ON r.repo_id = rl.repo_id 
+         AND rl.percentage = (
+           SELECT MAX(percentage) 
+           FROM repository_languages rl2 
+           WHERE rl2.repo_id = r.repo_id
+         )
+       WHERE utr.user_id = ?
+       ORDER BY utr.tracked_at DESC`,
+      [userId]
+    );
+
+    const data = rows.map((row) => ({
+      repoId: row.repo_id,
+      githubRepoId: row.github_repo_id,
+      fullName: row.full_name,
+      description: row.description,
+      htmlUrl: row.html_url,
+      isTrackedByCurrentUser: true,
+      primaryLanguage: row.primary_language,
+      primaryLanguagePercentage: row.primary_language_percentage
+        ? parseFloat(row.primary_language_percentage)
+        : null,
+      licenseSpdxId: row.license_spdx_id,
+      readmeSummaryGpt: row.readme_summary_gpt,
+      star: row.star,
+      fork: row.fork,
+      prTotalCount: row.pr_total_count,
+      issueTotalCount: row.issue_total_count,
+      lastAnalyzedAt: row.last_analyzed_at,
+      analysisStatus: row.analysis_status,
+      analysisProgress: row.analysis_progress,
+      analysisCurrentStep: row.analysis_current_step,
+      analysisErrorMessage: row.analysis_error_message,
+      analysisStartedAt: row.analysis_started_at,
+      analysisCompletedAt: row.analysis_completed_at,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
+
+    return { success: true, data: data };
+  } catch (error) {
+    console.error('트래킹 저장소 조회 쿼리 오류:', error.message);
+    return { success: false };
+  }
+}
+
+// GitHub 저장소 ID로 저장소 조회
+async function selectRepositoryByGithubId(githubRepoId) {
+  try {
+    const [rows] = await pool.query(
+      'SELECT * FROM repositories WHERE github_repo_id = ?',
+      [githubRepoId]
+    );
+
+    if (rows.length === 0) {
+      return { success: false, error: '저장소를 찾을 수 없습니다.' };
+    }
+
+    // camelCase로 변환
+    const repository = {
+      id: rows[0].repo_id,
+      repoId: rows[0].repo_id,
+      githubRepoId: rows[0].github_repo_id,
+      fullName: rows[0].full_name,
+      description: rows[0].description,
+      htmlUrl: rows[0].html_url,
+      licenseSpdxId: rows[0].license_spdx_id,
+      readmeSummaryGpt: rows[0].readme_summary_gpt,
+      star: rows[0].star,
+      fork: rows[0].fork,
+      prTotalCount: rows[0].pr_total_count,
+      issueTotalCount: rows[0].issue_total_count,
+      lastAnalyzedAt: rows[0].last_analyzed_at,
+      analysisStatus: rows[0].analysis_status,
+      analysisProgress: rows[0].analysis_progress,
+      analysisCurrentStep: rows[0].analysis_current_step,
+      analysisErrorMessage: rows[0].analysis_error_message,
+      analysisStartedAt: rows[0].analysis_started_at,
+      analysisCompletedAt: rows[0].analysis_completed_at,
+      createdAt: rows[0].created_at,
+      updatedAt: rows[0].updated_at,
+    };
+
+    return { success: true, data: repository };
+  } catch (error) {
+    console.error('GitHub 저장소 ID로 조회 오류:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
 export default {
   selectRepository,
-  selectTrackRepositories,
+  selectTrackRepositories: selectTrackRepositoriesWithLanguages,
   insertTrack,
   selectTrack,
   deleteTrack,
@@ -419,4 +665,10 @@ export default {
   selectRepositoryAnalysisStatus,
   checkRecentAnalysis,
   startRepositoryAnalysis,
+  updateLastViewedAt,
+  selectRepositoryDetails,
+  selectRepositoryLanguages,
+  upsertRepositoryLanguages,
+  selectTrackRepositoriesWithLanguages,
+  selectRepositoryByGithubId,
 };

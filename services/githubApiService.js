@@ -157,6 +157,113 @@ export const githubApiService = {
     }
   },
 
+  // GitHub 저장소 README 내용 조회
+  async getRepositoryReadme(repoUrl, accessToken = null) {
+    try {
+      const urlParts = repoUrl.replace('https://github.com/', '').split('/');
+      if (urlParts.length < 2) {
+        throw new Error('유효하지 않은 GitHub URL입니다.');
+      }
+
+      const owner = urlParts[0];
+      const repo = urlParts[1].replace('.git', '');
+
+      const headers = {
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+      };
+
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`;
+      }
+
+      const response = await axios.get(
+        `${GITHUB_API_URL}/repos/${owner}/${repo}/readme`,
+        { headers }
+      );
+
+      // Base64로 인코딩된 내용을 디코딩
+      const content = Buffer.from(response.data.content, 'base64').toString(
+        'utf-8'
+      );
+
+      return {
+        content: content,
+        name: response.data.name,
+        path: response.data.path,
+        sha: response.data.sha,
+        size: response.data.size,
+        url: response.data.url,
+        htmlUrl: response.data.html_url,
+        downloadUrl: response.data.download_url,
+      };
+    } catch (error) {
+      if (error.response?.status === 404) {
+        console.warn(`README 파일을 찾을 수 없습니다: ${repoUrl}`);
+        return null;
+      }
+      console.warn(`README 조회 실패: ${error.message}`);
+      return null;
+    }
+  },
+
+  // GitHub 저장소 라이선스 정보 조회
+  async getRepositoryLicense(repoUrl, accessToken = null) {
+    try {
+      const urlParts = repoUrl.replace('https://github.com/', '').split('/');
+      if (urlParts.length < 2) {
+        throw new Error('유효하지 않은 GitHub URL입니다.');
+      }
+
+      const owner = urlParts[0];
+      const repo = urlParts[1].replace('.git', '');
+
+      const headers = {
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+      };
+
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`;
+      }
+
+      const response = await axios.get(
+        `${GITHUB_API_URL}/repos/${owner}/${repo}/license`,
+        { headers }
+      );
+
+      // Base64로 인코딩된 라이선스 내용을 디코딩
+      const content = response.data.content
+        ? Buffer.from(response.data.content, 'base64').toString('utf-8')
+        : null;
+
+      return {
+        name: response.data.name,
+        path: response.data.path,
+        sha: response.data.sha,
+        size: response.data.size,
+        url: response.data.url,
+        htmlUrl: response.data.html_url,
+        downloadUrl: response.data.download_url,
+        content: content,
+        license: {
+          key: response.data.license?.key,
+          name: response.data.license?.name,
+          spdxId: response.data.license?.spdx_id,
+          url: response.data.license?.url,
+          nodeId: response.data.license?.node_id,
+        },
+      };
+    } catch (error) {
+      if (error.response?.status === 404) {
+        console.warn(`라이선스 파일을 찾을 수 없습니다: ${repoUrl}`);
+        return null;
+      }
+      console.warn(`라이선스 조회 실패: ${error.message}`);
+      return null;
+    }
+  },
+
   // GitHub 애플리케이션 연동 해제
   async unlinkGithub(githubAccessToken) {
     try {
