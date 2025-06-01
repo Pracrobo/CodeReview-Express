@@ -1,3 +1,22 @@
+-- SQL 안전 모드 비활성화 (DELETE 경고 방지)
+SET SQL_SAFE_UPDATES = 0;
+
+-- 기존 데이터 삭제 (외래키 제약조건 고려하여 역순으로 삭제)
+DELETE FROM `recommended_code_snippets`;
+DELETE FROM `chat_bot_messages`;
+DELETE FROM `chat_bot_conversations`;
+DELETE FROM `user_tracked_repositories`;
+DELETE FROM `issues`;
+DELETE FROM `repositories`;
+DELETE FROM `licenses`;
+DELETE FROM `users`;
+-- AUTO_INCREMENT 값 초기화
+ALTER TABLE `users` AUTO_INCREMENT = 1;
+ALTER TABLE `repositories` AUTO_INCREMENT = 1;
+ALTER TABLE `issues` AUTO_INCREMENT = 1;
+ALTER TABLE `chat_bot_conversations` AUTO_INCREMENT = 1;
+ALTER TABLE `chat_bot_messages` AUTO_INCREMENT = 1;
+ALTER TABLE `recommended_code_snippets` AUTO_INCREMENT = 1;
 -- 사용자 데이터 삽입
 INSERT INTO users(
         github_user_id,
@@ -417,7 +436,6 @@ VALUES (
     ),
     (
         5,
-        8,
         90001,
         1234,
         'useQuery가 SSR에서 제대로 작동하지 않는 문제',
@@ -433,7 +451,6 @@ VALUES (
     ),
     (
         6,
-        8,
         90002,
         1235,
         'useMutation 타입 추론 개선 제안',
@@ -449,7 +466,6 @@ VALUES (
     ),
     (
         7,
-        8,
         90003,
         1236,
         '문서에 React 18 관련 내용 추가 필요',
@@ -465,7 +481,6 @@ VALUES (
     ),
     (
         8,
-        8,
         90004,
         1237,
         '캐시 무효화 API 개선',
@@ -480,7 +495,6 @@ VALUES (
         '2023-05-08 00:00:00'
     ),
     (
-        9,
         9,
         90005,
         45678,
@@ -527,7 +541,6 @@ VALUES (
         '2025-05-19 10:15:00'
     ),
     (
-        5,
         1,
         8,
         '2024-05-23 10:00:00',
@@ -684,7 +697,6 @@ VALUES (
         '2025-05-18 12:20:00'
     ),
     (
-        7,
         5,
         'src/useQuery.ts',
         NULL,
@@ -695,8 +707,7 @@ VALUES (
         '2023-05-21 10:00:00'
     ),
     (
-        8,
-        5,
+        6,
         'examples/nextjs/pages/index.tsx',
         NULL,
         NULL,
@@ -706,8 +717,7 @@ VALUES (
         '2023-05-21 10:05:00'
     ),
     (
-        9,
-        5,
+        7,
         'src/core/queryClient.ts',
         NULL,
         NULL,
@@ -716,3 +726,6 @@ VALUES (
         'QueryClient 핵심 로직 파일입니다. 서버 컴포넌트와의 호환성을 위해서는 QueryClient 인스턴스가 클라이언트 측에서 관리되도록 해야 합니다.',
         '2023-05-21 10:10:00'
     );
+
+-- SQL 안전 모드 재활성화
+SET SQL_SAFE_UPDATES = 1;

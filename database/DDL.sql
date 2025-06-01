@@ -29,7 +29,6 @@ CREATE TABLE `users` (
     OR `email` IS NULL
   )
 );
-
 -- licenses 테이블
 CREATE TABLE `licenses` (
   `license_spdx_id` VARCHAR(50) NOT NULL,
@@ -60,7 +59,12 @@ CREATE TABLE `repositories` (
   `issue_total_count` INT UNSIGNED NULL DEFAULT 0,
   `last_analyzed_at` TIMESTAMP NULL COMMENT '분석 요청 완료된 시간',
   -- 새로 추가된 분석 상태 관련 컬럼들
-  `analysis_status` ENUM('not_analyzed', 'analyzing', 'completed', 'failed') NOT NULL DEFAULT 'not_analyzed' COMMENT '분석 상태',
+  `analysis_status` ENUM(
+    'not_analyzed',
+    'analyzing',
+    'completed',
+    'failed'
+  ) NOT NULL DEFAULT 'not_analyzed' COMMENT '분석 상태',
   `analysis_progress` TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '분석 진행률 (0-100)',
   `analysis_current_step` VARCHAR(255) NULL COMMENT '현재 분석 단계',
   `analysis_error_message` TEXT NULL COMMENT '분석 실패 시 오류 메시지',
@@ -134,13 +138,13 @@ CREATE TABLE `chat_bot_messages` (
 CREATE TABLE `user_tracked_repositories` (
   `user_id` BIGINT NOT NULL,
   `repo_id` BIGINT NOT NULL,
-  `tracked_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'github url로 분석 요청일', 
+  `tracked_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'github url로 분석 요청일',
   `last_viewed_at` TIMESTAMP NULL COMMENT '유저가 마지막으로 분석을 본 날짜',
   `is_favorite` BOOLEAN NOT NULL DEFAULT FALSE COMMENT '즐겨찾기 여부',
   CONSTRAINT `PK_user_repo` PRIMARY KEY (`user_id`, `repo_id`),
   CONSTRAINT `FK_user_tracked_repositories_users` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `FK_user_tracked_repositories_repositories` FOREIGN KEY (`repo_id`) REFERENCES `repositories` (`repo_id`) ON DELETE CASCADE ON UPDATE CASCADE
-  );
+);
 -- recommended_code_snippets 테이블
 CREATE TABLE `recommended_code_snippets` (
   `recommendation_id` BIGINT NOT NULL AUTO_INCREMENT,
