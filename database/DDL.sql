@@ -43,7 +43,7 @@ CREATE TABLE `licenses` (
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`license_spdx_id`)
 );
--- repositories 테이블
+-- repositories 테이블 (분석 상태 컬럼 추가)
 CREATE TABLE `repositories` (
   `repo_id` BIGINT NOT NULL AUTO_INCREMENT,
   `github_repo_id` BIGINT NOT NULL,
@@ -59,6 +59,13 @@ CREATE TABLE `repositories` (
   `pr_total_count` INT UNSIGNED DEFAULT 0 COMMENT 'PR 총 개수',
   `issue_total_count` INT UNSIGNED NULL DEFAULT 0,
   `last_analyzed_at` TIMESTAMP NULL COMMENT '분석 요청 완료된 시간',
+  -- 새로 추가된 분석 상태 관련 컬럼들
+  `analysis_status` ENUM('not_analyzed', 'analyzing', 'completed', 'failed') NOT NULL DEFAULT 'not_analyzed' COMMENT '분석 상태',
+  `analysis_progress` TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '분석 진행률 (0-100)',
+  `analysis_current_step` VARCHAR(255) NULL COMMENT '현재 분석 단계',
+  `analysis_error_message` TEXT NULL COMMENT '분석 실패 시 오류 메시지',
+  `analysis_started_at` TIMESTAMP NULL COMMENT '분석 시작 시간',
+  `analysis_completed_at` TIMESTAMP NULL COMMENT '분석 완료 시간',
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`repo_id`),
@@ -72,6 +79,9 @@ CREATE TABLE `repositories` (
     CHECK (
       `star` >= 0
       AND `fork` >= 0
+    ),
+    CHECK (
+      `analysis_progress` BETWEEN 0 AND 100
     )
 );
 -- issues 테이블
@@ -165,6 +175,10 @@ CREATE INDEX `IX_repositories_programming_language` ON `repositories`(`programmi
 CREATE INDEX `IX_repositories_star_fork` ON `repositories`(`star` DESC, `fork` DESC);
 CREATE INDEX `IX_repositories_last_analyzed_at` ON `repositories`(`last_analyzed_at`);
 CREATE FULLTEXT INDEX `FT_repositories_full_name` ON `repositories`(`full_name`);
+-- 새로 추가된 분석 상태 관련 인덱스
+CREATE INDEX `IX_repositories_analysis_status` ON `repositories`(`analysis_status`);
+CREATE INDEX `IX_repositories_analysis_completed_at` ON `repositories`(`analysis_completed_at`);
+CREATE INDEX `IX_repositories_analysis_started_at` ON `repositories`(`analysis_started_at`);
 -- issues
 CREATE INDEX `IX_issues_repo_id_state` ON `issues`(`repo_id`, `state`);
 CREATE INDEX `IX_issues_github_issue_number` ON `issues`(`github_issue_number`);
