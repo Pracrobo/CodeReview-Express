@@ -418,10 +418,40 @@ async function getAnalysisStatus(req, res) {
               updateData.analysisCurrentStep || result.data.currentStep,
             errorMessage:
               updateData.analysisErrorMessage || result.data.errorMessage,
+            // Flask에서 받은 추가 정보들
+            estimatedCompletion: flaskData.estimated_completion,
+            etaText: flaskData.eta_text || '계산 중...',
           });
         }
       } catch (flaskError) {
         console.warn('Flask 상태 확인 중 오류:', flaskError.message);
+
+        // Flask에서 409 에러가 발생한 경우 (분석 실패)
+        if (flaskError.response?.status === 409) {
+          console.log('Flask에서 분석 실패 상태 감지, DB 상태 업데이트');
+
+          const failureUpdateData = {
+            analysisStatus: 'failed',
+            analysisProgress: 0,
+            analysisCurrentStep: '분석 실패',
+            analysisErrorMessage:
+              flaskError.response?.data?.message || 'Flask 서버에서 분석 실패',
+          };
+
+          await Repository.updateRepositoryAnalysisStatus(
+            result.data.repoId,
+            failureUpdateData
+          );
+
+          // 응답 데이터 업데이트
+          Object.assign(result.data, {
+            status: 'failed',
+            progress: 0,
+            currentStep: '분석 실패',
+            errorMessage: failureUpdateData.analysisErrorMessage,
+            etaText: '실패',
+          });
+        }
       }
     }
 
