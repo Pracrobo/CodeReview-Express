@@ -13,6 +13,7 @@ function clearGithubAccessTokenCookie(res) {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
+    path: '/',
   });
 }
 
@@ -22,6 +23,7 @@ function clearRefreshTokenCookie(res) {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
+    path: '/', // path도 명시적으로 지정
   });
 }
 
@@ -71,16 +73,21 @@ export const callback = async (req, res, next) => {
 export const logout = async (req, res) => {
   try {
     const githubAccessToken = req.cookies.githubAccessToken;
-    const userId = req.user?.id;
+    const refreshToken = req.cookies.refreshToken;
+
+    clearGithubAccessTokenCookie(res);
+    clearRefreshTokenCookie(res);
+
+    if (refreshToken) {
+      const hashed = hashToken(refreshToken);
+      const user = await getUserByRefreshToken(hashed);
+      if (user) {
+        await clearUserRefreshToken(user.userId);
+      }
+    }
 
     if (githubAccessToken) {
       await logoutGithub(githubAccessToken);
-      clearGithubAccessTokenCookie(res);
-    }
-    clearRefreshTokenCookie(res);
-
-    if (userId) {
-      await clearUserRefreshToken(userId);
     }
 
     res.json({ success: true, message: '로그아웃 되었습니다.' });
@@ -93,27 +100,26 @@ export const logout = async (req, res) => {
 export const unlink = async (req, res) => {
   try {
     const githubAccessToken = req.cookies.githubAccessToken;
-
-    if (!githubAccessToken) {
-      return res.status(400).json({
-        success: false,
-        message: 'GitHub 액세스 토큰 정보가 없습니다.',
-      });
-    }
-
-    await unlinkGithub(githubAccessToken);
+    const refreshToken = req.cookies.refreshToken;
 
     clearGithubAccessTokenCookie(res);
+    clearRefreshTokenCookie(res);
 
-    res.json({
-      success: true,
-      message: 'GitHub 계정 연동이 해제되었습니다.',
-    });
+    if (refreshToken) {
+      const hashed = hashToken(refreshToken);
+      const user = await getUserByRefreshToken(hashed);
+      if (user) {
+        await clearUserRefreshToken(user.userId);
+      }
+    }
+
+    if (githubAccessToken) {
+      await unlinkGithub(githubAccessToken);
+    }
+
+    res.json({ success: true, message: 'GitHub 연동이 해제되었습니다.' });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
