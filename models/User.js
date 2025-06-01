@@ -1,37 +1,46 @@
 import { getConnectionPool } from '../database/database.js';
 
 // DB 조회 결과(snake_case)를 camelCase로 변환
-function toCamelCaseUser(user) {
-  if (!user) return user;
+export function mapUserToCamelCase(userRow) {
+  if (!userRow) return userRow;
   return {
-    userId: user.user_id,
-    githubId: user.github_user_id,
-    username: user.username,
-    email: user.email,
-    avatarUrl: user.avatar_url,
-    isProPlan: !!user.is_pro_plan,
-    proPlanActivatedAt: user.pro_plan_activated_at,
-    proPlanExpiresAt: user.pro_plan_expires_at,
-    createdAt: user.created_at,
-    updatedAt: user.updated_at,
+    userId: userRow.user_id,
+    githubId: userRow.github_user_id,
+    username: userRow.username,
+    email: userRow.email,
+    avatarUrl: userRow.avatar_url,
+    refreshToken: userRow.refresh_token,
+    refreshTokenExpiresAt: userRow.refresh_token_expires_at,
+    isProPlan: !!userRow.is_pro_plan,
+    proPlanActivatedAt: userRow.pro_plan_activated_at,
+    proPlanExpiresAt: userRow.pro_plan_expires_at,
+    createdAt: userRow.created_at,
+    updatedAt: userRow.updated_at,
   };
 }
 
-// GitHub ID로 사용자 조회
+// GitHub ID로 사용자 조회 (로그인 시 updated_at을 한국시간으로 갱신)
 export async function findUserByGithubId(githubId) {
   const pool = getConnectionPool();
+  // 로그인 시 updated_at 갱신
+  await pool.query(
+    `UPDATE users SET updated_at = CONVERT_TZ(NOW(), '+00:00', '+09:00') WHERE github_user_id = ?`,
+    [githubId]
+  );
   const [rows] = await pool.query(
     'SELECT * FROM users WHERE github_user_id = ?',
     [githubId]
   );
-  return toCamelCaseUser(rows[0]);
+  return mapUserToCamelCase(rows[0]);
 }
 
 // 새 사용자 생성
 export async function createUser({ githubId, username, email, avatarUrl }) {
   const pool = getConnectionPool();
   const [result] = await pool.query(
-    `INSERT INTO users (github_user_id, username, email, avatar_url) VALUES (?, ?, ?, ?)`,
+    `INSERT INTO users 
+      (github_user_id, username, email, avatar_url, created_at, updated_at) 
+     VALUES (?, ?, ?, ?, CONVERT_TZ(NOW(), '+00:00', '+09:00'), CONVERT_TZ(NOW(), '+00:00', '+09:00'))`,
     [githubId, username, email, avatarUrl]
   );
   return {
@@ -46,6 +55,11 @@ export async function createUser({ githubId, username, email, avatarUrl }) {
 // GitHub ID로 사용자 삭제
 export async function deleteUserByGithubId(githubId) {
   const pool = getConnectionPool();
+  // 삭제 전 updated_at을 한국시간으로 갱신
+  await pool.query(
+    `UPDATE users SET updated_at = CONVERT_TZ(NOW(), '+00:00', '+09:00') WHERE github_user_id = ?`,
+    [githubId]
+  );
   await pool.query('DELETE FROM users WHERE github_user_id = ?', [githubId]);
 }
 
@@ -55,14 +69,46 @@ export async function updateProPlanStatus(githubId) {
   await pool.query(
     `UPDATE users
      SET is_pro_plan = 1,
-         pro_plan_activated_at = NOW(),
+         pro_plan_activated_at = 
+           CASE
+             WHEN pro_plan_expires_at > CONVERT_TZ(NOW(), '+00:00', '+09:00') THEN pro_plan_activated_at
+             ELSE CONVERT_TZ(NOW(), '+00:00', '+09:00')
+           END,
          pro_plan_expires_at = 
            CASE
-             WHEN pro_plan_expires_at > NOW() THEN DATE_ADD(pro_plan_expires_at, INTERVAL 1 MONTH) - INTERVAL 1 SECOND
-             ELSE DATE_ADD(NOW(), INTERVAL 1 MONTH) - INTERVAL 1 SECOND
+             WHEN pro_plan_expires_at > CONVERT_TZ(NOW(), '+00:00', '+09:00') THEN DATE_SUB(DATE_ADD(pro_plan_expires_at, INTERVAL 1 MONTH), INTERVAL 1 SECOND)
+             ELSE DATE_SUB(DATE_ADD(CONVERT_TZ(NOW(), '+00:00', '+09:00'), INTERVAL 1 MONTH), INTERVAL 1 SECOND)
            END,
-         updated_at = NOW()
+         updated_at = CONVERT_TZ(NOW(), '+00:00', '+09:00')
      WHERE github_user_id = ?`,
     [githubId]
+  );
+}
+
+// 사용자 리프레시 토큰 업데이트
+export async function updateUserRefreshToken(userId, hashedRefreshToken, refreshTokenExpiresAt) {
+  const pool = getConnectionPool();
+  await pool.query(
+    'UPDATE users SET refresh_token = ?, refresh_token_expires_at = ?, updated_at = CONVERT_TZ(NOW(), \'+00:00\', \'+09:00\') WHERE user_id = ?',
+    [hashedRefreshToken, refreshTokenExpiresAt, userId]
+  );
+}
+
+// 리프레시 토큰으로 사용자 조회
+export async function findUserByRefreshToken(hashedRefreshToken) {
+  const pool = getConnectionPool();
+  const [rows] = await pool.query(
+    'SELECT * FROM users WHERE refresh_token = ?',
+    [hashedRefreshToken]
+  );
+  return mapUserToCamelCase(rows[0]);
+}
+
+// 사용자 리프레시 토큰 삭제
+export async function clearUserRefreshToken(userId) {
+  const pool = getConnectionPool();
+  await pool.query(
+    'UPDATE users SET refresh_token = NULL, refresh_token_expires_at = NULL, updated_at = CONVERT_TZ(NOW(), \'+00:00\', \'+09:00\') WHERE user_id = ?',
+    [userId]
   );
 }
