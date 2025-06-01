@@ -4,6 +4,14 @@ import querystring from 'querystring';
 const GITHUB_API_URL = 'https://api.github.com';
 const GITHUB_OAUTH_URL = 'https://github.com/login/oauth';
 
+// Basic 인증 헤더 생성 함수
+function getBasicAuthHeader() {
+  const clientId = process.env.GITHUB_CLIENT_ID;
+  const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+  const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+  return `Basic ${credentials}`;
+}
+
 export const githubApiService = {
   // GitHub OAuth 코드로 액세스 토큰 요청
   async getAccessToken(code) {
@@ -54,21 +62,43 @@ export const githubApiService = {
     }
   },
 
-  // GitHub 애플리케이션 연동 해제 (grant 엔드포인트 사용)
+  // GitHub 애플리케이션 연동 해제 (grant 삭제)
   async unlinkGithub(githubAccessToken) {
     try {
-      // 실제 구현 필요
+      const clientId = process.env.GITHUB_CLIENT_ID;
+      const response = await axios.delete(
+        `${GITHUB_API_URL}/applications/${clientId}/grant`,
+        {
+          data: { access_token: githubAccessToken },
+          headers: {
+            Authorization: getBasicAuthHeader(),
+            Accept: 'application/vnd.github+json',
+          },
+        }
+      );
+      return response.data;
     } catch (error) {
-      throw new Error(`GitHub 연동 해제 실패: ${error.message}`);
+      throw new Error(`GitHub 연동 해제 실패: ${error.response?.data?.message || error.message}`);
     }
   },
 
-  // GitHub 로그아웃 (token 엔드포인트 사용)
+  // GitHub 로그아웃 (토큰 폐기)
   async logoutGithub(githubAccessToken) {
     try {
-      // 실제 구현 필요
+      const clientId = process.env.GITHUB_CLIENT_ID;
+      const response = await axios.delete(
+        `${GITHUB_API_URL}/applications/${clientId}/token`,
+        {
+          data: { access_token: githubAccessToken },
+          headers: {
+            Authorization: getBasicAuthHeader(),
+            Accept: 'application/vnd.github+json',
+          },
+        }
+      );
+      return response.data;
     } catch (error) {
-      throw new Error(`GitHub 로그아웃 실패: ${error.message}`);
+      throw new Error(`GitHub 로그아웃 실패: ${error.response?.data?.message || error.message}`);
     }
   },
 };

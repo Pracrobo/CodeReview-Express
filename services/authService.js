@@ -3,6 +3,9 @@ import { findUserByGithubId, createUser, updateUserRefreshToken } from '../model
 import { generateRefreshToken, hashToken } from '../utils/tokenUtils.js';
 import { githubApiService } from './githubApiService.js';
 
+// Refresh Token TTL (7일, ms)
+const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
 export const processGithubLogin = async (code) => {
   if (!code) {
     throw new Error('GitHub 인증 코드가 필요합니다.');
@@ -42,7 +45,7 @@ export const processGithubLogin = async (code) => {
   // refreshToken 생성 및 해싱
   const refreshToken = generateRefreshToken();
   const hashedRefreshToken = hashToken(refreshToken);
-  const refreshTokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7일
+  const refreshTokenExpiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS); // 7일
 
   // DB에 해시값과 만료일 저장
   await updateUserRefreshToken(dbUser.userId, hashedRefreshToken, refreshTokenExpiresAt);
@@ -53,7 +56,7 @@ export const processGithubLogin = async (code) => {
     email: dbUser.email,
     avatarUrl: dbUser.avatarUrl,
     githubAccessToken,
-    refreshToken, // 원본 반환
+    refreshToken,
     refreshTokenExpiresAt,
   };
 };
