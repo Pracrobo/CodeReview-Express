@@ -37,6 +37,7 @@ export const getPaymentStatus = async (req, res) => {
       email: dbUser.email,
       avatarUrl: dbUser.avatarUrl,
       isProPlan: dbUser.isProPlan || false,
+      proPlanActivatedAt: dbUser.proPlanActivatedAt || null,
       proPlanExpiresAt: dbUser.proPlanExpiresAt || null,
       createdAt: dbUser.createdAt || null,
       updatedAt: dbUser.updatedAt || null,

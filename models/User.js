@@ -69,7 +69,11 @@ export async function updateProPlanStatus(githubId) {
   await pool.query(
     `UPDATE users
      SET is_pro_plan = 1,
-         pro_plan_activated_at = CONVERT_TZ(NOW(), '+00:00', '+09:00'),
+         pro_plan_activated_at = 
+           CASE
+             WHEN pro_plan_expires_at > CONVERT_TZ(NOW(), '+00:00', '+09:00') THEN pro_plan_activated_at
+             ELSE CONVERT_TZ(NOW(), '+00:00', '+09:00')
+           END,
          pro_plan_expires_at = 
            CASE
              WHEN pro_plan_expires_at > CONVERT_TZ(NOW(), '+00:00', '+09:00') THEN DATE_SUB(DATE_ADD(pro_plan_expires_at, INTERVAL 1 MONTH), INTERVAL 1 SECOND)
