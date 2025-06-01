@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
-import { findUserByGithubId, createUser } from '../models/User.js';
+import { findUserByGithubId, createUser, updateUserRefreshToken } from '../models/User.js';
 import { githubApiService } from './githubApiService.js';
+import { generateRefreshToken, hashToken } from '../utils/tokenUtils.js';
 
 export const processGithubLogin = async (code) => {
   if (!code) {
@@ -36,9 +37,15 @@ export const processGithubLogin = async (code) => {
     avatarUrl: user.avatarUrl,
   };
 
-  const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '1h',
-  });
+  const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '15m' });
+
+  // refreshToken 생성 및 해싱
+  const refreshToken = generateRefreshToken();
+  const hashedRefreshToken = hashToken(refreshToken);
+  const refreshTokenExpiresIn = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7일
+
+  // DB에 해시값과 만료일 저장
+  await updateUserRefreshToken(user.userId, hashedRefreshToken, refreshTokenExpiresIn);
 
   return {
     token,
@@ -46,6 +53,8 @@ export const processGithubLogin = async (code) => {
     email: user.email,
     avatarUrl: user.avatarUrl,
     githubAccessToken,
+    refreshToken, // 원본 반환
+    refreshTokenExpiresIn,
   };
 };
 

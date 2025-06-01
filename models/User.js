@@ -66,3 +66,31 @@ export async function updateProPlanStatus(githubId) {
     [githubId]
   );
 }
+
+// 사용자 리프레시 토큰 업데이트
+export async function updateUserRefreshToken(userId, hashedRefreshToken, expiresIn) {
+  const pool = getConnectionPool();
+  await pool.query(
+    'UPDATE users SET refresh_token = ?, refresh_token_expires_in = ? WHERE user_id = ?',
+    [hashedRefreshToken, expiresIn, userId]
+  );
+}
+
+// 리프레시 토큰으로 사용자 조회
+export async function getUserByRefreshToken(hashedRefreshToken) {
+  const pool = getConnectionPool();
+  const [rows] = await pool.query(
+    'SELECT * FROM users WHERE refresh_token = ?',
+    [hashedRefreshToken]
+  );
+  return toCamelCaseUser(rows[0]);
+}
+
+// 사용자 리프레시 토큰 삭제
+export async function clearUserRefreshToken(userId) {
+  const pool = getConnectionPool();
+  await pool.query(
+    'UPDATE users SET refresh_token = NULL, refresh_token_expires_in = NULL WHERE user_id = ?',
+    [userId]
+  );
+}

@@ -3,11 +3,22 @@ import {
   logoutGithub,
   unlinkGithub,
 } from '../services/authService.js';
-import { deleteUserByGithubId } from '../models/User.js';
+import { deleteUserByGithubId, getUserByRefreshToken, clearUserRefreshToken } from '../models/User.js';
+import jwt from 'jsonwebtoken';
+import { hashToken } from '../utils/tokenUtils.js';
 
 // GitHub 액세스 토큰 쿠키 삭제 헬퍼 함수
 function clearGithubAccessTokenCookie(res) {
   res.clearCookie('githubAccessToken', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+  });
+}
+
+// refreshToken 쿠키 삭제 헬퍼
+function clearRefreshTokenCookie(res) {
+  res.clearCookie('refreshToken', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
@@ -30,31 +41,29 @@ export const githubRedirect = (req, res) => {
 // 프론트엔드에서 받은 code로 실제 로그인 처리 및 JWT 발급
 export const callback = async (req, res, next) => {
   const { code } = req.body;
-
   try {
     const authResult = await processGithubLogin(code);
 
-    // githubAccessToken을 HttpOnly 쿠키로만 저장
+    // githubAccessToken 쿠키
     res.cookie('githubAccessToken', authResult.githubAccessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 1000, // 1시간
+      maxAge: 60 * 60 * 1000,
+    });
+
+    // refreshToken 쿠키
+    res.cookie('refreshToken', authResult.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     const { token, username, email, avatarUrl } = authResult;
-    res.json({
-      success: true,
-      token,
-      username,
-      email,
-      avatarUrl,
-    });
+    res.json({ success: true, token, username, email, avatarUrl });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+    res.status(400).json({ success: false, message: error.message });
   }
 };
 
@@ -62,27 +71,21 @@ export const callback = async (req, res, next) => {
 export const logout = async (req, res) => {
   try {
     const githubAccessToken = req.cookies.githubAccessToken;
+    const userId = req.user?.id;
 
-    if (!githubAccessToken) {
-      return res.status(400).json({
-        success: false,
-        message: 'GitHub 액세스 토큰 정보가 없습니다.',
-      });
+    if (githubAccessToken) {
+      await logoutGithub(githubAccessToken);
+      clearGithubAccessTokenCookie(res);
+    }
+    clearRefreshTokenCookie(res);
+
+    if (userId) {
+      await clearUserRefreshToken(userId);
     }
 
-    await logoutGithub(githubAccessToken);
-
-    clearGithubAccessTokenCookie(res);
-
-    res.json({
-      success: true,
-      message: '로그아웃이 완료되었습니다.',
-    });
+    res.json({ success: true, message: '로그아웃 되었습니다.' });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -117,25 +120,49 @@ export const unlink = async (req, res) => {
 // GitHub 계정 데이터 삭제
 export const deleteAccount = async (req, res) => {
   try {
-    const { githubId } = req.user;
+    const githubId = req.user?.githubId;
+    const userId = req.user?.id;
 
-    if (!githubId) {
-      return res.status(400).json({
-        success: false,
-        message: 'GitHub 사용자 ID 정보가 없습니다.',
-      });
+    if (!githubId || !userId) {
+      return res.status(400).json({ success: false, message: '사용자 정보가 없습니다.' });
     }
 
+    clearGithubAccessTokenCookie(res);
+    clearRefreshTokenCookie(res);
+    await clearUserRefreshToken(userId);
     await deleteUserByGithubId(githubId);
 
-    res.json({
-      success: true,
-      message: '계정이 성공적으로 삭제되었습니다.',
-    });
+    res.json({ success: true, message: '계정이 삭제되었습니다.' });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const refreshAccessToken = async (req, res) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+    if (!refreshToken) {
+      return res.status(401).json({ success: false, message: 'refreshToken 없음' });
+    }
+
+    const hashed = hashToken(refreshToken);
+    const user = await getUserByRefreshToken(hashed);
+
+    if (!user || new Date() > user.refresh_token_expires_in) {
+      return res.status(401).json({ success: false, message: 'refreshToken 만료 또는 불일치' });
+    }
+
+    const tokenPayload = {
+      id: user.userId,
+      githubId: user.githubId,
+      username: user.username,
+      email: user.email,
+      avatarUrl: user.avatarUrl,
+    };
+    const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '15m' });
+
+    res.json({ success: true, token });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
