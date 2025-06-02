@@ -1,3 +1,23 @@
+-- SQL 안전 모드 비활성화 (DELETE 경고 방지)
+SET SQL_SAFE_UPDATES = 0;
+
+-- 기존 데이터 삭제 (외래키 제약조건 고려하여 역순으로 삭제)
+DELETE FROM `recommended_code_snippets`;
+DELETE FROM `chat_bot_messages`;
+DELETE FROM `chat_bot_conversations`;
+DELETE FROM `user_tracked_repositories`;
+DELETE FROM `issues`;
+DELETE FROM `repository_languages`;
+DELETE FROM `repositories`;
+DELETE FROM `licenses`;
+DELETE FROM `users`;
+-- AUTO_INCREMENT 값 초기화
+ALTER TABLE `users` AUTO_INCREMENT = 1;
+ALTER TABLE `repositories` AUTO_INCREMENT = 1;
+ALTER TABLE `issues` AUTO_INCREMENT = 1;
+ALTER TABLE `chat_bot_conversations` AUTO_INCREMENT = 1;
+ALTER TABLE `chat_bot_messages` AUTO_INCREMENT = 1;
+ALTER TABLE `recommended_code_snippets` AUTO_INCREMENT = 1;
 -- 사용자 데이터 삽입
 INSERT INTO users(
         github_user_id,
@@ -107,14 +127,12 @@ VALUES (
         '2020-01-01 00:00:00',
         '2025-05-21 12:00:00'
     );
--- 저장소 데이터 삽입
+-- 저장소 데이터 삽입 (언어 관련 컬럼 제거)
 INSERT INTO repositories (
         github_repo_id,
         full_name,
         description,
         html_url,
-        programming_language,
-        language_percentage,
         license_spdx_id,
         readme_summary_gpt,
         star,
@@ -122,6 +140,8 @@ INSERT INTO repositories (
         pr_total_count,
         issue_total_count,
         last_analyzed_at,
+        analysis_status,
+        analysis_completed_at,
         created_at,
         updated_at
     )
@@ -130,14 +150,14 @@ VALUES (
         'octocat/Hello-World',
         '깃허브에서의 첫 번째 저장소입니다!',
         'https://github.com/octocat/Hello-World',
-        'JavaScript',
-        90,
         'MIT',
         '자바스크립트로 작성된 간단한 Hello World 프로젝트입니다.',
         1500,
         300,
         45,
         12,
+        '2024-12-01 10:30:00',
+        'completed',
         '2024-12-01 10:30:00',
         '2011-01-26 19:01:12',
         '2025-05-01 09:00:00'
@@ -147,14 +167,14 @@ VALUES (
         'torvalds/linux',
         '리눅스 커널 소스 트리',
         'https://github.com/torvalds/linux',
-        'C',
-        95,
         'GPL-3.0-only',
         '리눅스 운영체제 커널의 소스 코드입니다.',
         150000,
         75000,
         1200,
         5000,
+        '2025-05-20 14:00:00',
+        'completed',
         '2025-05-20 14:00:00',
         '2011-09-04 22:48:00',
         '2025-05-21 12:00:00'
@@ -164,14 +184,14 @@ VALUES (
         'facebook/react',
         '사용자 인터페이스 구축을 위한 선언적이고 효율적이며 유연한 자바스크립트 라이브러리',
         'https://github.com/facebook/react',
-        'JavaScript',
-        88,
         'MIT',
         '리액트는 현대적인 UI 구축을 위한 자바스크립트 라이브러리입니다.',
         210000,
         44000,
         500,
         1300,
+        '2025-05-21 18:30:00',
+        'completed',
         '2025-05-21 18:30:00',
         '2013-05-24 16:15:10',
         '2025-05-22 08:30:00'
@@ -181,14 +201,14 @@ VALUES (
         'tensorflow/tensorflow',
         '모든 사람을 위한 오픈소스 머신러닝 프레임워크',
         'https://github.com/tensorflow/tensorflow',
-        'Python',
-        70,
         'Apache-2.0',
         '텐서플로우는 종단간 오픈소스 머신러닝 플랫폼입니다.',
         180000,
         85000,
         300,
         2200,
+        '2025-05-20 11:45:00',
+        'completed',
         '2025-05-20 11:45:00',
         '2015-11-09 22:25:36',
         '2025-05-21 09:10:00'
@@ -198,14 +218,14 @@ VALUES (
         'microsoft/vscode',
         'Visual Studio Code - 코드 편집의 재정의',
         'https://github.com/microsoft/vscode',
-        'TypeScript',
-        80,
         'MIT',
         'VS Code는 가볍지만 강력한 소스 코드 에디터입니다.',
         160000,
         28000,
         600,
         1500,
+        '2025-05-22 10:00:00',
+        'completed',
         '2025-05-22 10:00:00',
         '2015-11-18 13:50:23',
         '2025-05-22 10:10:00'
@@ -215,14 +235,14 @@ VALUES (
         'vscode/Hello-World',
         'VS Code에서의 첫 번째 저장소입니다!',
         'https://github.com/vscode/Hello-World',
-        'Java',
-        90,
         'MIT',
         '자바로 작성된 간단한 Hello World 프로젝트입니다.',
         2500,
         300,
         45,
         12,
+        '2024-12-01 10:30:00',
+        'completed',
         '2024-12-01 10:30:00',
         '2012-01-26 19:01:12',
         '2025-05-11 09:00:00'
@@ -232,14 +252,14 @@ VALUES (
         'golang/go',
         'Go 프로그래밍 언어',
         'https://github.com/golang/go',
-        'Go',
-        95,
         'BSD-3-Clause',
         'Go는 구글에서 개발한 오픈소스 프로그래밍 언어입니다.',
         120000,
         17000,
         800,
         3500,
+        '2025-05-21 16:00:00',
+        'completed',
         '2025-05-21 16:00:00',
         '2014-08-19 04:33:40',
         '2025-05-22 11:00:00'
@@ -249,14 +269,14 @@ VALUES (
         'tanstack/react-query',
         '🤖 강력한 비동기 상태 관리 및 서버 상태 유틸리티 라이브러리',
         'https://github.com/tanstack/react-query',
-        'TypeScript',
-        87,
         'MIT',
         'React Query는 React 애플리케이션에서 서버 상태를 가져오고, 캐싱하고, 동기화하고, 업데이트하는 작업을 쉽게 만들어주는 라이브러리입니다. 복잡한 상태 관리 코드 없이도 비동기 데이터를 효율적으로 관리할 수 있습니다.',
         35200,
         2100,
         15,
         42,
+        '2023-05-15 00:00:00',
+        'completed',
         '2023-05-15 00:00:00',
         '2020-01-10 10:00:00',
         '2023-05-20 10:00:00'
@@ -266,14 +286,14 @@ VALUES (
         'vercel/next.js',
         'React 프레임워크로 풀스택 웹 애플리케이션을 구축하세요',
         'https://github.com/vercel/next.js',
-        'JavaScript',
-        90,
         'MIT',
         'Next.js는 풀스택 웹 애플리케이션 구축을 위한 React 프레임워크입니다. 서버 사이드 렌더링, 정적 사이트 생성 등 다양한 기능을 제공합니다.',
         98700,
         24300,
         200,
         156,
+        '2023-05-18 00:00:00',
+        'completed',
         '2023-05-18 00:00:00',
         '2016-10-25 00:00:00',
         '2023-05-19 00:00:00'
@@ -283,14 +303,14 @@ VALUES (
         'honggildong/my-project',
         '개인 프로젝트 저장소',
         'https://github.com/honggildong/my-project',
-        'Python',
-        100,
         'MIT',
         '홍길동의 개인 프로젝트입니다. 다양한 실험과 학습 내용을 포함하고 있습니다.',
         5,
         1,
         2,
         8,
+        '2023-05-19 00:00:00',
+        'completed',
         '2023-05-19 00:00:00',
         '2022-08-01 00:00:00',
         '2023-05-20 00:00:00'
@@ -417,7 +437,6 @@ VALUES (
     ),
     (
         5,
-        8,
         90001,
         1234,
         'useQuery가 SSR에서 제대로 작동하지 않는 문제',
@@ -433,7 +452,6 @@ VALUES (
     ),
     (
         6,
-        8,
         90002,
         1235,
         'useMutation 타입 추론 개선 제안',
@@ -449,7 +467,6 @@ VALUES (
     ),
     (
         7,
-        8,
         90003,
         1236,
         '문서에 React 18 관련 내용 추가 필요',
@@ -465,7 +482,6 @@ VALUES (
     ),
     (
         8,
-        8,
         90004,
         1237,
         '캐시 무효화 API 개선',
@@ -480,7 +496,6 @@ VALUES (
         '2023-05-08 00:00:00'
     ),
     (
-        9,
         9,
         90005,
         45678,
@@ -527,7 +542,6 @@ VALUES (
         '2025-05-19 10:15:00'
     ),
     (
-        5,
         1,
         8,
         '2024-05-23 10:00:00',
@@ -684,7 +698,6 @@ VALUES (
         '2025-05-18 12:20:00'
     ),
     (
-        7,
         5,
         'src/useQuery.ts',
         NULL,
@@ -695,8 +708,7 @@ VALUES (
         '2023-05-21 10:00:00'
     ),
     (
-        8,
-        5,
+        6,
         'examples/nextjs/pages/index.tsx',
         NULL,
         NULL,
@@ -706,8 +718,7 @@ VALUES (
         '2023-05-21 10:05:00'
     ),
     (
-        9,
-        5,
+        7,
         'src/core/queryClient.ts',
         NULL,
         NULL,
@@ -716,3 +727,66 @@ VALUES (
         'QueryClient 핵심 로직 파일입니다. 서버 컴포넌트와의 호환성을 위해서는 QueryClient 인스턴스가 클라이언트 측에서 관리되도록 해야 합니다.',
         '2023-05-21 10:10:00'
     );
+
+-- 저장소 언어 데이터 삽입
+INSERT INTO repository_languages (
+        repo_id,
+        language_name,
+        percentage,
+        bytes_count
+    )
+VALUES 
+    -- octocat/Hello-World (repo_id: 1)
+    (1, 'JavaScript', 85.50, 125000),
+    (1, 'HTML', 10.20, 15000),
+    (1, 'CSS', 4.30, 6300),
+    
+    -- torvalds/linux (repo_id: 2)
+    (2, 'C', 97.80, 45000000),
+    (2, 'Assembly', 1.50, 690000),
+    (2, 'Shell', 0.70, 322000),
+    
+    -- facebook/react (repo_id: 3)
+    (3, 'JavaScript', 88.40, 2200000),
+    (3, 'TypeScript', 8.90, 221000),
+    (3, 'HTML', 2.70, 67000),
+    
+    -- tensorflow/tensorflow (repo_id: 4)
+    (4, 'Python', 70.30, 8500000),
+    (4, 'C++', 25.60, 3100000),
+    (4, 'Jupyter Notebook', 3.20, 387000),
+    (4, 'Shell', 0.90, 109000),
+    
+    -- microsoft/vscode (repo_id: 5)
+    (5, 'TypeScript', 80.10, 12000000),
+    (5, 'JavaScript', 15.20, 2280000),
+    (5, 'CSS', 3.40, 510000),
+    (5, 'HTML', 1.30, 195000),
+    
+    -- vscode/Hello-World (repo_id: 6)
+    (6, 'Java', 90.00, 180000),
+    (6, 'XML', 8.50, 17000),
+    (6, 'Gradle', 1.50, 3000),
+    
+    -- golang/go (repo_id: 7)
+    (7, 'Go', 95.20, 28000000),
+    (7, 'Assembly', 3.10, 912000),
+    (7, 'Shell', 1.40, 412000),
+    (7, 'Perl', 0.30, 88000),
+    
+    -- tanstack/react-query (repo_id: 8)
+    (8, 'TypeScript', 87.30, 1750000),
+    (8, 'JavaScript', 10.20, 204000),
+    (8, 'CSS', 2.50, 50000),
+    
+    -- vercel/next.js (repo_id: 9)
+    (9, 'JavaScript', 70.80, 8500000),
+    (9, 'TypeScript', 25.40, 3050000),
+    (9, 'CSS', 2.90, 348000),
+    (9, 'HTML', 0.90, 108000),
+    
+    -- honggildong/my-project (repo_id: 10)
+    (10, 'Python', 100.00, 25000);
+
+-- SQL 안전 모드 재활성화
+SET SQL_SAFE_UPDATES = 1;
