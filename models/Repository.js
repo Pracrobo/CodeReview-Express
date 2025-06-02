@@ -566,6 +566,7 @@ async function selectTrackRepositoriesWithLanguages(userId) {
     const [rows] = await pool.query(
       `SELECT 
         r.*,
+        utr.is_favorite, -- 즐겨찾기 상태 추가
         rl.language_name as primary_language,
         rl.percentage as primary_language_percentage
        FROM user_tracked_repositories utr
@@ -576,7 +577,7 @@ async function selectTrackRepositoriesWithLanguages(userId) {
            FROM repository_languages rl2 
            WHERE rl2.repo_id = r.repo_id
          )
-       WHERE utr.user_id = ? AND r.analysis_status = 'completed'
+       WHERE utr.user_id = ? AND r.analysis_status = 'completed' -- 또는 모든 상태를 포함하도록 조건 변경 가능
        ORDER BY utr.tracked_at DESC`,
       [userId]
     );
@@ -588,6 +589,7 @@ async function selectTrackRepositoriesWithLanguages(userId) {
       description: row.description,
       htmlUrl: row.html_url,
       isTrackedByCurrentUser: true,
+      isFavorite: row.is_favorite === 1, // is_favorite 값을 boolean으로 변환
       primaryLanguage: row.primary_language,
       primaryLanguagePercentage: row.primary_language_percentage
         ? parseFloat(row.primary_language_percentage)
@@ -660,13 +662,28 @@ async function selectRepositoryByGithubId(githubRepoId) {
   }
 }
 
+// 사용자의 저장소 즐겨찾기 상태 업데이트
+async function updateFavoriteStatus(userId, repoId, isFavorite) {
+  try {
+    const [result] = await pool.query(
+      `UPDATE user_tracked_repositories 
+       SET is_favorite = ? 
+       WHERE user_id = ? AND repo_id = ?`,
+      [isFavorite, userId, repoId]
+    );
+    return { success: true, data: { affectedRows: result.affectedRows } };
+  } catch (error) {
+    console.error('즐겨찾기 상태 업데이트 오류:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
 export default {
   selectRepository,
   selectTrackRepositories: selectTrackRepositoriesWithLanguages,
   insertTrack,
   selectTrack,
   deleteTrack,
-  // 새로 추가된 함수들
   upsertRepository,
   updateRepositoryAnalysisStatus,
   selectAnalyzingRepositories,
@@ -680,4 +697,5 @@ export default {
   upsertRepositoryLanguages,
   selectTrackRepositoriesWithLanguages,
   selectRepositoryByGithubId,
+  updateFavoriteStatus,
 };

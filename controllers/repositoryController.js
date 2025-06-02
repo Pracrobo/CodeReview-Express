@@ -896,6 +896,35 @@ function _isLikelyEnglish(text) {
   return englishRatio >= 0.5;
 }
 
+// 즐겨찾기 상태 업데이트
+export async function updateFavoriteStatus(req, res) {
+  const { repoId } = req.params;
+  const { isFavorite } = req.body;
+  const userId = req.user.id;
+
+  try {
+    const result = await Repository.updateFavoriteStatus(
+      userId,
+      repoId,
+      isFavorite
+    );
+
+    if (result.success) {
+      return res.status(200).json({
+        success: true,
+        message: '즐겨찾기 상태가 업데이트되었습니다.',
+      });
+    } else {
+      return res
+        .status(500)
+        .json({ success: false, message: '즐겨찾기 상태 업데이트 실패' });
+    }
+  } catch (error) {
+    console.error('즐겨찾기 상태 업데이트 오류:', error.message);
+    return res.status(500).json({ success: false, message: '서버 오류' });
+  }
+}
+
 export default {
   searchRepository,
   getRepositoryList,
@@ -908,4 +937,5 @@ export default {
   updateRepositoryLastViewed,
   getRepositoryDetails,
   getRepositoryLanguages,
+  updateFavoriteStatus,
 };

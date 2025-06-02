@@ -96,9 +96,7 @@ CREATE TABLE `repository_languages` (
   CHECK (
     `percentage` BETWEEN 0.00 AND 100.00
   ),
-  CHECK (
-    `bytes_count` >= 0
-  )
+  CHECK (`bytes_count` >= 0)
 );
 -- issues 테이블
 CREATE TABLE `issues` (

@@ -17,7 +17,7 @@ router.post(
   repositoryController.addRepositoryInTracker
 );
 
-// 저장소 트래킹 삭제
+// 저장소 트래킹 삭제 - githubRepoId 사용
 router.delete(
   '/tracked/:githubRepoId',
   authenticate,
@@ -69,6 +69,13 @@ router.get(
   '/:repoId/languages',
   authenticate,
   repositoryController.getRepositoryLanguages
+);
+
+// 즐겨찾기 상태 업데이트
+router.patch(
+  '/:repoId/favorite',
+  authenticate,
+  repositoryController.updateFavoriteStatus
 );
 
 export default router;
