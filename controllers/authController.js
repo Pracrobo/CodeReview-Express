@@ -73,21 +73,31 @@ export const logout = async (req, res) => {
     const githubAccessToken = req.cookies.githubAccessToken;
     const refreshToken = req.cookies.refreshToken;
 
+    // 쿠키는 즉시 삭제 (사용자 UX 우선)
     clearGithubAccessTokenCookie(res);
     clearRefreshTokenCookie(res);
 
-    if (refreshToken) {
-      const hashed = hashToken(refreshToken);
-      const dbUser = await findUserByRefreshToken(hashed);
-      if (dbUser) {
-        await clearUserRefreshToken(dbUser.userId);
+    // 비동기로 DB 및 외부 연동 정리 (응답 기다리지 않음)
+    (async () => {
+      try {
+        if (refreshToken) {
+          const hashed = hashToken(refreshToken);
+          const dbUser = await findUserByRefreshToken(hashed);
+          if (dbUser) {
+            await clearUserRefreshToken(dbUser.userId);
+          }
+        }
+        if (githubAccessToken) {
+          await logoutGithub(githubAccessToken);
+        }
+      } catch {
+        // UX적으로 빠른 로그아웃을 위해 에러 처리 하지 않음
       }
-    }
-    if (githubAccessToken) {
-      await logoutGithub(githubAccessToken);
-    }
+    })();
+
+    // 응답은 바로 반환 (프론트 UX 빠르게)
     res.json({ success: true, message: '로그아웃 완료' });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, message: '로그아웃 중 오류 발생' });
   }
 };
@@ -112,7 +122,7 @@ export const unlink = async (req, res) => {
       await unlinkGithub(githubAccessToken);
     }
     res.json({ success: true, message: '계정 연동 해제 완료' });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, message: '계정 연동 해제 중 오류 발생' });
   }
 };
@@ -130,7 +140,7 @@ export const deleteAccount = async (req, res) => {
     await clearUserRefreshToken(userId);
     await deleteUserByGithubId(githubId);
     res.json({ success: true, message: '계정 삭제 완료' });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, message: '계정 삭제 중 오류 발생' });
   }
 };
@@ -155,7 +165,7 @@ export const refreshAccessToken = async (req, res) => {
     };
     const accessToken = jwt.sign(jwtPayload, process.env.JWT_SECRET, { expiresIn: '15m' });
     res.json({ success: true, accessToken });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, message: '토큰 갱신 중 오류 발생' });
   }
 };
