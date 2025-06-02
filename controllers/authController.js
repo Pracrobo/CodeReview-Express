@@ -90,8 +90,12 @@ export const logout = async (req, res) => {
         if (githubAccessToken) {
           await logoutGithub(githubAccessToken);
         }
-      } catch {
-        // UX적으로 빠른 로그아웃을 위해 에러 처리 하지 않음
+      } catch (err) {
+        // 개발 환경에서만 에러 로깅
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('[logout async cleanup error]', err);
+        }
+        // UX적으로 빠른 로그아웃 진행
       }
     })();
 
