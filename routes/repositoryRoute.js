@@ -17,13 +17,6 @@ router.post(
   repositoryController.addRepositoryInTracker
 );
 
-// 저장소 트래킹 삭제 - githubRepoId 사용
-router.delete(
-  '/tracked/:githubRepoId',
-  authenticate,
-  repositoryController.deleteRepositoryInTracker
-);
-
 // ===== 새로 추가: 저장소 분석 관련 라우트 =====
 
 // 저장소 분석 시작

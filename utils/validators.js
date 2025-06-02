@@ -167,7 +167,6 @@ function validateSearchRequest(data) {
  * @throws {ValidationError} - 검증 실패 시
  */
 function validateGitHubRepoInfo(repoInfo) {
-  console.log('repoInfo', repoInfo);
   if (!repoInfo) {
     throw new ValidationError(
       '저장소 정보를 찾을 수 없습니다.',

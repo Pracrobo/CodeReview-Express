@@ -11,10 +11,8 @@ import { githubApiService } from '../services/githubApiService.js';
 import { flaskService } from '../services/flaskService.js';
 import Repository from '../models/Repository.js';
 
-// 새로 추가: 검증 유틸리티
 import {
   ValidationError,
-  validateRepoUrl,
   validateGitHubRepoInfo,
   validateLanguagesData,
   validateAnalysisRequest,
@@ -107,43 +105,6 @@ async function addRepositoryInTracker(req, res) {
     return res.status(500).json({
       success: false,
       message: '트래킹 저장소 추가 중 오류가 발생했습니다.',
-    });
-  }
-}
-
-// '내 저장소'에서 특정 저장소 삭제
-async function deleteRepositoryInTracker(req, res) {
-  const userId = req.user.id; // authenticate 미들웨어에서 주입된 사용자 ID
-  const { githubRepoId } = req.query; // 삭제는 주로 query parameter나 path parameter 사용
-  if (!githubRepoId) {
-    return res.status(400).json({
-      success: false,
-      message: '삭제할 GitHub 저장소 ID가 필요합니다.',
-    });
-  }
-
-  try {
-    const deleteResponse = await removeRepositoryFromTracking(
-      userId,
-      githubRepoId
-    );
-
-    if (deleteResponse.data.affectedRows > 0) {
-      return res.status(200).json({
-        success: true,
-        message: '저장소가 성공적으로 삭제되었습니다.',
-      });
-    } else {
-      return res.status(404).json({
-        success: false,
-        message: '삭제할 저장소를 찾을 수 없습니다.',
-      });
-    }
-  } catch (error) {
-    console.error('저장소 삭제 중 오류:', error.message);
-    return res.status(500).json({
-      success: false,
-      message: '트래킹 저장소 삭제 중 오류가 발생했습니다.',
     });
   }
 }
@@ -929,7 +890,6 @@ export default {
   searchRepository,
   getRepositoryList,
   addRepositoryInTracker,
-  deleteRepositoryInTracker,
   analyzeRepository,
   getAnalyzingRepositories,
   getRecentlyAnalyzedRepositories,

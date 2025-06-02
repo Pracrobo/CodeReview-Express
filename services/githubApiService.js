@@ -14,6 +14,27 @@ function getBasicAuthHeader() {
   return `Basic ${credentials}`;
 }
 
+// GitHub URL에서 owner/repo 추출하는 헬퍼 함수
+function parseRepositoryUrl(repoUrl) {
+  try {
+    const urlParts = repoUrl.replace('https://github.com/', '').split('/');
+    if (urlParts.length < 2) {
+      throw new Error('유효하지 않은 GitHub URL입니다.');
+    }
+
+    const owner = urlParts[0];
+    const repo = urlParts[1].replace('.git', '');
+
+    if (!owner || !repo) {
+      throw new Error('유효하지 않은 GitHub URL입니다.');
+    }
+
+    return { owner, repo };
+  } catch (error) {
+    throw new Error('유효하지 않은 GitHub URL입니다.');
+  }
+}
+
 export const githubApiService = {
   // GitHub OAuth 코드로 액세스 토큰 요청
   async getAccessToken(code) {
@@ -69,14 +90,7 @@ export const githubApiService = {
   // GitHub 저장소 정보 조회
   async getRepositoryInfo(repoUrl, accessToken = null) {
     try {
-      // URL에서 owner/repo 추출
-      const urlParts = repoUrl.replace('https://github.com/', '').split('/');
-      if (urlParts.length < 2) {
-        throw new Error('유효하지 않은 GitHub URL입니다.');
-      }
-
-      const owner = urlParts[0];
-      const repo = urlParts[1].replace('.git', '');
+      const { owner, repo } = parseRepositoryUrl(repoUrl);
 
       const headers = {
         Accept: 'application/vnd.github+json',
@@ -128,13 +142,7 @@ export const githubApiService = {
   // GitHub 저장소 언어 정보 조회
   async getRepositoryLanguages(repoUrl, accessToken = null) {
     try {
-      const urlParts = repoUrl.replace('https://github.com/', '').split('/');
-      if (urlParts.length < 2) {
-        throw new Error('유효하지 않은 GitHub URL입니다.');
-      }
-
-      const owner = urlParts[0];
-      const repo = urlParts[1].replace('.git', '');
+      const { owner, repo } = parseRepositoryUrl(repoUrl);
 
       const headers = {
         Accept: 'application/vnd.github+json',
@@ -160,13 +168,7 @@ export const githubApiService = {
   // GitHub 저장소 README 내용 조회
   async getRepositoryReadme(repoUrl, accessToken = null) {
     try {
-      const urlParts = repoUrl.replace('https://github.com/', '').split('/');
-      if (urlParts.length < 2) {
-        throw new Error('유효하지 않은 GitHub URL입니다.');
-      }
-
-      const owner = urlParts[0];
-      const repo = urlParts[1].replace('.git', '');
+      const { owner, repo } = parseRepositoryUrl(repoUrl);
 
       const headers = {
         Accept: 'application/vnd.github+json',
@@ -210,13 +212,7 @@ export const githubApiService = {
   // GitHub 저장소 라이선스 정보 조회
   async getRepositoryLicense(repoUrl, accessToken = null) {
     try {
-      const urlParts = repoUrl.replace('https://github.com/', '').split('/');
-      if (urlParts.length < 2) {
-        throw new Error('유효하지 않은 GitHub URL입니다.');
-      }
-
-      const owner = urlParts[0];
-      const repo = urlParts[1].replace('.git', '');
+      const { owner, repo } = parseRepositoryUrl(repoUrl);
 
       const headers = {
         Accept: 'application/vnd.github+json',
