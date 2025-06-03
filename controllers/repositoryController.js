@@ -782,7 +782,7 @@ async function getRepositoryDetails(req, res) {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: `트래킹 저장소 삭제 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${error?.message || '알 수 없는 오류'})`,
+      message: `저장소 상세 정보 조회 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${error?.message || '알 수 없는 오류'})`,
     });
   }
 }
