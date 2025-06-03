@@ -74,6 +74,8 @@ export const logout = async (req, res) => {
     clearGithubAccessTokenCookie(res);
     clearRefreshTokenCookie(res);
 
+    // 아래 비동기 IIFE는 await하지 않음(응답 속도/UX 우선)
+    // 이 과정에서 발생하는 에러는 별도 모니터링/로깅에서 처리
     (async () => {
       try {
         if (refreshToken) {
