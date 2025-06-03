@@ -38,12 +38,12 @@ async function searchRepository(req, res) {
     }
     return res.status(500).json({
       success: false,
-      message: `저장소 검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.`,
+      message: result.message,
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: `저장소 검색 중 오류가 발생했습니다. (${error?.message || '알 수 없는 오류'})`,
+      message: `저장소 검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${error?.message || '알 수 없는 오류'})`,
     });
   }
 }
@@ -628,7 +628,6 @@ async function getAnalysisStatus(req, res) {
 
         // Flask에서 409 에러가 발생한 경우 (분석 실패)
         if (flaskError.response?.status === 409) {
-          console.log('Flask에서 분석 실패 상태 감지, DB 상태 업데이트');
 
           let errorMessage = 'Flask 서버에서 분석 실패';
           let errorType = 'FLASK_ERROR';
@@ -699,7 +698,7 @@ async function getAnalysisStatus(req, res) {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: `트래킹 저장소 삭제 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${error?.message || '알 수 없는 오류'})`,
+      message: '분석 상태 조회 중 오류가 발생했습니다.',
     });
   }
 }
@@ -731,7 +730,6 @@ async function updateRepositoryLastViewed(req, res) {
       message: '마지막 조회 시간이 업데이트되었습니다.',
     });
   } catch (error) {
-    console.error('마지막 조회 시간 업데이트 오류:', error);
     return res.status(500).json({
       success: false,
       message: '마지막 조회 시간 업데이트 중 오류가 발생했습니다.',
@@ -782,10 +780,9 @@ async function getRepositoryDetails(req, res) {
       message: '저장소 상세 정보를 성공적으로 조회했습니다.',
     });
   } catch (error) {
-    console.error('저장소 상세 정보 조회 오류:', error);
     return res.status(500).json({
       success: false,
-      message: '저장소 상세 정보 조회 중 오류가 발생했습니다.',
+      message: `트래킹 저장소 삭제 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${error?.message || '알 수 없는 오류'})`,
     });
   }
 }
@@ -817,7 +814,6 @@ async function getRepositoryLanguages(req, res) {
       message: '저장소 언어 정보를 성공적으로 조회했습니다.',
     });
   } catch (error) {
-    console.error('저장소 언어 정보 조회 오류:', error);
     return res.status(500).json({
       success: false,
       message: '저장소 언어 정보 조회 중 오류가 발생했습니다.',
@@ -874,10 +870,7 @@ async function updateFavoriteStatus(req, res) {
       });
     }
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: `서버 오류가 발생했습니다. (${error?.message || '알 수 없는 오류'})`,
-    });
+    return res.status(500).json({ success: false, message: '서버 오류' });
   }
 }
 
