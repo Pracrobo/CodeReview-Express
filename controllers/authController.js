@@ -84,8 +84,9 @@ export const logout = async (req, res) => {
           if (dbUser) await clearUserRefreshToken(dbUser.userId);
         }
         if (githubAccessToken) await logoutGithub(githubAccessToken);
-      } catch {
+      } catch (error) {
         // UX적으로 빠른 로그아웃을 위해 에러 무시
+        console.error('Error during asynchronous logout process:', error);
       }
     })();
 
