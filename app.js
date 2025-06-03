@@ -26,7 +26,6 @@ const morganFormat =
   process.env.NODE_ENV === 'development' ? 'dev' : 'combined';
 app.use(morgan(morganFormat));
 
-// 라우터 등록
 app.use('/', routes);
 
 // 에러 처리 미들웨어 (라우터 등록 후)

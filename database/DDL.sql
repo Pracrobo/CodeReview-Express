@@ -4,6 +4,7 @@ DROP TABLE IF EXISTS `recommended_code_snippets`;
 DROP TABLE IF EXISTS `chat_bot_messages`;
 DROP TABLE IF EXISTS `chat_bot_conversations`;
 DROP TABLE IF EXISTS `issues`;
+DROP TABLE IF EXISTS `repository_languages`;
 DROP TABLE IF EXISTS `repositories`;
 DROP TABLE IF EXISTS `users`;
 DROP TABLE IF EXISTS `licenses`;
@@ -29,7 +30,6 @@ CREATE TABLE `users` (
     OR `email` IS NULL
   )
 );
-
 -- licenses 테이블
 CREATE TABLE `licenses` (
   `license_spdx_id` VARCHAR(50) NOT NULL,
@@ -43,15 +43,13 @@ CREATE TABLE `licenses` (
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`license_spdx_id`)
 );
--- repositories 테이블
+-- repositories 테이블 (분석 상태 컬럼 추가, 언어 관련 컬럼 제거)
 CREATE TABLE `repositories` (
   `repo_id` BIGINT NOT NULL AUTO_INCREMENT,
   `github_repo_id` BIGINT NOT NULL,
   `full_name` VARCHAR(255) NOT NULL,
   `description` TEXT NULL,
   `html_url` VARCHAR(500) NOT NULL,
-  `programming_language` VARCHAR(100) NULL,
-  `language_percentage` TINYINT UNSIGNED NULL COMMENT '언어별 비율 (0-100)',
   `license_spdx_id` VARCHAR(50) NULL COMMENT '해당 repo의 license 종류',
   `readme_summary_gpt` TEXT NULL,
   `star` BIGINT UNSIGNED NOT NULL DEFAULT 0,
@@ -59,6 +57,18 @@ CREATE TABLE `repositories` (
   `pr_total_count` INT UNSIGNED DEFAULT 0 COMMENT 'PR 총 개수',
   `issue_total_count` INT UNSIGNED NULL DEFAULT 0,
   `last_analyzed_at` TIMESTAMP NULL COMMENT '분석 요청 완료된 시간',
+  -- 새로 추가된 분석 상태 관련 컬럼들
+  `analysis_status` ENUM(
+    'not_analyzed',
+    'analyzing',
+    'completed',
+    'failed'
+  ) NOT NULL DEFAULT 'not_analyzed' COMMENT '분석 상태',
+  `analysis_progress` TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '분석 진행률 (0-100)',
+  `analysis_current_step` VARCHAR(255) NULL COMMENT '현재 분석 단계',
+  `analysis_error_message` TEXT NULL COMMENT '분석 실패 시 오류 메시지',
+  `analysis_started_at` TIMESTAMP NULL COMMENT '분석 시작 시간',
+  `analysis_completed_at` TIMESTAMP NULL COMMENT '분석 완료 시간',
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`repo_id`),
@@ -66,13 +76,27 @@ CREATE TABLE `repositories` (
   CONSTRAINT `FK_repositories_licenses` FOREIGN KEY (`license_spdx_id`) REFERENCES `licenses` (`license_spdx_id`) ON DELETE
   SET NULL ON UPDATE CASCADE,
     CHECK (
-      `language_percentage` BETWEEN 0 AND 100
-      OR `language_percentage` IS NULL
-    ),
-    CHECK (
       `star` >= 0
       AND `fork` >= 0
+    ),
+    CHECK (
+      `analysis_progress` BETWEEN 0 AND 100
     )
+);
+-- repository_languages 테이블 (새로 추가)
+CREATE TABLE `repository_languages` (
+  `repo_id` BIGINT NOT NULL,
+  `language_name` VARCHAR(100) NOT NULL,
+  `percentage` DECIMAL(5, 2) NOT NULL COMMENT '해당 언어의 비율 (0.00-100.00)',
+  `bytes_count` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '해당 언어로 작성된 바이트 수',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT `PK_repository_languages` PRIMARY KEY (`repo_id`, `language_name`),
+  CONSTRAINT `FK_repository_languages_repositories` FOREIGN KEY (`repo_id`) REFERENCES `repositories` (`repo_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CHECK (
+    `percentage` BETWEEN 0.00 AND 100.00
+  ),
+  CHECK (`bytes_count` >= 0)
 );
 -- issues 테이블
 CREATE TABLE `issues` (
@@ -124,13 +148,13 @@ CREATE TABLE `chat_bot_messages` (
 CREATE TABLE `user_tracked_repositories` (
   `user_id` BIGINT NOT NULL,
   `repo_id` BIGINT NOT NULL,
-  `tracked_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'github url로 분석 요청일', 
+  `tracked_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'github url로 분석 요청일',
   `last_viewed_at` TIMESTAMP NULL COMMENT '유저가 마지막으로 분석을 본 날짜',
   `is_favorite` BOOLEAN NOT NULL DEFAULT FALSE COMMENT '즐겨찾기 여부',
   CONSTRAINT `PK_user_repo` PRIMARY KEY (`user_id`, `repo_id`),
   CONSTRAINT `FK_user_tracked_repositories_users` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `FK_user_tracked_repositories_repositories` FOREIGN KEY (`repo_id`) REFERENCES `repositories` (`repo_id`) ON DELETE CASCADE ON UPDATE CASCADE
-  );
+);
 -- recommended_code_snippets 테이블
 CREATE TABLE `recommended_code_snippets` (
   `recommendation_id` BIGINT NOT NULL AUTO_INCREMENT,
@@ -161,10 +185,13 @@ CREATE INDEX `IX_users_refresh_token_expires_at` ON `users`(`refresh_token_expir
 -- repositories
 CREATE INDEX `IX_repositories_full_name` ON `repositories`(`full_name`);
 CREATE INDEX `IX_repositories_license_spdx_id` ON `repositories`(`license_spdx_id`);
-CREATE INDEX `IX_repositories_programming_language` ON `repositories`(`programming_language`);
 CREATE INDEX `IX_repositories_star_fork` ON `repositories`(`star` DESC, `fork` DESC);
 CREATE INDEX `IX_repositories_last_analyzed_at` ON `repositories`(`last_analyzed_at`);
 CREATE FULLTEXT INDEX `FT_repositories_full_name` ON `repositories`(`full_name`);
+-- 새로 추가된 분석 상태 관련 인덱스
+CREATE INDEX `IX_repositories_analysis_status` ON `repositories`(`analysis_status`);
+CREATE INDEX `IX_repositories_analysis_completed_at` ON `repositories`(`analysis_completed_at`);
+CREATE INDEX `IX_repositories_analysis_started_at` ON `repositories`(`analysis_started_at`);
 -- issues
 CREATE INDEX `IX_issues_repo_id_state` ON `issues`(`repo_id`, `state`);
 CREATE INDEX `IX_issues_github_issue_number` ON `issues`(`github_issue_number`);
@@ -182,3 +209,6 @@ CREATE INDEX `IX_user_tracked_repositories_tracked_at` ON `user_tracked_reposito
 -- recommended_code_snippets
 CREATE INDEX `IX_recommended_code_snippets_issue_score` ON `recommended_code_snippets`(`issue_id`, `relevance_score` DESC);
 CREATE INDEX `IX_recommended_code_snippets_file_path` ON `recommended_code_snippets`(`file_path`(255));
+-- repository_languages 인덱스
+CREATE INDEX `IX_repository_languages_language_name` ON `repository_languages`(`language_name`);
+CREATE INDEX `IX_repository_languages_percentage` ON `repository_languages`(`percentage` DESC);
