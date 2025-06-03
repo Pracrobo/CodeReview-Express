@@ -4,7 +4,7 @@ import {
   addRepositoryToTracking,
   checkUserTrackingStatus,
   removeRepositoryFromTracking,
-} from '../services/repositoryService.js'; // 경로 수정
+} from '../services/repositoryService.js';
 
 // 새로 추가된 서비스들
 import { githubApiService } from '../services/githubApiService.js';
@@ -20,42 +20,37 @@ import {
 
 // 저장소 검색
 async function searchRepository(req, res) {
-  // req.user는 authenticate 미들웨어를 통해 주입됨
   const { query } = req.query;
-
   if (!query) {
     return res.status(400).json({
       success: false,
       message: '검색어를 입력해주세요.',
     });
   }
-
   try {
     const result = await searchRepositories(query);
     if (result.success) {
       return res.status(200).json({
         success: true,
         repositories: result.data,
-        message: result.data.length === 0 ? '검색 결과가 없습니다.' : null,
-      });
-    } else {
-      return res.status(500).json({
-        success: false,
-        message: result.message,
+        message: result.data.length === 0 ? '검색 결과가 없습니다.' : undefined,
       });
     }
-  } catch (error) {
-    console.error('저장소 검색 중 오류:', error.message);
     return res.status(500).json({
       success: false,
-      message: '저장소 검색 중 오류가 발생했습니다.',
+      message: result.message,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: `저장소 검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${error?.message || '알 수 없는 오류'})`,
     });
   }
 }
 
 // 내 저장소 목록 조회
 async function getRepositoryList(req, res) {
-  const userId = req.user.id; // authenticate 미들웨어에서 주입된 사용자 ID
+  const userId = req.user.id;
   try {
     const repositories = await getUserRepositories(userId);
     return res.status(200).json({
@@ -65,18 +60,17 @@ async function getRepositoryList(req, res) {
         repositories.data.length === 0 ? '추적 중인 저장소가 없습니다.' : null,
     });
   } catch (error) {
-    console.error('저장소 목록 조회 중 오류:', error.message);
     return res.status(500).json({
       success: false,
-      message: '트래킹된 저장소 목록 조회 중 오류가 발생했습니다.',
+      message: `트래킹된 저장소 목록 조회 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${error?.message || '알 수 없는 오류'})`,
     });
   }
 }
 
 // '내 저장소'에 특정 저장소 추가
 async function addRepositoryInTracker(req, res) {
-  const userId = req.user.id; // authenticate 미들웨어에서 주입된 사용자 ID
-  const githubRepoId = req.body.githubRepoId; // 요청 본문에서 githubRepoId를 받도록 변경 (또는 req.query 유지)
+  const userId = req.user.id;
+  const githubRepoId = req.body.githubRepoId;
   if (!githubRepoId) {
     return res.status(400).json({
       success: false,
@@ -101,10 +95,9 @@ async function addRepositoryInTracker(req, res) {
       message: '저장소가 성공적으로 추가되었습니다.',
     });
   } catch (error) {
-    console.error('저장소 추가 중 오류:', error.message);
     return res.status(500).json({
       success: false,
-      message: '트래킹 저장소 추가 중 오류가 발생했습니다.',
+      message: `트래킹 저장소 추가 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${error?.message || '알 수 없는 오류'})`,
     });
   }
 }
@@ -635,7 +628,6 @@ async function getAnalysisStatus(req, res) {
 
         // Flask에서 409 에러가 발생한 경우 (분석 실패)
         if (flaskError.response?.status === 409) {
-          console.log('Flask에서 분석 실패 상태 감지, DB 상태 업데이트');
 
           let errorMessage = 'Flask 서버에서 분석 실패';
           let errorType = 'FLASK_ERROR';
@@ -704,7 +696,6 @@ async function getAnalysisStatus(req, res) {
       data: result.data,
     });
   } catch (error) {
-    console.error('분석 상태 조회 오류:', error);
     return res.status(500).json({
       success: false,
       message: '분석 상태 조회 중 오류가 발생했습니다.',
@@ -739,7 +730,6 @@ async function updateRepositoryLastViewed(req, res) {
       message: '마지막 조회 시간이 업데이트되었습니다.',
     });
   } catch (error) {
-    console.error('마지막 조회 시간 업데이트 오류:', error);
     return res.status(500).json({
       success: false,
       message: '마지막 조회 시간 업데이트 중 오류가 발생했습니다.',
@@ -790,10 +780,9 @@ async function getRepositoryDetails(req, res) {
       message: '저장소 상세 정보를 성공적으로 조회했습니다.',
     });
   } catch (error) {
-    console.error('저장소 상세 정보 조회 오류:', error);
     return res.status(500).json({
       success: false,
-      message: '저장소 상세 정보 조회 중 오류가 발생했습니다.',
+      message: `저장소 상세 정보 조회 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${error?.message || '알 수 없는 오류'})`,
     });
   }
 }
@@ -825,7 +814,6 @@ async function getRepositoryLanguages(req, res) {
       message: '저장소 언어 정보를 성공적으로 조회했습니다.',
     });
   } catch (error) {
-    console.error('저장소 언어 정보 조회 오류:', error);
     return res.status(500).json({
       success: false,
       message: '저장소 언어 정보 조회 중 오류가 발생했습니다.',
@@ -858,7 +846,7 @@ function _isLikelyEnglish(text) {
 }
 
 // 즐겨찾기 상태 업데이트
-export async function updateFavoriteStatus(req, res) {
+async function updateFavoriteStatus(req, res) {
   const { repoId } = req.params;
   const { isFavorite } = req.body;
   const userId = req.user.id;
@@ -876,12 +864,12 @@ export async function updateFavoriteStatus(req, res) {
         message: '즐겨찾기 상태가 업데이트되었습니다.',
       });
     } else {
-      return res
-        .status(500)
-        .json({ success: false, message: '즐겨찾기 상태 업데이트 실패' });
+      return res.status(500).json({
+        success: false,
+        message: '즐겨찾기 상태 업데이트 실패',
+      });
     }
   } catch (error) {
-    console.error('즐겨찾기 상태 업데이트 오류:', error.message);
     return res.status(500).json({ success: false, message: '서버 오류' });
   }
 }

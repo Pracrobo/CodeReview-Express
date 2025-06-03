@@ -42,7 +42,6 @@ export const callback = async (req, res, next) => {
   try {
     const authResult = await processGithubLogin(code);
 
-    // githubAccessToken 쿠키
     res.cookie('githubAccessToken', authResult.githubAccessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -51,7 +50,6 @@ export const callback = async (req, res, next) => {
       maxAge: 1000 * 60 * 60 * 24 * 7,
     });
 
-    // refreshToken 쿠키
     res.cookie('refreshToken', authResult.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -76,19 +74,26 @@ export const logout = async (req, res) => {
     clearGithubAccessTokenCookie(res);
     clearRefreshTokenCookie(res);
 
-    if (refreshToken) {
-      const hashed = hashToken(refreshToken);
-      const dbUser = await findUserByRefreshToken(hashed);
-      if (dbUser) {
-        await clearUserRefreshToken(dbUser.userId);
+    // 아래 비동기 IIFE는 await하지 않음(응답 속도/UX 우선)
+    (async () => {
+      try {
+        if (refreshToken) {
+          const hashed = hashToken(refreshToken);
+          const dbUser = await findUserByRefreshToken(hashed);
+          if (dbUser) await clearUserRefreshToken(dbUser.userId);
+        }
+        if (githubAccessToken) await logoutGithub(githubAccessToken);
+      } catch (error) {
+        console.error('로그아웃 비동기 정리 과정에서 오류가 발생했습니다:', error);
       }
-    }
-    if (githubAccessToken) {
-      await logoutGithub(githubAccessToken);
-    }
+    })();
+
     res.json({ success: true, message: '로그아웃 완료' });
   } catch (error) {
-    res.status(500).json({ success: false, message: '로그아웃 중 오류 발생' });
+    res.status(500).json({
+      success: false,
+      message: `로그아웃 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${error?.message || '알 수 없는 오류'})`,
+    });
   }
 };
 
@@ -113,7 +118,10 @@ export const unlink = async (req, res) => {
     }
     res.json({ success: true, message: '계정 연동 해제 완료' });
   } catch (error) {
-    res.status(500).json({ success: false, message: '계정 연동 해제 중 오류 발생' });
+    res.status(500).json({
+      success: false,
+      message: `계정 연동 해제 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${error?.message || '알 수 없는 오류'})`,
+    });
   }
 };
 
@@ -123,15 +131,18 @@ export const deleteAccount = async (req, res) => {
     const githubId = req.user?.githubId;
     const userId = req.user?.id;
     if (!githubId || !userId) {
-      return res.status(400).json({ success: false, message: '사용자 인증 정보가 없습니다.' });
+      return res.status(400).json({ success: false, message: '사용자 인증 정보를 확인할 수 없습니다.' });
     }
     clearGithubAccessTokenCookie(res);
     clearRefreshTokenCookie(res);
     await clearUserRefreshToken(userId);
     await deleteUserByGithubId(githubId);
-    res.json({ success: true, message: '계정 삭제 완료' });
+    res.json({ success: true, message: '계정이 성공적으로 삭제되었습니다.' });
   } catch (error) {
-    res.status(500).json({ success: false, message: '계정 삭제 중 오류 발생' });
+    res.status(500).json({
+      success: false,
+      message: `계정 삭제 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${error?.message || '알 수 없는 오류'})`,
+    });
   }
 };
 
@@ -139,12 +150,12 @@ export const refreshAccessToken = async (req, res) => {
   try {
     const refreshToken = req.cookies.refreshToken;
     if (!refreshToken) {
-      return res.status(401).json({ success: false, message: 'refreshToken 없음' });
+      return res.status(401).json({ success: false, message: 'refreshToken이 존재하지 않습니다.' });
     }
     const hashed = hashToken(refreshToken);
     const dbUser = await findUserByRefreshToken(hashed);
     if (!dbUser || new Date() > dbUser.refreshTokenExpiresAt) {
-      return res.status(401).json({ success: false, message: 'refreshToken 만료 또는 불일치' });
+      return res.status(401).json({ success: false, message: 'refreshToken이 만료되었거나 일치하지 않습니다.' });
     }
     const jwtPayload = {
       id: dbUser.userId,
@@ -156,6 +167,9 @@ export const refreshAccessToken = async (req, res) => {
     const accessToken = jwt.sign(jwtPayload, process.env.JWT_SECRET, { expiresIn: '15m' });
     res.json({ success: true, accessToken });
   } catch (error) {
-    res.status(500).json({ success: false, message: '토큰 갱신 중 오류 발생' });
+    res.status(500).json({
+      success: false,
+      message: `토큰 갱신 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${error?.message || '알 수 없는 오류'})`,
+    });
   }
 };
