@@ -295,10 +295,9 @@ async function handleAnalysisComplete(req, res) {
       });
     }
   } catch (error) {
-    console.error('분석 완료 콜백 처리 중 오류:', error);
     return res.status(500).json({
       success: false,
-      message: '분석 완료 콜백 처리 중 오류가 발생했습니다.',
+      message: `분석 완료 콜백 처리 중 오류가 발생했습니다. (${error?.message || '알 수 없는 오류'})`,
       errorType: 'INTERNAL_ERROR',
     });
   }

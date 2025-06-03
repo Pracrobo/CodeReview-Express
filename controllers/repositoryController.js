@@ -38,7 +38,12 @@ async function searchRepository(req, res) {
     }
     return res.status(500).json({
       success: false,
-      message: `저장소 검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${error?.message || '알 수 없는 오류'})`,
+      message: `저장소 검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.`,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: `저장소 검색 중 오류가 발생했습니다. (${error?.message || '알 수 없는 오류'})`,
     });
   }
 }
@@ -845,7 +850,7 @@ function _isLikelyEnglish(text) {
 }
 
 // 즐겨찾기 상태 업데이트
-export async function updateFavoriteStatus(req, res) {
+async function updateFavoriteStatus(req, res) {
   const { repoId } = req.params;
   const { isFavorite } = req.body;
   const userId = req.user.id;
@@ -863,13 +868,16 @@ export async function updateFavoriteStatus(req, res) {
         message: '즐겨찾기 상태가 업데이트되었습니다.',
       });
     } else {
-      return res
-        .status(500)
-        .json({ success: false, message: '즐겨찾기 상태 업데이트 실패' });
+      return res.status(500).json({
+        success: false,
+        message: '즐겨찾기 상태 업데이트 실패',
+      });
     }
   } catch (error) {
-    console.error('즐겨찾기 상태 업데이트 오류:', error.message);
-    return res.status(500).json({ success: false, message: '서버 오류' });
+    return res.status(500).json({
+      success: false,
+      message: `서버 오류가 발생했습니다. (${error?.message || '알 수 없는 오류'})`,
+    });
   }
 }
 
