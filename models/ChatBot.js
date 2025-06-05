@@ -44,14 +44,24 @@ async function getMessages(conversationId) {
 // 메시지 저장
 async function saveMessage(conversationId, senderType, content) {
   const pool = getConnectionPool();
-  await pool.query(
-    'INSERT INTO chat_bot_messages (conversation_id, sender_type, content, timestamp) VALUES (?, ?, ?, NOW())',
-    [conversationId, senderType, content]
-  );
-  await pool.query(
-    'UPDATE chat_bot_conversations SET updated_at = NOW() WHERE conversation_id = ?',
-    [conversationId]
-  );
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    await conn.query(
+      'INSERT INTO chat_bot_messages (conversation_id, sender_type, content, timestamp) VALUES (?, ?, ?, NOW())',
+      [conversationId, senderType, content]
+    );
+    await conn.query(
+      'UPDATE chat_bot_conversations SET updated_at = NOW() WHERE conversation_id = ?',
+      [conversationId]
+    );
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
 }
 
 export {

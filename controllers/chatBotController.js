@@ -6,12 +6,14 @@ import {
 
 // 대화(conversation) 조회 또는 생성
 export async function getOrCreateConversation(req, res) {
-  // userId는 인증 미들웨어에서 세팅된 값을 사용
   const userId = req.user?.userId;
   const repoId = req.query.repoId;
 
-  if (!userId || !repoId) {
-    return res.status(400).json({ success: false, message: 'userId, repoId 필수' });
+  if (!userId) {
+    return res.status(400).json({ success: false, message: 'userId가 필요합니다.' });
+  }
+  if (!repoId) {
+    return res.status(400).json({ success: false, message: 'repoId가 필요합니다.' });
   }
 
   try {
@@ -30,8 +32,16 @@ export async function getOrCreateConversation(req, res) {
 // 메시지 저장
 export async function saveChatMessage(req, res) {
   const { conversationId, senderType, content } = req.body;
-  if (!conversationId || !senderType || !content) {
-    return res.status(400).json({ success: false, message: '필수 값 누락' });
+  const missingFields = [];
+  if (!conversationId) missingFields.push('conversationId');
+  if (!senderType) missingFields.push('senderType');
+  if (!content) missingFields.push('content');
+  if (missingFields.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: `필수 값 누락: ${missingFields.join(', ')}`,
+      missingFields,
+    });
   }
   try {
     await saveMessage(conversationId, senderType, content);
