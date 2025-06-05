@@ -1,12 +1,14 @@
 import Repository from '../models/Repository.js';
-import { githubApiService } from '../services/githubApiService.js';
-import { flaskService } from '../services/flaskService.js';
-import { getConnectionPool } from '../database/database.js';
+import GithubApiService from '../services/githubApiService.js';
+import FlaskService from '../services/flaskService.js';
+import Database from '../database/database.js';
 
 // 새로 추가: 검증 유틸리티
-import { ValidationError, validateLanguagesData } from '../utils/validators.js';
+import Validators from '../utils/validators.js';
 
-const pool = getConnectionPool();
+const pool = Database.getConnectionPool();
+
+const { ValidationError, validateLanguagesData } = Validators;
 
 // Flask에서 분석 완료 콜백 처리
 async function handleAnalysisComplete(req, res) {
@@ -47,7 +49,7 @@ async function handleAnalysisComplete(req, res) {
 
     try {
       // 저장소 정보 조회
-      const repositoryInfo = await githubApiService.getRepositoryInfo(repoUrl);
+      const repositoryInfo = await GithubApiService.getRepositoryInfo(repoUrl);
 
       if (!repositoryInfo) {
         console.error(`저장소 정보를 찾을 수 없습니다: ${repoName}`);
@@ -84,7 +86,7 @@ async function handleAnalysisComplete(req, res) {
 
         try {
           // 언어 정보 조회 및 검증
-          const languagesData = await githubApiService.getRepositoryLanguages(
+          const languagesData = await GithubApiService.getRepositoryLanguages(
             repoUrl
           );
           validateLanguagesData(languagesData, repoUrl);
@@ -140,7 +142,7 @@ async function handleAnalysisComplete(req, res) {
         let licenseInfo = null;
         try {
           console.log(`라이선스 정보 조회 시작: ${repoName}`);
-          const licenseData = await githubApiService.getRepositoryLicense(
+          const licenseData = await GithubApiService.getRepositoryLicense(
             repoUrl
           );
           if (licenseData && licenseData.license) {
@@ -303,4 +305,4 @@ async function handleAnalysisComplete(req, res) {
   }
 }
 
-export { handleAnalysisComplete };
+export default { handleAnalysisComplete };

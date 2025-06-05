@@ -1,11 +1,7 @@
-import {
-  findOrCreateConversation,
-  getMessages,
-  saveMessage,
-} from '../models/ChatBot.js';
+import ChatBotModel from '../models/ChatBot.js';
 
 // 대화(conversation) 조회 또는 생성
-export async function getOrCreateConversation(req, res) {
+const getOrCreateConversation = async (req, res) => {
   const userId = req.user?.userId;
   const repoId = req.query.repoId;
 
@@ -17,8 +13,8 @@ export async function getOrCreateConversation(req, res) {
   }
 
   try {
-    const conversationId = await findOrCreateConversation(userId, repoId);
-    const messages = await getMessages(conversationId);
+    const conversationId = await ChatBotModel.findOrCreateConversation(userId, repoId);
+    const messages = await ChatBotModel.getMessages(conversationId);
     res.json({
       success: true,
       conversationId,
@@ -27,10 +23,10 @@ export async function getOrCreateConversation(req, res) {
   } catch (err) {
     res.status(500).json({ success: false, message: 'DB 오류', error: err.message });
   }
-}
+};
 
 // 메시지 저장
-export async function saveChatMessage(req, res) {
+const saveChatMessage = async (req, res) => {
   const { conversationId, senderType, content } = req.body;
   const missingFields = [];
   if (!conversationId) missingFields.push('conversationId');
@@ -44,9 +40,14 @@ export async function saveChatMessage(req, res) {
     });
   }
   try {
-    await saveMessage(conversationId, senderType, content);
+    await ChatBotModel.saveMessage(conversationId, senderType, content);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, message: 'DB 오류', error: err.message });
   }
-}
+};
+
+export default {
+  getOrCreateConversation,
+  saveChatMessage,
+};

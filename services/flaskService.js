@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const FLASK_API_URL = process.env.FLASK_API_URL || 'http://localhost:3002';
 
-export const flaskService = {
+const flaskService = {
   // Flask 서버에 저장소 인덱싱 요청
   async requestRepositoryIndexing(repoUrl, repositoryInfo, userId = null) {
     try {
@@ -293,3 +293,5 @@ export const flaskService = {
     }
   },
 };
+
+export default flaskService;

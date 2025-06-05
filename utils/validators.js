@@ -264,7 +264,7 @@ function validateAnalysisRequest(data) {
   };
 }
 
-export {
+export default {
   ValidationError,
   validateRepoUrl,
   validateRepoName,

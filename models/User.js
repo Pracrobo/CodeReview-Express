@@ -1,7 +1,8 @@
-import { getConnectionPool } from '../database/database.js';
+import Database from '../database/database.js';
+const pool = Database.getConnectionPool();
 
 // DB 조회 결과(snake_case)를 camelCase로 변환
-export function mapUserToCamelCase(userRow) {
+function mapUserToCamelCase(userRow) {
   if (!userRow) return userRow;
   return {
     userId: userRow.user_id,
@@ -20,9 +21,7 @@ export function mapUserToCamelCase(userRow) {
 }
 
 // GitHub ID로 사용자 조회 (로그인 시 updated_at을 한국시간으로 갱신)
-export async function findUserByGithubId(githubId) {
-  const pool = getConnectionPool();
-  // 로그인 시 updated_at 갱신
+async function findUserByGithubId(githubId) {
   await pool.query(
     `UPDATE users SET updated_at = CONVERT_TZ(NOW(), '+00:00', '+09:00') WHERE github_user_id = ?`,
     [githubId]
@@ -35,8 +34,7 @@ export async function findUserByGithubId(githubId) {
 }
 
 // 새 사용자 생성
-export async function createUser({ githubId, username, email, avatarUrl }) {
-  const pool = getConnectionPool();
+async function createUser({ githubId, username, email, avatarUrl }) {
   const [result] = await pool.query(
     `INSERT INTO users 
       (github_user_id, username, email, avatar_url, created_at, updated_at) 
@@ -53,9 +51,7 @@ export async function createUser({ githubId, username, email, avatarUrl }) {
 }
 
 // GitHub ID로 사용자 삭제
-export async function deleteUserByGithubId(githubId) {
-  const pool = getConnectionPool();
-  // 삭제 전 updated_at을 한국시간으로 갱신
+async function deleteUserByGithubId(githubId) {
   await pool.query(
     `UPDATE users SET updated_at = CONVERT_TZ(NOW(), '+00:00', '+09:00') WHERE github_user_id = ?`,
     [githubId]
@@ -64,8 +60,7 @@ export async function deleteUserByGithubId(githubId) {
 }
 
 // 프로 사용자 플랜 상태 업데이트
-export async function updateProPlanStatus(githubId) {
-  const pool = getConnectionPool();
+async function updateProPlanStatus(githubId) {
   await pool.query(
     `UPDATE users
      SET is_pro_plan = 1,
@@ -86,8 +81,7 @@ export async function updateProPlanStatus(githubId) {
 }
 
 // 사용자 리프레시 토큰 업데이트
-export async function updateUserRefreshToken(userId, hashedRefreshToken, refreshTokenExpiresAt) {
-  const pool = getConnectionPool();
+async function updateUserRefreshToken(userId, hashedRefreshToken, refreshTokenExpiresAt) {
   await pool.query(
     'UPDATE users SET refresh_token = ?, refresh_token_expires_at = ?, updated_at = CONVERT_TZ(NOW(), \'+00:00\', \'+09:00\') WHERE user_id = ?',
     [hashedRefreshToken, refreshTokenExpiresAt, userId]
@@ -95,8 +89,7 @@ export async function updateUserRefreshToken(userId, hashedRefreshToken, refresh
 }
 
 // 리프레시 토큰으로 사용자 조회
-export async function findUserByRefreshToken(hashedRefreshToken) {
-  const pool = getConnectionPool();
+async function findUserByRefreshToken(hashedRefreshToken) {
   const [rows] = await pool.query(
     'SELECT * FROM users WHERE refresh_token = ?',
     [hashedRefreshToken]
@@ -105,10 +98,20 @@ export async function findUserByRefreshToken(hashedRefreshToken) {
 }
 
 // 사용자 리프레시 토큰 삭제
-export async function clearUserRefreshToken(userId) {
-  const pool = getConnectionPool();
+async function clearUserRefreshToken(userId) {
   await pool.query(
     'UPDATE users SET refresh_token = NULL, refresh_token_expires_at = NULL, updated_at = CONVERT_TZ(NOW(), \'+00:00\', \'+09:00\') WHERE user_id = ?',
     [userId]
   );
 }
+
+export default {
+  mapUserToCamelCase,
+  findUserByGithubId,
+  createUser,
+  deleteUserByGithubId,
+  updateProPlanStatus,
+  updateUserRefreshToken,
+  findUserByRefreshToken,
+  clearUserRefreshToken,
+};

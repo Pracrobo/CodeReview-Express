@@ -1,13 +1,13 @@
 import express from 'express';
-import { getOrCreateConversation, saveChatMessage } from '../controllers/chatbotController.js';
+import chatBotController from '../controllers/chatBotController.js';
 import { authenticate } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
 // 대화 조회/생성
-router.get('/conversation', authenticate, getOrCreateConversation);
+router.get('/conversation', authenticate, chatBotController.getOrCreateConversation);
 
 // 메시지 저장
-router.post('/message', authenticate, saveChatMessage);
+router.post('/message', authenticate, chatBotController.saveChatMessage);
 
 export default router;

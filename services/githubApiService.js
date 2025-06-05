@@ -35,7 +35,7 @@ function parseRepositoryUrl(repoUrl) {
   }
 }
 
-export const githubApiService = {
+const githubApiService = {
   // GitHub OAuth 코드로 액세스 토큰 요청
   async getAccessToken(code) {
     try {
@@ -308,3 +308,5 @@ export const githubApiService = {
     }
   },
 };
+
+export default githubApiService;

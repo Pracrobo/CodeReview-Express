@@ -1,6 +1,5 @@
-import { getConnectionPool } from '../database/database.js';
-
-const pool = getConnectionPool();
+import Database from '../database/database.js';
+const pool = Database.getConnectionPool();
 
 // DB 조회 결과(snake_case)를 camelCase로 변환
 function toCamelCaseRepositories(rows) {

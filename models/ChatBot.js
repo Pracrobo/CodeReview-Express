@@ -1,4 +1,5 @@
-import { getConnectionPool } from '../database/database.js';
+import Database from '../database/database.js';
+const pool = Database.getConnectionPool();
 
 // DB 조회 결과(snake_case)를 camelCase로 변환
 function mapMessageToCamelCase(row) {
@@ -13,7 +14,6 @@ function mapMessageToCamelCase(row) {
 
 // 대화(conversation) 조회 또는 생성
 async function findOrCreateConversation(userId, repoId) {
-  const pool = getConnectionPool();
   const [rows] = await pool.query(
     'SELECT * FROM chat_bot_conversations WHERE user_id = ? AND repo_id = ?',
     [userId, repoId]
@@ -30,7 +30,6 @@ async function findOrCreateConversation(userId, repoId) {
 
 // 해당 대화의 메시지 목록 조회
 async function getMessages(conversationId) {
-  const pool = getConnectionPool();
   const [rows] = await pool.query(
     `SELECT message_id, conversation_id, sender_type, content, timestamp
      FROM chat_bot_messages
@@ -43,7 +42,6 @@ async function getMessages(conversationId) {
 
 // 메시지 저장
 async function saveMessage(conversationId, senderType, content) {
-  const pool = getConnectionPool();
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -64,7 +62,7 @@ async function saveMessage(conversationId, senderType, content) {
   }
 }
 
-export {
+export default {
   findOrCreateConversation,
   getMessages,
   saveMessage,

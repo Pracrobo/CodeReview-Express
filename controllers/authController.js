@@ -1,7 +1,7 @@
-import { processGithubLogin, logoutGithub, unlinkGithub } from '../services/authService.js';
-import { deleteUserByGithubId, findUserByRefreshToken, clearUserRefreshToken } from '../models/User.js';
+import AuthService from '../services/authService.js';
+import UserModel from '../models/User.js';
 import jwt from 'jsonwebtoken';
-import { hashToken } from '../utils/tokenUtils.js';
+import TokenUtils from '../utils/tokenUtils.js';
 
 // GitHub 액세스 토큰 쿠키 삭제 헬퍼 함수
 function clearGithubAccessTokenCookie(res) {
@@ -24,23 +24,23 @@ function clearRefreshTokenCookie(res) {
 }
 
 // GitHub 로그인 페이지로 리다이렉트
-export const login = (req, res) => {
+const login = (req, res) => {
   const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}&redirect_uri=${process.env.GITHUB_REDIRECT_URI}&scope=user:email&allow_signup=true&prompt=login`;
   res.redirect(githubAuthUrl);
 };
 
 // GitHub OAuth 콜백 처리: 받은 코드를 프론트엔드로 리다이렉트
-export const githubRedirect = (req, res) => {
+const githubRedirect = (req, res) => {
   const { code } = req.query;
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
   res.redirect(`${frontendUrl}/oauth/callback?code=${code}`);
 };
 
 // 프론트엔드에서 받은 code로 실제 로그인 처리 및 JWT 발급
-export const callback = async (req, res, next) => {
+const callback = async (req, res, next) => {
   const { code } = req.body;
   try {
-    const authResult = await processGithubLogin(code);
+    const authResult = await AuthService.processGithubLogin(code);
 
     res.cookie('githubAccessToken', authResult.githubAccessToken, {
       httpOnly: true,
@@ -66,7 +66,7 @@ export const callback = async (req, res, next) => {
 };
 
 // GitHub 로그아웃
-export const logout = async (req, res) => {
+const logout = async (req, res) => {
   try {
     const githubAccessToken = req.cookies.githubAccessToken;
     const refreshToken = req.cookies.refreshToken;
@@ -78,11 +78,11 @@ export const logout = async (req, res) => {
     (async () => {
       try {
         if (refreshToken) {
-          const hashed = hashToken(refreshToken);
-          const dbUser = await findUserByRefreshToken(hashed);
-          if (dbUser) await clearUserRefreshToken(dbUser.userId);
+          const hashed = TokenUtils.hashToken(refreshToken);
+          const dbUser = await UserModel.findUserByRefreshToken(hashed);
+          if (dbUser) await UserModel.clearUserRefreshToken(dbUser.userId);
         }
-        if (githubAccessToken) await logoutGithub(githubAccessToken);
+        if (githubAccessToken) await AuthService.logoutGithub(githubAccessToken);
       } catch (error) {
         console.error('로그아웃 비동기 정리 과정에서 오류가 발생했습니다:', error);
       }
@@ -98,7 +98,7 @@ export const logout = async (req, res) => {
 };
 
 // GitHub 계정 연동 해제
-export const unlink = async (req, res) => {
+const unlink = async (req, res) => {
   try {
     const githubAccessToken = req.cookies.githubAccessToken;
     const refreshToken = req.cookies.refreshToken;
@@ -107,14 +107,14 @@ export const unlink = async (req, res) => {
     clearRefreshTokenCookie(res);
 
     if (refreshToken) {
-      const hashed = hashToken(refreshToken);
-      const dbUser = await findUserByRefreshToken(hashed);
+      const hashed = TokenUtils.hashToken(refreshToken);
+      const dbUser = await UserModel.findUserByRefreshToken(hashed);
       if (dbUser) {
-        await clearUserRefreshToken(dbUser.userId);
+        await UserModel.clearUserRefreshToken(dbUser.userId);
       }
     }
     if (githubAccessToken) {
-      await unlinkGithub(githubAccessToken);
+      await AuthService.unlinkGithub(githubAccessToken);
     }
     res.json({ success: true, message: '계정 연동 해제 완료' });
   } catch (error) {
@@ -126,7 +126,7 @@ export const unlink = async (req, res) => {
 };
 
 // GitHub 계정 데이터 삭제
-export const deleteAccount = async (req, res) => {
+const deleteAccount = async (req, res) => {
   try {
     const githubId = req.user?.githubId;
     const userId = req.user?.userId;
@@ -135,8 +135,8 @@ export const deleteAccount = async (req, res) => {
     }
     clearGithubAccessTokenCookie(res);
     clearRefreshTokenCookie(res);
-    await clearUserRefreshToken(userId);
-    await deleteUserByGithubId(githubId);
+    await UserModel.clearUserRefreshToken(userId);
+    await UserModel.deleteUserByGithubId(githubId);
     res.json({ success: true, message: '계정이 성공적으로 삭제되었습니다.' });
   } catch (error) {
     res.status(500).json({
@@ -146,14 +146,14 @@ export const deleteAccount = async (req, res) => {
   }
 };
 
-export const refreshAccessToken = async (req, res) => {
+const refreshAccessToken = async (req, res) => {
   try {
     const refreshToken = req.cookies.refreshToken;
     if (!refreshToken) {
       return res.status(401).json({ success: false, message: 'refreshToken이 존재하지 않습니다.' });
     }
-    const hashed = hashToken(refreshToken);
-    const dbUser = await findUserByRefreshToken(hashed);
+    const hashed = TokenUtils.hashToken(refreshToken);
+    const dbUser = await UserModel.findUserByRefreshToken(hashed);
     if (!dbUser || new Date() > dbUser.refreshTokenExpiresAt) {
       return res.status(401).json({ success: false, message: 'refreshToken이 만료되었거나 일치하지 않습니다.' });
     }
@@ -172,4 +172,14 @@ export const refreshAccessToken = async (req, res) => {
       message: `토큰 갱신 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${error?.message || '알 수 없는 오류'})`,
     });
   }
+};
+
+export default {
+  login,
+  githubRedirect,
+  callback,
+  logout,
+  unlink,
+  deleteAccount,
+  refreshAccessToken,
 };

@@ -1,22 +1,15 @@
-import {
-  searchRepositories,
-  getUserRepositories,
-  addRepositoryToTracking,
-  checkUserTrackingStatus,
-  removeRepositoryFromTracking,
-} from '../services/repositoryService.js';
-
-// 새로 추가된 서비스들
-import { githubApiService } from '../services/githubApiService.js';
-import { flaskService } from '../services/flaskService.js';
+import RepositoryService from '../services/repositoryService.js';
+import GithubApiService from '../services/githubApiService.js';
+import FlaskService from '../services/flaskService.js';
 import Repository from '../models/Repository.js';
+import Validators from '../utils/validators.js';
 
-import {
+const {
   ValidationError,
   validateGitHubRepoInfo,
   validateLanguagesData,
   validateAnalysisRequest,
-} from '../utils/validators.js';
+} = Validators;
 
 // 저장소 검색
 async function searchRepository(req, res) {
@@ -28,7 +21,7 @@ async function searchRepository(req, res) {
     });
   }
   try {
-    const result = await searchRepositories(query);
+    const result = await RepositoryService.searchRepositories(query);
     if (result.success) {
       return res.status(200).json({
         success: true,
@@ -52,7 +45,7 @@ async function searchRepository(req, res) {
 async function getRepositoryList(req, res) {
   const userId = req.user.userId;
   try {
-    const repositories = await getUserRepositories(userId);
+    const repositories = await RepositoryService.getUserRepositories(userId);
     return res.status(200).json({
       success: true,
       repositories: repositories.data,
@@ -79,7 +72,7 @@ async function addRepositoryInTracker(req, res) {
   }
 
   try {
-    const result = await checkUserTrackingStatus(userId, githubRepoId);
+    const result = await RepositoryService.checkUserTrackingStatus(userId, githubRepoId);
     if (result.tracked) {
       return res.status(409).json({
         success: false,
@@ -87,7 +80,7 @@ async function addRepositoryInTracker(req, res) {
       });
     }
 
-    const repositories = await addRepositoryToTracking(userId, githubRepoId);
+    const repositories = await RepositoryService.addRepositoryToTracking(userId, githubRepoId);
 
     return res.status(201).json({
       success: true,
@@ -115,14 +108,14 @@ async function analyzeRepository(req, res) {
 
     // 2. GitHub API로 저장소 정보 조회 및 검증
     console.log('GitHub 저장소 정보 조회 중:', repoUrl);
-    const repositoryInfo = await githubApiService.getRepositoryInfo(repoUrl);
+    const repositoryInfo = await GithubApiService.getRepositoryInfo(repoUrl);
 
     // 3. GitHub 저장소 정보 종합 검증
     validateGitHubRepoInfo(repositoryInfo);
 
     // 4. 언어 정보 조회 및 검증
     console.log('저장소 언어 정보 조회 중:', repoUrl);
-    const languagesData = await githubApiService.getRepositoryLanguages(
+    const languagesData = await GithubApiService.getRepositoryLanguages(
       repoUrl
     );
     validateLanguagesData(languagesData, repoUrl);
@@ -149,7 +142,7 @@ async function analyzeRepository(req, res) {
         setImmediate(async () => {
           try {
             // GitHub에서 README 조회
-            const readmeData = await githubApiService.getRepositoryReadme(
+            const readmeData = await GithubApiService.getRepositoryReadme(
               repoUrl
             );
 
@@ -157,7 +150,7 @@ async function analyzeRepository(req, res) {
               console.log(`README 조회 성공: ${repositoryInfo.fullName}`);
 
               // Flask에 README 요약 요청
-              const summaryResult = await flaskService.requestReadmeSummary(
+              const summaryResult = await FlaskService.requestReadmeSummary(
                 repositoryInfo.fullName,
                 readmeData.content
               );
@@ -209,7 +202,7 @@ async function analyzeRepository(req, res) {
                 `Description 번역 시작 (기존 분석): ${repositoryInfo.fullName}`
               );
 
-              const translationResult = await flaskService.requestTranslation(
+              const translationResult = await FlaskService.requestTranslation(
                 repositoryInfo.description,
                 'auto',
                 'ko'
@@ -276,13 +269,13 @@ async function analyzeRepository(req, res) {
     let readmeSummary = null;
     try {
       console.log(`README 조회 시작: ${repositoryInfo.fullName}`);
-      const readmeData = await githubApiService.getRepositoryReadme(repoUrl);
+      const readmeData = await GithubApiService.getRepositoryReadme(repoUrl);
 
       if (readmeData && readmeData.content) {
         console.log(`README 조회 성공: ${repositoryInfo.fullName}`);
 
         // Flask에 README 요약 요청
-        const summaryResult = await flaskService.requestReadmeSummary(
+        const summaryResult = await FlaskService.requestReadmeSummary(
           repositoryInfo.fullName,
           readmeData.content
         );
@@ -312,7 +305,7 @@ async function analyzeRepository(req, res) {
       try {
         console.log(`Description 번역 시작: ${repositoryInfo.fullName}`);
 
-        const translationResult = await flaskService.requestTranslation(
+        const translationResult = await FlaskService.requestTranslation(
           repositoryInfo.description,
           'auto',
           'ko'
@@ -389,7 +382,7 @@ async function analyzeRepository(req, res) {
           analysisCurrentStep: 'Flask 서버에서 인덱싱 중...',
         });
 
-        const flaskResult = await flaskService.requestRepositoryIndexing(
+        const flaskResult = await FlaskService.requestRepositoryIndexing(
           repoUrl,
           repositoryInfo,
           userId
@@ -585,7 +578,7 @@ async function getAnalysisStatus(req, res) {
     // Flask 서버에서 최신 상태 확인 (분석 중인 경우만)
     if (result.data.status === 'analyzing') {
       try {
-        const flaskStatus = await flaskService.getRepositoryAnalysisStatus(
+        const flaskStatus = await FlaskService.getRepositoryAnalysisStatus(
           result.data.name
         );
         if (flaskStatus.success && flaskStatus.data?.data) {
