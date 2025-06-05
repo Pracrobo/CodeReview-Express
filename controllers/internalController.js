@@ -144,10 +144,24 @@ async function handleAnalysisComplete(req, res) {
             repoUrl
           );
           if (licenseData && licenseData.license) {
-            licenseInfo = licenseData.license.spdxId;
+            const licenseSpdxId = licenseData.license.spdxId;
             console.log(
-              `라이선스 정보 조회 완료: ${repo_name} - ${licenseInfo}`
+              `GitHub에서 라이선스 정보 조회: ${repo_name} - ${licenseSpdxId}`
             );
+
+            // 라이선스 존재 여부 확인
+            const licenseCheck = await Repository.checkLicenseExists(
+              licenseSpdxId
+            );
+            if (licenseCheck.exists) {
+              licenseInfo = licenseSpdxId;
+              console.log(`라이선스 검증 성공: ${repo_name} - ${licenseInfo}`);
+            } else {
+              console.warn(
+                `라이선스가 DB에 존재하지 않음: ${repo_name} - ${licenseSpdxId}, NULL로 설정`
+              );
+              licenseInfo = null;
+            }
           } else {
             console.log(`라이선스 정보가 없습니다: ${repo_name}`);
           }
@@ -297,7 +311,9 @@ async function handleAnalysisComplete(req, res) {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: `분석 완료 콜백 처리 중 오류가 발생했습니다. (${error?.message || '알 수 없는 오류'})`,
+      message: `분석 완료 콜백 처리 중 오류가 발생했습니다. (${
+        error?.message || '알 수 없는 오류'
+      })`,
       errorType: 'INTERNAL_ERROR',
     });
   }
