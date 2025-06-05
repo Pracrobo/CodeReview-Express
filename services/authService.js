@@ -33,7 +33,7 @@ export const processGithubLogin = async (code) => {
   }
 
   const jwtPayload = {
-    id: dbUser.userId,
+    userId: dbUser.userId,
     githubId: dbUser.githubId,
     username: dbUser.username,
     email: dbUser.email,
@@ -52,6 +52,7 @@ export const processGithubLogin = async (code) => {
 
   return {
     accessToken,
+    userId: dbUser.userId,
     username: dbUser.username,
     email: dbUser.email,
     avatarUrl: dbUser.avatarUrl,

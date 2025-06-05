@@ -50,7 +50,7 @@ async function searchRepository(req, res) {
 
 // 내 저장소 목록 조회
 async function getRepositoryList(req, res) {
-  const userId = req.user.id;
+  const userId = req.user.userId;
   try {
     const repositories = await getUserRepositories(userId);
     return res.status(200).json({
@@ -69,7 +69,7 @@ async function getRepositoryList(req, res) {
 
 // '내 저장소'에 특정 저장소 추가
 async function addRepositoryInTracker(req, res) {
-  const userId = req.user.id;
+  const userId = req.user.userId;
   const githubRepoId = req.body.githubRepoId;
   if (!githubRepoId) {
     return res.status(400).json({
@@ -104,7 +104,7 @@ async function addRepositoryInTracker(req, res) {
 
 // 저장소 분석 시작
 async function analyzeRepository(req, res) {
-  const userId = req.user.id;
+  const userId = req.user.userId;
 
   try {
     // 1. 요청 데이터 종합 검증
@@ -498,7 +498,7 @@ async function analyzeRepository(req, res) {
 
 // 분석 중인 저장소 목록 조회
 async function getAnalyzingRepositories(req, res) {
-  const userId = req.user.id;
+  const userId = req.user.userId;
 
   try {
     const result = await Repository.selectAnalyzingRepositories(userId);
@@ -526,7 +526,7 @@ async function getAnalyzingRepositories(req, res) {
 
 // 최근 분석 완료된 저장소 목록 조회
 async function getRecentlyAnalyzedRepositories(req, res) {
-  const userId = req.user.id;
+  const userId = req.user.userId;
   const limit = parseInt(req.query.limit) || 10;
 
   try {
@@ -559,7 +559,7 @@ async function getRecentlyAnalyzedRepositories(req, res) {
 
 // 특정 저장소의 분석 상태 조회
 async function getAnalysisStatus(req, res) {
-  const userId = req.user.id;
+  const userId = req.user.userId;
   const { repositoryId } = req.params;
 
   if (!repositoryId) {
@@ -705,7 +705,7 @@ async function getAnalysisStatus(req, res) {
 
 // 저장소 조회 시 마지막 조회 시간 업데이트
 async function updateRepositoryLastViewed(req, res) {
-  const userId = req.user.id;
+  const userId = req.user.userId;
   const { repoId } = req.params;
 
   if (!repoId) {
@@ -739,7 +739,7 @@ async function updateRepositoryLastViewed(req, res) {
 
 // 저장소 상세 정보 조회
 async function getRepositoryDetails(req, res) {
-  const userId = req.user.id;
+  const userId = req.user.userId;
   const { repoId } = req.params;
 
   if (!repoId) {
@@ -849,7 +849,7 @@ function _isLikelyEnglish(text) {
 async function updateFavoriteStatus(req, res) {
   const { repoId } = req.params;
   const { isFavorite } = req.body;
-  const userId = req.user.id;
+  const userId = req.user.userId;
 
   try {
     const result = await Repository.updateFavoriteStatus(

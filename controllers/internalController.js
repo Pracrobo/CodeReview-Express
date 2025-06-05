@@ -18,7 +18,7 @@ async function handleAnalysisComplete(req, res) {
       url: req.url,
     });
 
-    const { repo_name, status, error_message, user_id } = req.body;
+    const { repo_name, status, error_message, userId:userId } = req.body;
 
     // 기본 검증
     if (!repo_name) {
@@ -181,25 +181,25 @@ async function handleAnalysisComplete(req, res) {
           console.log(`분석 완료 상태 업데이트 성공: ${repo_name}`);
 
           // 요청한 사용자의 트래킹 목록에 저장소 추가
-          if (user_id) {
+          if (userId) {
             try {
               const trackingResult = await Repository.insertTrack(
-                user_id,
+                userId,
                 repoId
               );
               if (trackingResult.success) {
                 console.log(
-                  `사용자 ${user_id}의 트래킹 목록에 저장소 추가 완료: ${repo_name}`
+                  `사용자 ${userId}의 트래킹 목록에 저장소 추가 완료: ${repo_name}`
                 );
               } else {
                 console.error(
-                  `사용자 ${user_id}의 트래킹 목록 추가 실패: ${repo_name}`,
+                  `사용자 ${userId}의 트래킹 목록 추가 실패: ${repo_name}`,
                   trackingResult.error
                 );
               }
             } catch (trackingError) {
               console.error(
-                `사용자 ${user_id}의 트래킹 목록 추가 중 오류: ${repo_name}`,
+                `사용자 ${userId}의 트래킹 목록 추가 중 오류: ${repo_name}`,
                 trackingError
               );
             }

@@ -58,8 +58,8 @@ export const callback = async (req, res, next) => {
       expires: new Date(authResult.refreshTokenExpiresAt),
     });
 
-    const { accessToken, username, email, avatarUrl } = authResult;
-    res.json({ success: true, accessToken, username, email, avatarUrl });
+    const { accessToken, userId, username, email, avatarUrl } = authResult;
+    res.json({ success: true, accessToken, userId, username, email, avatarUrl });
   } catch (error) {
     next(error);
   }
@@ -129,7 +129,7 @@ export const unlink = async (req, res) => {
 export const deleteAccount = async (req, res) => {
   try {
     const githubId = req.user?.githubId;
-    const userId = req.user?.id;
+    const userId = req.user?.userId;
     if (!githubId || !userId) {
       return res.status(400).json({ success: false, message: '사용자 인증 정보를 확인할 수 없습니다.' });
     }
@@ -158,7 +158,7 @@ export const refreshAccessToken = async (req, res) => {
       return res.status(401).json({ success: false, message: 'refreshToken이 만료되었거나 일치하지 않습니다.' });
     }
     const jwtPayload = {
-      id: dbUser.userId,
+      userId: dbUser.userId,
       githubId: dbUser.githubId,
       username: dbUser.username,
       email: dbUser.email,
