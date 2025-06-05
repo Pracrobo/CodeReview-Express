@@ -3,7 +3,7 @@ import authRoutes from './authRoute.js';
 import repositoryRoutes from './repositoryRoute.js';
 import paymentRoute from './paymentRoute.js';
 import internalRoutes from './internalRoute.js';
-import chatbotRoutes from './chatBotRoutes.js';
+import chatbotRoutes from './chatbotRoute.js';
 
 
 const router = express.Router();

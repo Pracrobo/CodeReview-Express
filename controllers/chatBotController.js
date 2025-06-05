@@ -6,7 +6,8 @@ import {
 
 // 대화(conversation) 조회 또는 생성
 export async function getOrCreateConversation(req, res) {
-  const userId = req.query.userId;
+  // userId는 인증 미들웨어에서 세팅된 값을 사용
+  const userId = req.user?.userId;
   const repoId = req.query.repoId;
 
   if (!userId || !repoId) {
