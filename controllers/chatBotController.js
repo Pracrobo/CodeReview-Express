@@ -28,7 +28,7 @@ export async function getOrCreateConversation(req, res) {
 
 // 메시지 저장
 export async function saveChatMessage(req, res) {
-  const { conversationId, senderType, content } = req.query;
+  const { conversationId, senderType, content } = req.body;
   if (!conversationId || !senderType || !content) {
     return res.status(400).json({ success: false, message: '필수 값 누락' });
   }
