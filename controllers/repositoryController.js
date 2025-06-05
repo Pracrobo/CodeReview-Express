@@ -36,7 +36,9 @@ async function searchRepository(req, res) {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: `저장소 검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${error?.message || '알 수 없는 오류'})`,
+      message: `저장소 검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${
+        error?.message || '알 수 없는 오류'
+      })`,
     });
   }
 }
@@ -55,7 +57,9 @@ async function getRepositoryList(req, res) {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: `트래킹된 저장소 목록 조회 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${error?.message || '알 수 없는 오류'})`,
+      message: `트래킹된 저장소 목록 조회 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${
+        error?.message || '알 수 없는 오류'
+      })`,
     });
   }
 }
@@ -90,7 +94,9 @@ async function addRepositoryInTracker(req, res) {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: `트래킹 저장소 추가 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${error?.message || '알 수 없는 오류'})`,
+      message: `트래킹 저장소 추가 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${
+        error?.message || '알 수 없는 오류'
+      })`,
     });
   }
 }
@@ -336,6 +342,10 @@ async function analyzeRepository(req, res) {
     }
 
     // 8. 저장소 정보를 DB에 저장/업데이트 (README 요약 및 번역된 description 포함)
+    console.log(
+      `저장소 정보 DB 저장 시작: ${repositoryInfo.fullName}, 라이선스: ${repositoryInfo.licenseSpdxId}`
+    );
+
     const upsertResult = await Repository.upsertRepository({
       githubRepoId: repositoryInfo.githubRepoId,
       fullName: repositoryInfo.fullName,
@@ -349,14 +359,24 @@ async function analyzeRepository(req, res) {
     });
 
     if (!upsertResult.success) {
+      console.error(
+        `저장소 정보 저장 실패: ${repositoryInfo.fullName}`,
+        upsertResult.error
+      );
       return res.status(500).json({
         success: false,
         message: '저장소 정보 저장 중 오류가 발생했습니다.',
         errorType: 'DATABASE_ERROR',
+        details: upsertResult.error, // 디버깅을 위한 상세 오류 정보
       });
     }
 
-    const { repoId } = upsertResult.data;
+    // repoId 추출
+    const repoId = upsertResult.data.repoId;
+
+    console.log(
+      `저장소 정보 DB 저장 완료: ${repositoryInfo.fullName}, repoId: ${repoId}`
+    );
 
     // 9. 분석 상태를 'analyzing'으로 설정
     const analysisStartResult = await Repository.startRepositoryAnalysis(
@@ -621,7 +641,6 @@ async function getAnalysisStatus(req, res) {
 
         // Flask에서 409 에러가 발생한 경우 (분석 실패)
         if (flaskError.response?.status === 409) {
-
           let errorMessage = 'Flask 서버에서 분석 실패';
           let errorType = 'FLASK_ERROR';
 
@@ -775,7 +794,9 @@ async function getRepositoryDetails(req, res) {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: `저장소 상세 정보 조회 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${error?.message || '알 수 없는 오류'})`,
+      message: `저장소 상세 정보 조회 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${
+        error?.message || '알 수 없는 오류'
+      })`,
     });
   }
 }

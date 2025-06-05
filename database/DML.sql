@@ -1,6 +1,5 @@
 -- SQL 안전 모드 비활성화 (DELETE 경고 방지)
 SET SQL_SAFE_UPDATES = 0;
-
 -- 기존 데이터 삭제 (외래키 제약조건 고려하여 역순으로 삭제)
 DELETE FROM `recommended_code_snippets`;
 DELETE FROM `chat_bot_messages`;
@@ -107,6 +106,17 @@ VALUES (
     ),
     (
         'GPL-3.0-only',
+        'GNU 일반 공중 라이선스 v3.0',
+        '<p>강력한 카피레프트 라이선스로, 파생 작업물도 동일한 라이선스 하에 오픈소스로 공개해야 합니다.</p>',
+        '["commercial-use", "modifications", "distribution", "private-use", "patent-use"]',
+        '["disclose-source", "same-license", "include-license", "state-changes"]',
+        '["liability", "warranty", "use-trademark"]',
+        'https://www.gnu.org/licenses/gpl-3.0.html',
+        '2020-01-01 00:00:00',
+        '2025-05-21 12:00:00'
+    ),
+    (
+        'GPL-3.0',
         'GNU 일반 공중 라이선스 v3.0',
         '<p>강력한 카피레프트 라이선스로, 파생 작업물도 동일한 라이선스 하에 오픈소스로 공개해야 합니다.</p>',
         '["commercial-use", "modifications", "distribution", "private-use", "patent-use"]',
@@ -727,7 +737,6 @@ VALUES (
         'QueryClient 핵심 로직 파일입니다. 서버 컴포넌트와의 호환성을 위해서는 QueryClient 인스턴스가 클라이언트 측에서 관리되도록 해야 합니다.',
         '2023-05-21 10:10:00'
     );
-
 -- 저장소 언어 데이터 삽입
 INSERT INTO repository_languages (
         repo_id,
@@ -735,58 +744,47 @@ INSERT INTO repository_languages (
         percentage,
         bytes_count
     )
-VALUES 
-    -- octocat/Hello-World (repo_id: 1)
+VALUES -- octocat/Hello-World (repo_id: 1)
     (1, 'JavaScript', 85.50, 125000),
     (1, 'HTML', 10.20, 15000),
     (1, 'CSS', 4.30, 6300),
-    
     -- torvalds/linux (repo_id: 2)
     (2, 'C', 97.80, 45000000),
     (2, 'Assembly', 1.50, 690000),
     (2, 'Shell', 0.70, 322000),
-    
     -- facebook/react (repo_id: 3)
     (3, 'JavaScript', 88.40, 2200000),
     (3, 'TypeScript', 8.90, 221000),
     (3, 'HTML', 2.70, 67000),
-    
     -- tensorflow/tensorflow (repo_id: 4)
     (4, 'Python', 70.30, 8500000),
     (4, 'C++', 25.60, 3100000),
     (4, 'Jupyter Notebook', 3.20, 387000),
     (4, 'Shell', 0.90, 109000),
-    
     -- microsoft/vscode (repo_id: 5)
     (5, 'TypeScript', 80.10, 12000000),
     (5, 'JavaScript', 15.20, 2280000),
     (5, 'CSS', 3.40, 510000),
     (5, 'HTML', 1.30, 195000),
-    
     -- vscode/Hello-World (repo_id: 6)
     (6, 'Java', 90.00, 180000),
     (6, 'XML', 8.50, 17000),
     (6, 'Gradle', 1.50, 3000),
-    
     -- golang/go (repo_id: 7)
     (7, 'Go', 95.20, 28000000),
     (7, 'Assembly', 3.10, 912000),
     (7, 'Shell', 1.40, 412000),
     (7, 'Perl', 0.30, 88000),
-    
     -- tanstack/react-query (repo_id: 8)
     (8, 'TypeScript', 87.30, 1750000),
     (8, 'JavaScript', 10.20, 204000),
     (8, 'CSS', 2.50, 50000),
-    
     -- vercel/next.js (repo_id: 9)
     (9, 'JavaScript', 70.80, 8500000),
     (9, 'TypeScript', 25.40, 3050000),
     (9, 'CSS', 2.90, 348000),
     (9, 'HTML', 0.90, 108000),
-    
     -- honggildong/my-project (repo_id: 10)
     (10, 'Python', 100.00, 25000);
-
 -- SQL 안전 모드 재활성화
 SET SQL_SAFE_UPDATES = 1;

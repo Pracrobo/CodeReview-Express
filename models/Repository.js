@@ -109,6 +109,22 @@ async function deleteTrack(userId, githubRepoId) {
 
 // ===== 새로 추가: 저장소 분석 관련 함수들 =====
 
+// 라이선스 존재 여부 확인 함수 추가
+async function checkLicenseExists(licenseSpdxId) {
+  if (!licenseSpdxId) return { exists: false };
+
+  try {
+    const [rows] = await pool.query(
+      'SELECT license_spdx_id FROM licenses WHERE license_spdx_id = ?',
+      [licenseSpdxId]
+    );
+    return { exists: rows.length > 0 };
+  } catch (error) {
+    console.error('라이선스 존재 확인 오류:', error.message);
+    return { exists: false };
+  }
+}
+
 // 저장소 정보 삽입 또는 업데이트
 async function upsertRepository(repositoryData) {
   try {
@@ -123,6 +139,21 @@ async function upsertRepository(repositoryData) {
       issueTotalCount,
       readmeSummaryGpt,
     } = repositoryData;
+
+    // 라이선스 존재 여부 확인
+    let validLicenseSpdxId = null;
+    if (licenseSpdxId) {
+      const licenseCheck = await checkLicenseExists(licenseSpdxId);
+      if (licenseCheck.exists) {
+        validLicenseSpdxId = licenseSpdxId;
+        console.log(`라이선스 검증 성공: ${licenseSpdxId}`);
+      } else {
+        console.warn(
+          `라이선스가 DB에 존재하지 않아 NULL로 설정: ${licenseSpdxId}`
+        );
+        validLicenseSpdxId = null;
+      }
+    }
 
     const [result] = await pool.query(
       `INSERT INTO repositories (
@@ -144,7 +175,7 @@ async function upsertRepository(repositoryData) {
         fullName,
         description,
         htmlUrl,
-        licenseSpdxId,
+        validLicenseSpdxId, // 검증된 라이선스 ID 사용
         star,
         fork,
         issueTotalCount,
@@ -217,10 +248,25 @@ async function updateRepositoryAnalysisStatus(repoId, updateData) {
       values.push(updateData.description);
     }
 
-    // 라이선스 정보 업데이트
+    // 라이선스 정보 업데이트 시 검증
     if (updateData.licenseSpdxId !== undefined) {
+      let validLicenseSpdxId = null;
+      if (updateData.licenseSpdxId) {
+        const licenseCheck = await checkLicenseExists(updateData.licenseSpdxId);
+        if (licenseCheck.exists) {
+          validLicenseSpdxId = updateData.licenseSpdxId;
+          console.log(
+            `라이선스 업데이트 검증 성공: ${updateData.licenseSpdxId}`
+          );
+        } else {
+          console.warn(
+            `라이선스가 DB에 존재하지 않아 NULL로 설정: ${updateData.licenseSpdxId}`
+          );
+          validLicenseSpdxId = null;
+        }
+      }
       fields.push('license_spdx_id = ?');
-      values.push(updateData.licenseSpdxId);
+      values.push(validLicenseSpdxId);
     }
 
     // 분석 완료 시 자동으로 완료 시간 설정
@@ -697,4 +743,5 @@ export default {
   selectTrackRepositoriesWithLanguages,
   selectRepositoryByGithubId,
   updateFavoriteStatus,
+  checkLicenseExists, // 새로 추가된 함수 export
 };
