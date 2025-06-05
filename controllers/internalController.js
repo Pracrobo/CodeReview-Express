@@ -18,7 +18,7 @@ async function handleAnalysisComplete(req, res) {
       url: req.url,
     });
 
-    const { repo_name: repoName, status, error_message: errorMessage, userId:userId } = req.body;
+    const { repo_name: repoName, status, error_message: errorMessage, user_id: userId } = req.body;
 
     // 기본 검증
     if (!repoName) {
