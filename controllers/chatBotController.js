@@ -2,10 +2,10 @@ import ChatBotModel from '../models/ChatBot.js';
 
 // 대화 조회
 const getConversation = async (req, res) => {
-  const userId = req.user?.userId || req.query.userId;
+  const userId = req.user?.userId;
   const repoId = req.query.repoId;
 
-  if (!userId) return res.status(400).json({ success: false, message: 'userId가 필요합니다.' });
+  if (!userId) return res.status(401).json({ success: false, message: '인증이 필요합니다.' });
   if (!repoId) return res.status(400).json({ success: false, message: 'repoId가 필요합니다.' });
 
   try {
@@ -31,7 +31,7 @@ const getConversation = async (req, res) => {
 
 // 대화 생성
 const createConversation = async (req, res) => {
-  const userId = req.user?.userId || req.body.userId;
+  const userId = req.user?.userId;
   const repoId = req.body.repoId;
 
   if (!userId) return res.status(400).json({ success: false, message: 'userId가 필요합니다.' });
