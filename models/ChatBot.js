@@ -13,7 +13,7 @@ function mapMessageToCamelCase(row) {
 }
 
 // 대화 조회
-async function findConversation(userId, repoId) {
+async function getConversation(userId, repoId) {
   const [rows] = await pool.query(
     'SELECT conversation_id FROM chat_bot_conversations WHERE user_id = ? AND repo_id = ?',
     [userId, repoId]
@@ -28,6 +28,34 @@ async function createConversation(userId, repoId) {
     [userId, repoId]
   );
   return result.insertId;
+}
+
+// 대화 및 메시지 삭제
+async function deleteConversation(userId, repoId) {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    // conversationId 조회
+    const [rows] = await conn.query(
+      'SELECT conversation_id FROM chat_bot_conversations WHERE user_id = ? AND repo_id = ?',
+      [userId, repoId]
+    );
+    if (rows.length === 0) {
+      await conn.commit();
+      return;
+    }
+    const conversationId = rows[0].conversation_id;
+    // 메시지 삭제
+    await conn.query('DELETE FROM chat_bot_messages WHERE conversation_id = ?', [conversationId]);
+    // 대화 삭제
+    await conn.query('DELETE FROM chat_bot_conversations WHERE conversation_id = ?', [conversationId]);
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
 }
 
 // 해당 대화의 메시지 목록 조회
@@ -65,8 +93,9 @@ async function saveMessage(conversationId, senderType, content) {
 }
 
 export default {
-  findConversation,
+  getConversation,
   createConversation,
+  deleteConversation,
   getMessages,
   saveMessage,
 };
