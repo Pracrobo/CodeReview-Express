@@ -52,10 +52,6 @@ async function processGithubLogin(code) {
 
   return {
     accessToken,
-    userId: dbUser.userId,
-    username: dbUser.username,
-    email: dbUser.email,
-    avatarUrl: dbUser.avatarUrl,
     githubAccessToken,
     refreshToken,
     refreshTokenExpiresAt,

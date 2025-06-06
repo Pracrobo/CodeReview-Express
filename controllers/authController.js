@@ -58,8 +58,8 @@ const callback = async (req, res, next) => {
       expires: new Date(authResult.refreshTokenExpiresAt),
     });
 
-    const { accessToken, userId, username, email, avatarUrl } = authResult;
-    res.json({ success: true, accessToken, userId, username, email, avatarUrl });
+    const { accessToken } = authResult;
+    res.json({ success: true, accessToken });
   } catch (error) {
     next(error);
   }
