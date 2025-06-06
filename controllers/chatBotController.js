@@ -34,10 +34,16 @@ const createConversation = async (req, res) => {
   const userId = req.user?.userId;
   const repoId = req.body.repoId;
 
-  if (!userId) return res.status(400).json({ success: false, message: 'userId가 필요합니다.' });
+  if (!userId) return res.status(401).json({ success: false, message: 'userId가 필요합니다.' });
   if (!repoId) return res.status(400).json({ success: false, message: 'repoId가 필요합니다.' });
 
   try {
+    // 이미 존재하는 대화가 있는지 먼저 확인
+    const existingConversationId = await ChatBotModel.findConversation(userId, repoId);
+    if (existingConversationId) {
+      return res.json({ success: true, conversationId: existingConversationId, messages: [] });
+    }
+    // 없으면 새로 생성
     const conversationId = await ChatBotModel.createConversation(userId, repoId);
     res.json({ success: true, conversationId, messages: [] });
   } catch (err) {
