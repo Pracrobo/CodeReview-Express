@@ -1,19 +1,23 @@
 import ChatBotModel from '../models/ChatBot.js';
 
-// 대화(conversation) 조회 또는 생성
-const getOrCreateConversation = async (req, res) => {
-  const userId = req.user?.userId;
+// 대화 조회
+const getConversation = async (req, res) => {
+  const userId = req.user?.userId || req.query.userId;
   const repoId = req.query.repoId;
 
-  if (!userId) {
-    return res.status(400).json({ success: false, message: 'userId가 필요합니다.' });
-  }
-  if (!repoId) {
-    return res.status(400).json({ success: false, message: 'repoId가 필요합니다.' });
-  }
+  if (!userId) return res.status(400).json({ success: false, message: 'userId가 필요합니다.' });
+  if (!repoId) return res.status(400).json({ success: false, message: 'repoId가 필요합니다.' });
 
   try {
-    const conversationId = await ChatBotModel.findOrCreateConversation(userId, repoId);
+    const conversationId = await ChatBotModel.findConversation(userId, repoId);
+    if (!conversationId) {
+      return res.json({
+        success: true,
+        conversationId: null,
+        messages: [],
+        message: '대화가 없습니다.',
+      });
+    }
     const messages = await ChatBotModel.getMessages(conversationId);
     res.json({
       success: true,
@@ -25,18 +29,29 @@ const getOrCreateConversation = async (req, res) => {
   }
 };
 
+// 대화 생성
+const createConversation = async (req, res) => {
+  const userId = req.user?.userId || req.body.userId;
+  const repoId = req.body.repoId;
+
+  if (!userId) return res.status(400).json({ success: false, message: 'userId가 필요합니다.' });
+  if (!repoId) return res.status(400).json({ success: false, message: 'repoId가 필요합니다.' });
+
+  try {
+    const conversationId = await ChatBotModel.createConversation(userId, repoId);
+    res.json({ success: true, conversationId, messages: [] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'DB 오류', error: err.message });
+  }
+};
+
 // 메시지 저장
 const saveChatMessage = async (req, res) => {
   const { conversationId, senderType, content } = req.body;
-  const missingFields = [];
-  if (!conversationId) missingFields.push('conversationId');
-  if (!senderType) missingFields.push('senderType');
-  if (!content) missingFields.push('content');
-  if (missingFields.length > 0) {
+  if (!conversationId || !senderType || !content) {
     return res.status(400).json({
       success: false,
-      message: `필수 값 누락: ${missingFields.join(', ')}`,
-      missingFields,
+      message: '필수 값 누락',
     });
   }
   try {
@@ -48,6 +63,7 @@ const saveChatMessage = async (req, res) => {
 };
 
 export default {
-  getOrCreateConversation,
+  getConversation,
+  createConversation,
   saveChatMessage,
 };

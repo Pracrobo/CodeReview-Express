@@ -12,15 +12,17 @@ function mapMessageToCamelCase(row) {
   };
 }
 
-// 대화(conversation) 조회 또는 생성
-async function findOrCreateConversation(userId, repoId) {
+// 대화 조회
+async function findConversation(userId, repoId) {
   const [rows] = await pool.query(
-    'SELECT * FROM chat_bot_conversations WHERE user_id = ? AND repo_id = ?',
+    'SELECT conversation_id FROM chat_bot_conversations WHERE user_id = ? AND repo_id = ?',
     [userId, repoId]
   );
-  if (rows.length > 0) {
-    return rows[0].conversation_id;
-  }
+  return rows.length > 0 ? rows[0].conversation_id : null;
+}
+
+// 대화 생성
+async function createConversation(userId, repoId) {
   const [result] = await pool.query(
     'INSERT INTO chat_bot_conversations (user_id, repo_id, created_at, updated_at) VALUES (?, ?, NOW(), NOW())',
     [userId, repoId]
@@ -63,7 +65,8 @@ async function saveMessage(conversationId, senderType, content) {
 }
 
 export default {
-  findOrCreateConversation,
+  findConversation,
+  createConversation,
   getMessages,
   saveMessage,
 };

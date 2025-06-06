@@ -4,8 +4,11 @@ import { authenticate } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
-// 대화 조회/생성
-router.get('/conversation', authenticate, chatBotController.getOrCreateConversation);
+// 대화 조회
+router.get('/conversation', authenticate, chatBotController.getConversation);
+
+// 대화 생성
+router.post('/conversation', authenticate, chatBotController.createConversation);
 
 // 메시지 저장
 router.post('/message', authenticate, chatBotController.saveChatMessage);
