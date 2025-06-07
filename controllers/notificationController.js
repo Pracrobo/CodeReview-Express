@@ -54,7 +54,7 @@ async function pushNotification(userId, data) {
   const response = await findUserId(userId);
   const clientName = response[0].username;
   const client = clientData.get(clientName);
-  if (!client.res || !client) {
+  if (!client || !client.res) {
     console.error(`클라이언트 ${clientName}에 해당하는 연결이 없습니다.`);
     return;
   }
