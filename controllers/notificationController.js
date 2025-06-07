@@ -7,9 +7,6 @@ function sseSetting(req, res) {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
-  res.setHeader('Access-Control-Allow-Headers', 'Cache-Control');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.flushHeaders();
 
   const clientName = req.query.clientName;
@@ -51,22 +48,27 @@ function sseSetting(req, res) {
 
 // 클라이언트에게 알림 전송
 async function pushNotification(userId, data) {
-  const response = await findUserId(userId);
-  const clientName = response[0].username;
-  const client = clientData.get(clientName);
-  if (!client || !client.res) {
-    console.error(`클라이언트 ${clientName}에 해당하는 연결이 없습니다.`);
-    return;
-  }
-  const message = `data: ${JSON.stringify(data)}\n\n`;
   try {
+    const response = await findUserId(userId);
+    // 사용자 조회 결과 및 username 존재 여부 확인
+    if (!response || response.length === 0 || !response[0].username) {
+      console.error(
+        `사용자 ID ${userId}에 해당하는 사용자 정보를 찾을 수 없거나 username이 없습니다.`
+      );
+      return;
+    }
+    const clientName = response[0].username;
+    const client = clientData.get(clientName);
+
+    if (!client || !client.res) {
+      console.error(`클라이언트 ${clientName}에 해당하는 연결이 없습니다.`);
+      return;
+    }
+    const message = `data: ${JSON.stringify(data)}\n\n`;
     client.res.write(message);
   } catch (error) {
-    console.error(
-      `서버: 클라이언트 ${userId}-${clientName}에게 메시지 전송 실패:`,
-      error
-    );
+    console.error(`서버: 사용자 ID ${userId}에게 메시지 전송 실패:`, error);
   }
 }
 
-export { sseSetting, pushNotification };
+export default { sseSetting, pushNotification };

@@ -1,8 +1,8 @@
 import express from 'express';
-import { sseSetting } from '../controllers/notificationController.js';
+import notificationController from '../controllers/notificationController.js';
 
 const router = express.Router();
 
-router.get('/stream', sseSetting);
+router.get('/stream', notificationController.sseSetting);
 
 export default router;
