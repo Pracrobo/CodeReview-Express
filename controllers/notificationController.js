@@ -32,6 +32,7 @@ function initializeSseConnection(req, res) {
       console.log(`${clientName} 연결 실패, 정리 중`);
       clearInterval(intervalId);
       clientData.delete(clientName);
+      res.end();
     }
   }, 15000);
 
