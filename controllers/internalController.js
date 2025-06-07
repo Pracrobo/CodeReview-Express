@@ -205,14 +205,23 @@ async function handleAnalysisComplete(req, res) {
               `사용자 ID가 없어서 트래킹 목록 추가를 건너뜁니다: ${repo_name}`
             );
           }
-          notificationController.pushNotification(user_id, {
-            type: 'analysis_complete',
-            title: '분석 완료',
-            status: 'completed',
-            repoName: repo_name,
-            message: `${repo_name} 저장소 분석이 완료되었습니다.`,
-            timestamp: Date.now(),
-          });
+
+          try {
+            await notificationController.pushNotification(user_id, {
+              type: 'analysis_complete',
+              title: '분석 완료',
+              status: 'completed',
+              repoName: repo_name,
+              message: `${repo_name} 저장소 분석이 완료되었습니다.`,
+              timestamp: Date.now(),
+            });
+            console.log(`분석 완료 알림 전송 성공: ${repo_name}`);
+          } catch (notificationError) {
+            console.error(
+              `분석 완료 알림 전송 실패: ${repo_name}`,
+              notificationError
+            );
+          }
 
           return res.status(200).json({
             success: true,
@@ -251,14 +260,24 @@ async function handleAnalysisComplete(req, res) {
 
         if (updateResult.success) {
           console.log(`분석 실패 상태 업데이트 성공: ${repo_name}`);
-          notificationController.pushNotification(user_id, {
-            type: 'analysis_failed',
-            title: '분석 실패',
-            status: 'failed',
-            repoName: repo_name,
-            message: `${repo_name} 저장소 분석이 실패했습니다.`,
-            timestamp: Date.now(),
-          });
+
+          try {
+            await notificationController.pushNotification(user_id, {
+              type: 'analysis_failed',
+              title: '분석 실패',
+              status: 'failed',
+              repoName: repo_name,
+              message: `${repo_name} 저장소 분석이 실패했습니다.`,
+              timestamp: Date.now(),
+            });
+            console.log(`분석 실패 알림 전송 성공: ${repo_name}`);
+          } catch (notificationError) {
+            console.error(
+              `분석 실패 알림 전송 실패: ${repo_name}`,
+              notificationError
+            );
+          }
+
           return res.status(200).json({
             success: true,
             message: '분석 실패 상태가 업데이트되었습니다.',
@@ -307,15 +326,24 @@ async function handleAnalysisComplete(req, res) {
       });
     }
   } catch (error) {
-    notificationController.pushNotification(user_id, {
-      type: 'analysis_error',
-      title: '시스템 오류',
-      status: 'error',
-      repoName: repo_name,
-      message: '분석 처리 중 시스템 오류가 발생했습니다.',
-      errorMessage: error?.message || '알 수 없는 오류',
-      timestamp: Date.now(),
-    });
+    // 시스템 오류 알림 전송 - fire-and-forget 방식으로 처리
+    notificationController
+      .pushNotification(user_id, {
+        type: 'analysis_error',
+        title: '시스템 오류',
+        status: 'error',
+        repoName: repo_name,
+        message: '분석 처리 중 시스템 오류가 발생했습니다.',
+        errorMessage: error?.message || '알 수 없는 오류',
+        timestamp: Date.now(),
+      })
+      .catch((notificationError) => {
+        console.error(
+          `시스템 오류 알림 전송 실패: ${repo_name}`,
+          notificationError
+        );
+      });
+
     return res.status(500).json({
       success: false,
       message: `분석 완료 콜백 처리 중 오류가 발생했습니다. (${
