@@ -33,6 +33,16 @@ async function findUserByGithubId(githubId) {
   return mapUserToCamelCase(rows[0]);
 }
 
+// 사용자 ID로 사용자 이름 조회
+async function findUsernameByUserId(userId) {
+  const [rows] = await pool.query(
+    'SELECT username FROM users WHERE user_id = ?',
+    [userId]
+  );
+  // 사용자가 존재하고 username이 있으면 username 반환, 그렇지 않으면 null 반환
+  return rows[0] ? rows[0].username : null;
+}
+
 // 새 사용자 생성
 async function createUser({ githubId, username, email, avatarUrl }) {
   const [result] = await pool.query(
@@ -83,7 +93,7 @@ async function updateProPlanStatus(githubId) {
 // 사용자 리프레시 토큰 업데이트
 async function updateUserRefreshToken(userId, hashedRefreshToken, refreshTokenExpiresAt) {
   await pool.query(
-    'UPDATE users SET refresh_token = ?, refresh_token_expires_at = ?, updated_at = CONVERT_TZ(NOW(), \'+00:00\', \'+09:00\') WHERE user_id = ?',
+    "UPDATE users SET refresh_token = ?, refresh_token_expires_at = ?, updated_at = CONVERT_TZ(NOW(), '+00:00', '+09:00') WHERE user_id = ?",
     [hashedRefreshToken, refreshTokenExpiresAt, userId]
   );
 }
@@ -100,7 +110,7 @@ async function findUserByRefreshToken(hashedRefreshToken) {
 // 사용자 리프레시 토큰 삭제
 async function clearUserRefreshToken(userId) {
   await pool.query(
-    'UPDATE users SET refresh_token = NULL, refresh_token_expires_at = NULL, updated_at = CONVERT_TZ(NOW(), \'+00:00\', \'+09:00\') WHERE user_id = ?',
+    "UPDATE users SET refresh_token = NULL, refresh_token_expires_at = NULL, updated_at = CONVERT_TZ(NOW(), '+00:00', '+09:00') WHERE user_id = ?",
     [userId]
   );
 }
@@ -108,6 +118,7 @@ async function clearUserRefreshToken(userId) {
 export default {
   mapUserToCamelCase,
   findUserByGithubId,
+  findUsernameByUserId,
   createUser,
   deleteUserByGithubId,
   updateProPlanStatus,

@@ -1,12 +1,12 @@
 import UserModel from '../models/User.js';
 
 // 결제 실패 처리
-const paymentFail = (req, res) => {
+function paymentFail(res) {
   return res.json({ success: false, message: '결제에 실패하였습니다.' });
-};
+}
 
-// 결제 성공(플랜 활성화)
-const paymentComplete = async (req, res) => {
+// 결제 완료 처리 및 Pro 플랜 활성화
+async function paymentComplete(req, res) {
   const { githubId } = req.user;
   if (!githubId) {
     return res.status(400).json({ success: false, message: '사용자 인증 정보가 없습니다.' });
@@ -21,10 +21,10 @@ const paymentComplete = async (req, res) => {
       message: `결제 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${error?.message || '알 수 없는 오류'})`,
     });
   }
-};
+}
 
 // 결제/플랜 상태 조회
-const getPaymentStatus = async (req, res) => {
+async function getPaymentStatus(req, res) {
   const { githubId } = req.user;
   if (!githubId) {
     return res.status(401).json({ success: false, message: '인증된 사용자가 아닙니다.' });
@@ -51,7 +51,7 @@ const getPaymentStatus = async (req, res) => {
       message: `플랜 정보 조회 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${error?.message || '알 수 없는 오류'})`,
     });
   }
-};
+}
 
 export default {
   paymentFail,

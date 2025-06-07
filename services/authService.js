@@ -6,6 +6,7 @@ import GithubApiService from './githubApiService.js';
 // Refresh Token TTL (7일, ms)
 const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
+// GitHub 로그인 및 사용자 정보 처리
 async function processGithubLogin(code) {
   if (!code) {
     throw new Error('GitHub 인증 코드가 필요합니다.');
@@ -58,6 +59,7 @@ async function processGithubLogin(code) {
   };
 }
 
+// GitHub 연동 해제
 async function unlinkGithub(githubAccessToken) {
   if (!githubAccessToken) {
     throw new Error('GitHub 액세스 토큰이 필요합니다.');
@@ -65,6 +67,7 @@ async function unlinkGithub(githubAccessToken) {
   await GithubApiService.unlinkGithub(githubAccessToken);
 }
 
+// GitHub 로그아웃
 async function logoutGithub(githubAccessToken) {
   if (!githubAccessToken) {
     throw new Error('GitHub 액세스 토큰이 필요합니다.');

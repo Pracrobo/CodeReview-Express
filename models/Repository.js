@@ -743,5 +743,5 @@ export default {
   selectTrackRepositoriesWithLanguages,
   selectRepositoryByGithubId,
   updateFavoriteStatus,
-  checkLicenseExists, // 새로 추가된 함수 export
+  checkLicenseExists,
 };

@@ -1,18 +1,14 @@
 import Repository from '../models/Repository.js';
+import notificationController from '../controllers/notificationController.js';
 import GithubApiService from '../services/githubApiService.js';
-import FlaskService from '../services/flaskService.js';
-import Database from '../database/database.js';
-
-// 새로 추가: 검증 유틸리티
 import Validators from '../utils/validators.js';
-
-const pool = Database.getConnectionPool();
 
 const { ValidationError, validateLanguagesData } = Validators;
 
 // Flask에서 분석 완료 콜백 처리
 async function handleAnalysisComplete(req, res) {
   try {
+    const { repo_name: repoName, status, error_message: errorMessage, user_id: userId } = req.body;
     console.log('Flask 콜백 요청 받음:', {
       body: req.body,
       headers: req.headers,
@@ -20,11 +16,10 @@ async function handleAnalysisComplete(req, res) {
       url: req.url,
     });
 
-    const { repo_name: repoName, status, error_message: errorMessage, user_id: userId } = req.body;
 
     // 기본 검증
     if (!repoName) {
-      console.error('repo_name이 누락됨:', req.body);
+      console.error('repoName이 누락됨:', req.body);
       return res.status(400).json({
         success: false,
         message: '저장소 이름이 필요합니다.',
@@ -157,10 +152,10 @@ async function handleAnalysisComplete(req, res) {
             );
             if (licenseCheck.exists) {
               licenseInfo = licenseSpdxId;
-              console.log(`라이선스 검증 성공: ${repo_name} - ${licenseInfo}`);
+              console.log(`라이선스 검증 성공: ${repoName} - ${licenseInfo}`);
             } else {
               console.warn(
-                `라이선스가 DB에 존재하지 않음: ${repo_name} - ${licenseSpdxId}, NULL로 설정`
+                `라이선스가 DB에 존재하지 않음: ${repoName} - ${licenseSpdxId}, NULL로 설정`
               );
               licenseInfo = null;
             }
@@ -225,11 +220,28 @@ async function handleAnalysisComplete(req, res) {
             );
           }
 
+          try {
+            await notificationController.pushNotification(userId, {
+              type: 'analysis_complete',
+              title: '분석 완료',
+              status: 'completed',
+              repo_name: repoName,
+              message: `${repoName} 저장소 분석이 완료되었습니다.`,
+              timestamp: Date.now(),
+            });
+            console.log(`분석 완료 알림 전송 성공: ${repoName}`);
+          } catch (notificationError) {
+            console.error(
+              `분석 완료 알림 전송 실패: ${repoName}`,
+              notificationError
+            );
+          }
+
           return res.status(200).json({
             success: true,
             message: '분석이 성공적으로 완료되었습니다.',
             data: {
-              repoName: repoName,
+              repo_name: repoName,
               status: 'completed',
               repoId: repoId,
               licenseInfo: licenseInfo,
@@ -263,11 +275,29 @@ async function handleAnalysisComplete(req, res) {
 
         if (updateResult.success) {
           console.log(`분석 실패 상태 업데이트 성공: ${repoName}`);
+
+          try {
+            await notificationController.pushNotification(userId, {
+              type: 'analysis_failed',
+              title: '분석 실패',
+              status: 'failed',
+              repo_name: repoName,
+              message: `${repoName} 저장소 분석이 실패했습니다.`,
+              timestamp: Date.now(),
+            });
+            console.log(`분석 실패 알림 전송 성공: ${repoName}`);
+          } catch (notificationError) {
+            console.error(
+              `분석 실패 알림 전송 실패: ${repoName}`,
+              notificationError
+            );
+          }
+
           return res.status(200).json({
             success: true,
             message: '분석 실패 상태가 업데이트되었습니다.',
             data: {
-              repoName: repoName,
+              repo_name: repoName,
               status: 'failed',
               errorMessage: errorMessage,
               repoId: repoId,
@@ -311,6 +341,27 @@ async function handleAnalysisComplete(req, res) {
       });
     }
   } catch (error) {
+    // 시스템 오류 알림 전송 - fire-and-forget 방식으로 처리
+    notificationController
+      .pushNotification(
+        userId,
+        {
+          type: 'analysis_error',
+          title: '시스템 오류',
+          status: 'error',
+          repo_name: repoName,
+          message: '분석 처리 중 시스템 오류가 발생했습니다.',
+          errorMessage: error?.message || '알 수 없는 오류',
+          timestamp: Date.now(),
+        }
+      )
+      .catch((notificationError) => {
+        console.error(
+          `시스템 오류 알림 전송 실패: ${repoName}`,
+          notificationError
+        );
+      });
+
     return res.status(500).json({
       success: false,
       message: `분석 완료 콜백 처리 중 오류가 발생했습니다. (${
@@ -321,4 +372,6 @@ async function handleAnalysisComplete(req, res) {
   }
 }
 
-export default { handleAnalysisComplete };
+export default {
+  handleAnalysisComplete,
+};

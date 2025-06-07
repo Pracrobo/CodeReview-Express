@@ -1,7 +1,7 @@
 import ChatBotModel from '../models/ChatBot.js';
 
 // 대화 조회
-const getConversation = async (req, res) => {
+async function getConversation(req, res) {
   const userId = req.user?.userId;
   const repoId = req.query.repoId;
 
@@ -27,10 +27,10 @@ const getConversation = async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: 'DB 오류', error: err.message });
   }
-};
+}
 
 // 대화 생성
-const createConversation = async (req, res) => {
+async function createConversation(req, res) {
   const userId = req.user?.userId;
   const repoId = req.body.repoId;
 
@@ -49,10 +49,10 @@ const createConversation = async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: 'DB 오류', error: err.message });
   }
-};
+}
 
 // 대화 삭제
-const deleteConversation = async (req, res) => {
+async function deleteConversation(req, res) {
   const userId = req.user?.userId;
   const repoId = req.body.repoId;
 
@@ -65,10 +65,10 @@ const deleteConversation = async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: 'DB 오류', error: err.message });
   }
-};
+}
 
-// 메시지 저장
-const saveChatMessage = async (req, res) => {
+// 채팅 메시지 저장
+async function saveChatMessage(req, res) {
   const { conversationId, senderType, content } = req.body;
   if (!conversationId || !senderType || !content) {
     return res.status(400).json({
@@ -82,7 +82,7 @@ const saveChatMessage = async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: 'DB 오류', error: err.message });
   }
-};
+}
 
 export default {
   getConversation,
