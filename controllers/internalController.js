@@ -8,8 +8,8 @@ const pool = getConnectionPool();
 
 // Flask에서 분석 완료 콜백 처리
 async function handleAnalysisComplete(req, res) {
-  const { repo_name, status, error_message, user_id } = req.body;
   try {
+    const { repo_name, status, error_message, user_id } = req.body;
     console.log('Flask 콜백 요청 받음:', {
       body: req.body,
       headers: req.headers,
