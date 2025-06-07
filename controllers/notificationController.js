@@ -2,7 +2,7 @@ import { findUsernameByUserId } from '../models/User.js';
 
 const clientData = new Map();
 
-function sseSetting(req, res) {
+function initializeSseConnection(req, res) {
   res.status(200);
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -69,4 +69,4 @@ async function pushNotification(userId, data) {
   }
 }
 
-export default { sseSetting, pushNotification };
+export default { initializeSseConnection, pushNotification };
