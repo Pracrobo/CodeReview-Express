@@ -86,10 +86,14 @@ export async function updateProPlanStatus(githubId) {
 }
 
 // 사용자 리프레시 토큰 업데이트
-export async function updateUserRefreshToken(userId, hashedRefreshToken, refreshTokenExpiresAt) {
+export async function updateUserRefreshToken(
+  userId,
+  hashedRefreshToken,
+  refreshTokenExpiresAt
+) {
   const pool = getConnectionPool();
   await pool.query(
-    'UPDATE users SET refresh_token = ?, refresh_token_expires_at = ?, updated_at = CONVERT_TZ(NOW(), \'+00:00\', \'+09:00\') WHERE user_id = ?',
+    "UPDATE users SET refresh_token = ?, refresh_token_expires_at = ?, updated_at = CONVERT_TZ(NOW(), '+00:00', '+09:00') WHERE user_id = ?",
     [hashedRefreshToken, refreshTokenExpiresAt, userId]
   );
 }
@@ -108,7 +112,18 @@ export async function findUserByRefreshToken(hashedRefreshToken) {
 export async function clearUserRefreshToken(userId) {
   const pool = getConnectionPool();
   await pool.query(
-    'UPDATE users SET refresh_token = NULL, refresh_token_expires_at = NULL, updated_at = CONVERT_TZ(NOW(), \'+00:00\', \'+09:00\') WHERE user_id = ?',
+    "UPDATE users SET refresh_token = NULL, refresh_token_expires_at = NULL, updated_at = CONVERT_TZ(NOW(), '+00:00', '+09:00') WHERE user_id = ?",
     [userId]
   );
+}
+
+// 사용자 ID로 사용자 이름 조회
+export async function findUsernameByUserId(userId) {
+  const pool = getConnectionPool();
+  const [rows] = await pool.query(
+    'SELECT username FROM users WHERE user_id = ?',
+    [userId]
+  );
+  // 사용자가 존재하고 username이 있으면 username 반환, 그렇지 않으면 null 반환
+  return rows[0] ? rows[0].username : null;
 }
