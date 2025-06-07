@@ -1,4 +1,4 @@
-import { findUserId } from '../models/User.js';
+import { findUsernameByUserId } from '../models/User.js';
 
 const clientData = new Map();
 
@@ -49,15 +49,13 @@ function sseSetting(req, res) {
 // 클라이언트에게 알림 전송
 async function pushNotification(userId, data) {
   try {
-    const response = await findUserId(userId);
-    // 사용자 조회 결과 및 username 존재 여부 확인
-    if (!response || response.length === 0 || !response[0].username) {
+    const clientName = await findUsernameByUserId(userId);
+    if (!clientName) {
       console.error(
         `사용자 ID ${userId}에 해당하는 사용자 정보를 찾을 수 없거나 username이 없습니다.`
       );
       return;
     }
-    const clientName = response[0].username;
     const client = clientData.get(clientName);
 
     if (!client || !client.res) {

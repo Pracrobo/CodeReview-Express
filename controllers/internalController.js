@@ -1,10 +1,8 @@
 import Repository from '../models/Repository.js';
 import { githubApiService } from '../services/githubApiService.js';
-import { flaskService } from '../services/flaskService.js';
 import { getConnectionPool } from '../database/database.js';
-// 새로 추가: 검증 유틸리티
 import { ValidationError, validateLanguagesData } from '../utils/validators.js';
-import { pushNotification } from '../controllers/notificationController.js';
+import notificationController from '../controllers/notificationController.js';
 
 const pool = getConnectionPool();
 
@@ -207,7 +205,7 @@ async function handleAnalysisComplete(req, res) {
               `사용자 ID가 없어서 트래킹 목록 추가를 건너뜁니다: ${repo_name}`
             );
           }
-          pushNotification(user_id, {
+          notificationController.pushNotification(user_id, {
             type: 'analysis_complete',
             title: '분석 완료',
             status: 'completed',
@@ -253,7 +251,7 @@ async function handleAnalysisComplete(req, res) {
 
         if (updateResult.success) {
           console.log(`분석 실패 상태 업데이트 성공: ${repo_name}`);
-          pushNotification(user_id, {
+          notificationController.pushNotification(user_id, {
             type: 'analysis_failed',
             title: '분석 실패',
             status: 'failed',
@@ -309,7 +307,7 @@ async function handleAnalysisComplete(req, res) {
       });
     }
   } catch (error) {
-    pushNotification(user_id, {
+    notificationController.pushNotification(user_id, {
       type: 'analysis_error',
       title: '시스템 오류',
       status: 'error',
