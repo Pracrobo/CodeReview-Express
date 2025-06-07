@@ -117,11 +117,13 @@ export async function clearUserRefreshToken(userId) {
   );
 }
 
-export async function findUserId(userId) {
+// 사용자 ID로 사용자 이름 조회
+export async function findUsernameByUserId(userId) {
   const pool = getConnectionPool();
-  const result = await pool.query(
+  const [rows] = await pool.query(
     'SELECT username FROM users WHERE user_id = ?',
     [userId]
   );
-  return result[0];
+  // 사용자가 존재하고 username이 있으면 username 반환, 그렇지 않으면 null 반환
+  return rows[0] ? rows[0].username : null;
 }
