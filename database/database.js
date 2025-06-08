@@ -36,4 +36,7 @@ function getConnectionPool() {
   return connection_pool;
 }
 
-export { dbConfig, getConnectionPool };
+export default {
+  dbConfig,
+  getConnectionPool,
+};

@@ -1,4 +1,4 @@
-import { findUsernameByUserId } from '../models/User.js';
+import UserModel from '../models/User.js';
 
 const clientData = new Map();
 
@@ -50,7 +50,7 @@ function initializeSseConnection(req, res) {
 // 클라이언트에게 알림 전송
 async function pushNotification(userId, data) {
   try {
-    const clientName = await findUsernameByUserId(userId);
+    const clientName = await UserModel.findUsernameByUserId(userId);
     if (!clientName) {
       console.error(
         `사용자 ID ${userId}에 해당하는 사용자 정보를 찾을 수 없거나 username이 없습니다.`
@@ -70,4 +70,7 @@ async function pushNotification(userId, data) {
   }
 }
 
-export default { initializeSseConnection, pushNotification };
+export default {
+  initializeSseConnection,
+  pushNotification,
+};
