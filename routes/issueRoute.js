@@ -13,4 +13,11 @@ router.get('/recent', authenticate, issueController.getRecentIssues);
 // 최근 본 이슈 저장 (POST)
 router.post('/:issueId/recent', authenticate, issueController.saveRecentIssue);
 
+// 이슈 AI 분석 요청 (POST)
+router.post(
+  '/:repoId/:issueNumber/analyze',
+  authenticate,
+  issueController.analyzeIssue
+);
+
 export default router;

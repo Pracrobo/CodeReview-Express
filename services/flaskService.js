@@ -283,42 +283,6 @@ async function checkFlaskServerHealth() {
   }
 }
 
-// AI 이슈 분석 요청 (Flask)
-async function analyzeIssue(repoFullName, issueTitle, issueBody) {
-  try {
-    const response = await axios.post(
-      `${FLASK_API_URL}/repository/analyze-issue`,
-      {
-        repo_name: repoFullName,
-        issue_title: issueTitle,
-        issue_body: issueBody,
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        timeout: 120000,
-      }
-    );
-    if (response.data && response.data.status === 'success') {
-      return {
-        success: true,
-        data: response.data.data,
-      };
-    } else {
-      return {
-        success: false,
-        error: response.data?.message || 'AI 이슈 분석 실패',
-      };
-    }
-  } catch (error) {
-    return {
-      success: false,
-      error: error.message || 'AI 이슈 분석 요청 중 오류',
-    };
-  }
-}
-
 export default {
   requestRepositoryIndexing,
   getRepositoryAnalysisStatus,
@@ -326,5 +290,4 @@ export default {
   searchRepository,
   requestTranslation,
   checkFlaskServerHealth,
-  analyzeIssue,
 };

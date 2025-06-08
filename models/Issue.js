@@ -359,33 +359,82 @@ async function selectIssueDetailWithExtras(repoId, githubIssueNumber) {
   }
 }
 
-// AI 분석 결과 저장 (issueId, 분석 결과)
-async function saveAiAnalysisResult(issueId, aiData) {
+// AI 분석 결과 저장
+async function updateIssueAnalysis(issueId, analysisData) {
   try {
-    await pool.query(
-      `UPDATE issues SET summary_gpt = ?, tags_gpt_json = ? WHERE issue_id = ?`,
-      [aiData.summary || '', JSON.stringify(aiData.labels || []), issueId]
-    );
-    // 코드 스니펫/파일 등은 recommended_code_snippets 테이블에 저장 (예시)
-    if (aiData.codeSnippets && aiData.codeSnippets.length > 0) {
-      for (const snippet of aiData.codeSnippets) {
+    const { summary, relatedFiles, codeSnippets, solutionSuggestion } =
+      analysisData;
+
+    // 이슈 테이블에 요약 업데이트
+    await pool.query('UPDATE issues SET summary_gpt = ? WHERE issue_id = ?', [
+      summary,
+      issueId,
+    ]);
+
+    // 관련 파일 정보를 recommended_code_snippets 테이블에 저장
+    if (relatedFiles && relatedFiles.length > 0) {
+      for (const file of relatedFiles) {
         await pool.query(
-          `INSERT INTO recommended_code_snippets (issue_id, file_path, function_name, class_name, code_snippet, relevance_score, explanation_gpt)
+          `INSERT INTO recommended_code_snippets 
+           (issue_id, file_path, code_snippet, relevance_score, explanation_gpt, function_name, class_name)
            VALUES (?, ?, ?, ?, ?, ?, ?)`,
           [
             issueId,
-            snippet.file || '',
-            snippet.functionName || '',
-            snippet.className || '',
-            snippet.code || '',
-            snippet.relevance || 0,
-            snippet.explanation || '',
+            file.path,
+            `관련 파일: ${file.path}`,
+            file.relevance,
+            `관련도 ${file.relevance}%의 파일입니다.`,
+            null,
+            null,
           ]
         );
       }
     }
+
+    // 코드 스니펫 저장
+    if (codeSnippets && codeSnippets.length > 0) {
+      for (const snippet of codeSnippets) {
+        await pool.query(
+          `INSERT INTO recommended_code_snippets 
+           (issue_id, file_path, code_snippet, relevance_score, explanation_gpt, function_name, class_name)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [
+            issueId,
+            snippet.file,
+            snippet.code,
+            snippet.relevance,
+            snippet.explanation,
+            null,
+            null,
+          ]
+        );
+      }
+    }
+
     return { success: true };
   } catch (error) {
+    console.error('AI 분석 결과 저장 오류:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// 이슈의 AI 분석 상태 확인
+async function checkIssueAnalysisStatus(issueId) {
+  try {
+    const [rows] = await pool.query(
+      'SELECT summary_gpt FROM issues WHERE issue_id = ?',
+      [issueId]
+    );
+
+    if (rows.length === 0) {
+      return { success: false, error: '이슈를 찾을 수 없습니다.' };
+    }
+
+    const hasAnalysis =
+      rows[0].summary_gpt && rows[0].summary_gpt.trim() !== '';
+    return { success: true, hasAnalysis };
+  } catch (error) {
+    console.error('AI 분석 상태 확인 오류:', error.message);
     return { success: false, error: error.message };
   }
 }
@@ -400,5 +449,6 @@ export default {
   selectIssueComments,
   selectRecommendedCodeSnippets,
   selectIssueDetailWithExtras,
-  saveAiAnalysisResult,
+  updateIssueAnalysis,
+  checkIssueAnalysisStatus,
 };
