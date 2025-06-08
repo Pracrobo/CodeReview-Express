@@ -76,7 +76,10 @@ async function addRepositoryInTracker(req, res) {
   }
 
   try {
-    const result = await RepositoryService.checkUserTrackingStatus(userId, githubRepoId);
+    const result = await RepositoryService.checkUserTrackingStatus(
+      userId,
+      githubRepoId
+    );
     if (result.tracked) {
       return res.status(409).json({
         success: false,
@@ -84,7 +87,10 @@ async function addRepositoryInTracker(req, res) {
       });
     }
 
-    const repositories = await RepositoryService.addRepositoryToTracking(userId, githubRepoId);
+    const repositories = await RepositoryService.addRepositoryToTracking(
+      userId,
+      githubRepoId
+    );
 
     return res.status(201).json({
       success: true,
