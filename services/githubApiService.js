@@ -8,7 +8,9 @@ const GITHUB_OAUTH_URL = 'https://github.com/login/oauth';
 function getBasicAuthHeader() {
   const clientId = process.env.GITHUB_CLIENT_ID;
   const clientSecret = process.env.GITHUB_CLIENT_SECRET;
-  const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+  const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString(
+    'base64'
+  );
   return `Basic ${credentials}`;
 }
 
@@ -160,7 +162,9 @@ async function getRepositoryReadme(repoUrl, accessToken = null) {
       `${GITHUB_API_URL}/repos/${owner}/${repo}/readme`,
       { headers }
     );
-    const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
+    const content = Buffer.from(response.data.content, 'base64').toString(
+      'utf-8'
+    );
     return {
       content: content,
       name: response.data.name,
@@ -270,6 +274,30 @@ async function logoutGithub(githubAccessToken) {
   }
 }
 
+// 저장소 open 이슈 목록 조회
+async function getOpenIssues(repoUrl, accessToken = null) {
+  try {
+    const { owner, repo } = parseRepositoryUrl(repoUrl);
+    const headers = {
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+    };
+    if (accessToken) {
+      headers.Authorization = `Bearer ${accessToken}`;
+    }
+    // open 상태만, PR 제외
+    const response = await axios.get(
+      `${GITHUB_API_URL}/repos/${owner}/${repo}/issues?state=open&per_page=100`,
+      { headers }
+    );
+    // PR이 아닌 이슈만 필터링
+    return response.data.filter((issue) => !issue.pull_request);
+  } catch (error) {
+    console.warn(`open 이슈 목록 조회 실패: ${error.message}`);
+    return [];
+  }
+}
+
 export default {
   getAccessToken,
   getUserInfo,
@@ -280,4 +308,5 @@ export default {
   getRepositoryLicense,
   unlinkGithub,
   logoutGithub,
+  getOpenIssues,
 };

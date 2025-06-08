@@ -17,7 +17,6 @@ function toCamelCaseRepositories(rows) {
     prTotalCount: row.pr_total_count,
     issueTotalCount: row.issue_total_count,
     lastAnalyzedAt: row.last_analyzed_at,
-    // 새로 추가된 분석 상태 필드들
     analysisStatus: row.analysis_status,
     analysisProgress: row.analysis_progress,
     analysisCurrentStep: row.analysis_current_step,
@@ -106,8 +105,6 @@ async function deleteTrack(userId, githubRepoId) {
     return { success: false };
   }
 }
-
-// ===== 새로 추가: 저장소 분석 관련 함수들 =====
 
 // 라이선스 존재 여부 확인 함수 추가
 async function checkLicenseExists(licenseSpdxId) {
@@ -725,23 +722,23 @@ async function updateFavoriteStatus(userId, repoId, isFavorite) {
 
 export default {
   selectRepository,
-  selectTrackRepositories: selectTrackRepositoriesWithLanguages,
-  insertTrack,
+  selectTrackRepositories,
   selectTrack,
+  insertTrack,
   deleteTrack,
+  checkLicenseExists,
   upsertRepository,
   updateRepositoryAnalysisStatus,
   selectAnalyzingRepositories,
   selectRecentlyAnalyzedRepositories,
+  updateLastViewedAt,
   selectRepositoryAnalysisStatus,
   checkRecentAnalysis,
   startRepositoryAnalysis,
-  updateLastViewedAt,
   selectRepositoryDetails,
   selectRepositoryLanguages,
   upsertRepositoryLanguages,
   selectTrackRepositoriesWithLanguages,
   selectRepositoryByGithubId,
   updateFavoriteStatus,
-  checkLicenseExists,
 };

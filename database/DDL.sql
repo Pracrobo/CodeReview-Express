@@ -173,6 +173,15 @@ CREATE TABLE `recommended_code_snippets` (
     OR `relevance_score` IS NULL
   )
 );
+-- 최근 본 이슈 테이블 생성 (user_recent_issues)
+CREATE TABLE `user_recent_issues` (
+  `user_id` BIGINT NOT NULL,
+  `issue_id` BIGINT NOT NULL,
+  `viewed_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`user_id`, `issue_id`),
+  CONSTRAINT `FK_user_recent_issues_users` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `FK_user_recent_issues_issues` FOREIGN KEY (`issue_id`) REFERENCES `issues` (`issue_id`) ON DELETE CASCADE ON UPDATE CASCADE
+);
 -- 인덱스 생성
 -- (PK는 자동으로 인덱스 생성됨)
 -- users
