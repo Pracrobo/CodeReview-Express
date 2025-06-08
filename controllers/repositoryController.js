@@ -947,7 +947,7 @@ async function getRepositoryIssues(req, res) {
   }
 }
 
-// 저장소 이슈 상세 조회
+// 저장소 이슈 상세 조회 (댓글 및 AI 분석 포함)
 async function getRepositoryIssueDetail(req, res) {
   const { repoId, githubIssueNumber } = req.params;
   if (!repoId || !githubIssueNumber) {
@@ -957,8 +957,8 @@ async function getRepositoryIssueDetail(req, res) {
     });
   }
   try {
-    // selectIssueDetail 함수로 단일 이슈 조회
-    const result = await IssueModel.selectIssueDetail(
+    // 확장된 이슈 상세 조회 함수 사용
+    const result = await IssueModel.selectIssueDetailWithExtras(
       repoId,
       githubIssueNumber
     );

@@ -3,9 +3,14 @@ import axios from 'axios';
 const FLASK_API_URL = process.env.FLASK_API_URL || 'http://localhost:3002';
 
 // 저장소 인덱싱 요청 (Flask)
-async function requestRepositoryIndexing(repoUrl, repositoryInfo, userId = null) {
+async function requestRepositoryIndexing(
+  repoUrl,
+  repositoryInfo,
+  userId = null
+) {
   try {
-    const expressBaseUrl = process.env.EXPRESS_BASE_URL || 'http://localhost:3001';
+    const expressBaseUrl =
+      process.env.EXPRESS_BASE_URL || 'http://localhost:3001';
     const callbackUrl = `${expressBaseUrl}/internal/analysis-complete`;
 
     const requestData = {
@@ -192,7 +197,11 @@ async function searchRepository(repoName, query, searchType = 'code') {
 }
 
 // 번역 요청 (Flask)
-async function requestTranslation(text, sourceLanguage = 'auto', targetLanguage = 'ko') {
+async function requestTranslation(
+  text,
+  sourceLanguage = 'auto',
+  targetLanguage = 'ko'
+) {
   try {
     console.log(`Flask에 번역 요청: ${text.length}자`);
 
@@ -274,6 +283,42 @@ async function checkFlaskServerHealth() {
   }
 }
 
+// AI 이슈 분석 요청 (Flask)
+async function analyzeIssue(repoFullName, issueTitle, issueBody) {
+  try {
+    const response = await axios.post(
+      `${FLASK_API_URL}/repository/analyze-issue`,
+      {
+        repo_name: repoFullName,
+        issue_title: issueTitle,
+        issue_body: issueBody,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 120000,
+      }
+    );
+    if (response.data && response.data.status === 'success') {
+      return {
+        success: true,
+        data: response.data.data,
+      };
+    } else {
+      return {
+        success: false,
+        error: response.data?.message || 'AI 이슈 분석 실패',
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message || 'AI 이슈 분석 요청 중 오류',
+    };
+  }
+}
+
 export default {
   requestRepositoryIndexing,
   getRepositoryAnalysisStatus,
@@ -281,4 +326,5 @@ export default {
   searchRepository,
   requestTranslation,
   checkFlaskServerHealth,
+  analyzeIssue,
 };

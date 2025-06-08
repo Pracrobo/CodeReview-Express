@@ -213,6 +213,54 @@ async function selectRecentIssues(userId, limit = 20, offset = 0) {
   }
 }
 
+// 이슈 댓글 조회 함수 추가
+async function selectIssueComments(repoId, githubIssueNumber) {
+  try {
+    // GitHub API에서 댓글을 가져오거나 DB에 저장된 댓글을 조회
+    // 임시로 빈 배열 반환 (실제로는 GitHub API 연동 필요)
+    return { success: true, data: [] };
+  } catch (error) {
+    console.error('이슈 댓글 조회 오류:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// AI 코드 스니펫 추천 조회
+async function selectRecommendedCodeSnippets(issueId) {
+  try {
+    const [rows] = await pool.query(
+      `SELECT 
+        recommendation_id,
+        file_path,
+        function_name,
+        class_name,
+        code_snippet,
+        relevance_score,
+        explanation_gpt
+       FROM recommended_code_snippets 
+       WHERE issue_id = ? 
+       ORDER BY relevance_score DESC 
+       LIMIT 10`,
+      [issueId]
+    );
+
+    const data = rows.map((row) => ({
+      recommendationId: row.recommendation_id,
+      filePath: row.file_path,
+      functionName: row.function_name,
+      className: row.class_name,
+      codeSnippet: row.code_snippet,
+      relevanceScore: parseFloat(row.relevance_score || 0),
+      explanationGpt: row.explanation_gpt,
+    }));
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('AI 코드 스니펫 조회 오류:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
 // 이슈 상세 조회 (repoId, githubIssueNumber 기준, 저장소명 포함)
 async function selectIssueDetail(repoId, githubIssueNumber) {
   try {
@@ -254,6 +302,94 @@ async function selectIssueDetail(repoId, githubIssueNumber) {
   }
 }
 
+// 이슈 상세 조회 (댓글 및 AI 분석 포함)
+async function selectIssueDetailWithExtras(repoId, githubIssueNumber) {
+  try {
+    // 기본 이슈 정보 조회
+    const issueResult = await selectIssueDetail(repoId, githubIssueNumber);
+    if (!issueResult.success) {
+      return issueResult;
+    }
+
+    const issue = issueResult.data;
+
+    // 댓글 조회
+    const commentsResult = await selectIssueComments(repoId, githubIssueNumber);
+    const comments = commentsResult.success ? commentsResult.data : [];
+
+    // AI 코드 스니펫 조회
+    const snippetsResult = await selectRecommendedCodeSnippets(issue.issueId);
+    const codeSnippets = snippetsResult.success ? snippetsResult.data : [];
+
+    // 라벨 정보 파싱 (JSON에서 배열로 변환)
+    let labels = [];
+    if (issue.tagsGptJson) {
+      try {
+        const tagsData = JSON.parse(issue.tagsGptJson);
+        labels = Array.isArray(tagsData) ? tagsData : [];
+      } catch (error) {
+        console.warn('태그 JSON 파싱 오류:', error.message);
+      }
+    }
+
+    return {
+      success: true,
+      data: {
+        ...issue,
+        labels,
+        comments,
+        aiAnalysis: {
+          summary: issue.summaryGpt || 'AI 요약 정보 없음',
+          codeSnippets: codeSnippets.map((snippet) => ({
+            file: snippet.filePath,
+            code: snippet.codeSnippet,
+            relevance: snippet.relevanceScore,
+            explanation: snippet.explanationGpt,
+            functionName: snippet.functionName,
+            className: snippet.className,
+          })),
+          relatedFiles: [], // 추후 확장
+          suggestion: '', // 추후 확장
+        },
+      },
+    };
+  } catch (error) {
+    console.error('이슈 상세 조회 (확장) 오류:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// AI 분석 결과 저장 (issueId, 분석 결과)
+async function saveAiAnalysisResult(issueId, aiData) {
+  try {
+    await pool.query(
+      `UPDATE issues SET summary_gpt = ?, tags_gpt_json = ? WHERE issue_id = ?`,
+      [aiData.summary || '', JSON.stringify(aiData.labels || []), issueId]
+    );
+    // 코드 스니펫/파일 등은 recommended_code_snippets 테이블에 저장 (예시)
+    if (aiData.codeSnippets && aiData.codeSnippets.length > 0) {
+      for (const snippet of aiData.codeSnippets) {
+        await pool.query(
+          `INSERT INTO recommended_code_snippets (issue_id, file_path, function_name, class_name, code_snippet, relevance_score, explanation_gpt)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [
+            issueId,
+            snippet.file || '',
+            snippet.functionName || '',
+            snippet.className || '',
+            snippet.code || '',
+            snippet.relevance || 0,
+            snippet.explanation || '',
+          ]
+        );
+      }
+    }
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
 export default {
   selectIssuesByRepoId,
   selectIssuesByRepoIds,
@@ -261,4 +397,8 @@ export default {
   upsertRecentIssue,
   selectRecentIssues,
   selectIssueDetail,
+  selectIssueComments,
+  selectRecommendedCodeSnippets,
+  selectIssueDetailWithExtras,
+  saveAiAnalysisResult,
 };
