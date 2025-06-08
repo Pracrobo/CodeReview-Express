@@ -1,7 +1,7 @@
 import UserModel from '../models/User.js';
 
 // 결제 실패 처리
-function paymentFail(res) {
+function paymentFail(req, res) {
   return res.json({ success: false, message: '결제에 실패하였습니다.' });
 }
 
