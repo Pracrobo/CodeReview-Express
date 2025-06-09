@@ -758,4 +758,5 @@ export default {
   selectTrackRepositoriesWithLanguages,
   selectRepositoryByGithubId,
   updateFavoriteStatus,
+  checkLicenseExists,
 };
