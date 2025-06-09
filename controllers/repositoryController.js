@@ -143,9 +143,10 @@ async function analyzeRepository(req, res) {
       console.warn('open 이슈 목록 조회 실패:', err.message);
     }
 
-    // 4-2. README와 LICENSE 파일명 감지
+    // 4-2. README, LICENSE, CONTRIBUTING 파일명 감지
     let readmeFilename = 'README.md';
     let licenseFilename = 'LICENSE';
+    let contributingFilename = null;
 
     try {
       console.log('README 파일명 감지 중:', repoUrl);
@@ -161,6 +162,20 @@ async function analyzeRepository(req, res) {
       console.log(`LICENSE 파일명 감지 완료: ${licenseFilename}`);
     } catch (err) {
       console.warn('LICENSE 파일명 감지 실패:', err.message);
+    }
+
+    try {
+      console.log('CONTRIBUTING 파일명 감지 중:', repoUrl);
+      contributingFilename = await GithubApiService.detectContributingFilename(
+        repoUrl
+      );
+      if (contributingFilename) {
+        console.log(`CONTRIBUTING 파일명 감지 완료: ${contributingFilename}`);
+      } else {
+        console.log('CONTRIBUTING 파일을 찾지 못했습니다.');
+      }
+    } catch (err) {
+      console.warn('CONTRIBUTING 파일명 감지 실패:', err.message);
     }
 
     // 5. 1시간 이내 분석 결과 확인
@@ -338,7 +353,7 @@ async function analyzeRepository(req, res) {
         );
       }
     } catch (error) {
-      console.error(`README 처리 중 오류: ${repositoryInfo.fullName}`, error);
+      console.error(`README 처리 중 오류: ${repositoryInfo.fullName}`);
       // README 처리 실패는 전체 분석을 막지 않음
     }
 
@@ -396,6 +411,7 @@ async function analyzeRepository(req, res) {
       defaultBranch: repositoryInfo.defaultBranch,
       readmeFilename: readmeFilename,
       licenseFilename: licenseFilename,
+      contributingFilename: contributingFilename,
     });
 
     if (!upsertResult.success) {
@@ -1043,6 +1059,75 @@ async function getRepositoryIssueDetail(req, res) {
   }
 }
 
+// 저장소 컨텍스트 기반 질문 답변
+async function askRepositoryQuestion(req, res) {
+  const { repoId } = req.params;
+  const { messages } = req.body; // 대화 목록으로 변경
+  const userId = req.user.userId;
+
+  if (
+    !repoId ||
+    !messages ||
+    !Array.isArray(messages) ||
+    messages.length === 0
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: '저장소 ID와 대화 목록이 필요합니다.',
+    });
+  }
+
+  try {
+    // 저장소 정보 조회
+    const repoResult = await Repository.selectRepositoryDetails(repoId, userId);
+    if (!repoResult.success) {
+      return res.status(404).json({
+        success: false,
+        message: '저장소를 찾을 수 없습니다.',
+      });
+    }
+
+    const repository = repoResult.data;
+
+    // 저장소가 분석 완료 상태인지 확인
+    if (repository.analysisStatus !== 'completed') {
+      return res.status(400).json({
+        success: false,
+        message: '저장소 분석이 완료되지 않았습니다.',
+        errorType: 'ANALYSIS_NOT_COMPLETED',
+      });
+    }
+
+    // Flask에 대화 목록과 함께 질문 답변 요청
+    const flaskResult = await FlaskService.askRepositoryQuestion(
+      repoId,
+      messages, // 대화 목록 전달
+      repository.readmeFilename,
+      repository.licenseFilename,
+      repository.contributingFilename
+    );
+
+    if (!flaskResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: flaskResult.error || 'AI 답변 생성에 실패했습니다.',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      answer: flaskResult.data.answer,
+      message: '질문에 대한 답변이 생성되었습니다.',
+    });
+  } catch (error) {
+    console.error('저장소 질문 답변 오류:', error);
+    return res.status(500).json({
+      success: false,
+      message: '질문 답변 중 오류가 발생했습니다.',
+    });
+  }
+}
+
 export default {
   searchRepository,
   getRepositoryList,
@@ -1057,4 +1142,5 @@ export default {
   updateFavoriteStatus,
   getRepositoryIssues,
   getRepositoryIssueDetail,
+  askRepositoryQuestion,
 };

@@ -55,6 +55,7 @@ CREATE TABLE `repositories` (
   `readme_summary_gpt` TEXT NULL,
   `readme_filename` VARCHAR(100) NULL COMMENT 'README 파일명 (README.md, README.rst 등)',
   `license_filename` VARCHAR(100) NULL COMMENT 'LICENSE 파일명 (LICENSE, LICENSE.md 등)',
+  `contributing_filename` VARCHAR(100) NULL COMMENT 'CONTRIBUTING 파일명 (CONTRIBUTING.md, CONTRIBUTING.rst 등)',
   `default_branch` VARCHAR(100) NULL DEFAULT 'main' COMMENT '저장소 기본 브랜치명',
   `star` BIGINT UNSIGNED NOT NULL DEFAULT 0,
   `fork` BIGINT UNSIGNED NOT NULL DEFAULT 0,
