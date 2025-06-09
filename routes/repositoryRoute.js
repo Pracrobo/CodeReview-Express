@@ -17,8 +17,6 @@ router.post(
   repositoryController.addRepositoryInTracker
 );
 
-// ===== 새로 추가: 저장소 분석 관련 라우트 =====
-
 // 저장소 분석 시작
 router.post('/analyze', authenticate, repositoryController.analyzeRepository);
 
@@ -69,6 +67,20 @@ router.patch(
   '/:repoId/favorite',
   authenticate,
   repositoryController.updateFavoriteStatus
+);
+
+// 저장소별 이슈 목록 조회 (state 파라미터로 open/closed 필터 가능)
+router.get(
+  '/:repoId/issues',
+  authenticate,
+  repositoryController.getRepositoryIssues
+);
+
+// 저장소별 이슈 상세 조회
+router.get(
+  '/:repoId/issues/:githubIssueNumber',
+  authenticate,
+  repositoryController.getRepositoryIssueDetail
 );
 
 export default router;

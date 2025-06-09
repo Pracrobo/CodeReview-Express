@@ -2,6 +2,7 @@ import RepositoryService from '../services/repositoryService.js';
 import GithubApiService from '../services/githubApiService.js';
 import FlaskService from '../services/flaskService.js';
 import Repository from '../models/Repository.js';
+import IssueModel from '../models/Issue.js';
 import Validators from '../utils/validators.js';
 
 const {
@@ -76,7 +77,10 @@ async function addRepositoryInTracker(req, res) {
   }
 
   try {
-    const result = await RepositoryService.checkUserTrackingStatus(userId, githubRepoId);
+    const result = await RepositoryService.checkUserTrackingStatus(
+      userId,
+      githubRepoId
+    );
     if (result.tracked) {
       return res.status(409).json({
         success: false,
@@ -84,7 +88,10 @@ async function addRepositoryInTracker(req, res) {
       });
     }
 
-    const repositories = await RepositoryService.addRepositoryToTracking(userId, githubRepoId);
+    const repositories = await RepositoryService.addRepositoryToTracking(
+      userId,
+      githubRepoId
+    );
 
     return res.status(201).json({
       success: true,
@@ -125,6 +132,36 @@ async function analyzeRepository(req, res) {
       repoUrl
     );
     validateLanguagesData(languagesData, repoUrl);
+
+    // 4-1. open 이슈 목록 GitHub에서 가져와 DB 저장
+    let openIssues = [];
+    try {
+      openIssues = await GithubApiService.getOpenIssues(repoUrl);
+      if (openIssues.length > 0) {
+      }
+    } catch (err) {
+      console.warn('open 이슈 목록 조회 실패:', err.message);
+    }
+
+    // 4-2. README와 LICENSE 파일명 감지
+    let readmeFilename = 'README.md';
+    let licenseFilename = 'LICENSE';
+
+    try {
+      console.log('README 파일명 감지 중:', repoUrl);
+      readmeFilename = await GithubApiService.detectReadmeFilename(repoUrl);
+      console.log(`README 파일명 감지 완료: ${readmeFilename}`);
+    } catch (err) {
+      console.warn('README 파일명 감지 실패:', err.message);
+    }
+
+    try {
+      console.log('LICENSE 파일명 감지 중:', repoUrl);
+      licenseFilename = await GithubApiService.detectLicenseFilename(repoUrl);
+      console.log(`LICENSE 파일명 감지 완료: ${licenseFilename}`);
+    } catch (err) {
+      console.warn('LICENSE 파일명 감지 실패:', err.message);
+    }
 
     // 5. 1시간 이내 분석 결과 확인
     const recentAnalysisResult = await Repository.checkRecentAnalysis(
@@ -341,7 +378,7 @@ async function analyzeRepository(req, res) {
       }
     }
 
-    // 8. 저장소 정보를 DB에 저장/업데이트 (README 요약 및 번역된 description 포함)
+    // 8. 저장소 정보를 DB에 저장/업데이트 (파일명 정보 포함)
     console.log(
       `저장소 정보 DB 저장 시작: ${repositoryInfo.fullName}, 라이선스: ${repositoryInfo.licenseSpdxId}`
     );
@@ -349,13 +386,16 @@ async function analyzeRepository(req, res) {
     const upsertResult = await Repository.upsertRepository({
       githubRepoId: repositoryInfo.githubRepoId,
       fullName: repositoryInfo.fullName,
-      description: translatedDescription, // 번역된 description 사용
+      description: translatedDescription,
       htmlUrl: repositoryInfo.htmlUrl,
       licenseSpdxId: repositoryInfo.licenseSpdxId,
       star: repositoryInfo.star,
       fork: repositoryInfo.fork,
       issueTotalCount: repositoryInfo.openIssuesCount,
-      readmeSummaryGpt: readmeSummary, // README 요약 포함
+      readmeSummaryGpt: readmeSummary,
+      defaultBranch: repositoryInfo.defaultBranch,
+      readmeFilename: readmeFilename,
+      licenseFilename: licenseFilename,
     });
 
     if (!upsertResult.success) {
@@ -367,12 +407,21 @@ async function analyzeRepository(req, res) {
         success: false,
         message: '저장소 정보 저장 중 오류가 발생했습니다.',
         errorType: 'DATABASE_ERROR',
-        details: upsertResult.error, // 디버깅을 위한 상세 오류 정보
+        details: upsertResult.error,
       });
     }
 
     // repoId 추출
     const repoId = upsertResult.data.repoId;
+
+    // === (추가) open 이슈 DB 저장 ===
+    if (openIssues.length > 0) {
+      try {
+        await IssueModel.upsertIssues(repoId, openIssues);
+      } catch (err) {
+        console.warn('open 이슈 DB 저장 실패:', err.message);
+      }
+    }
 
     console.log(
       `저장소 정보 DB 저장 완료: ${repositoryInfo.fullName}, repoId: ${repoId}`
@@ -888,6 +937,112 @@ async function updateFavoriteStatus(req, res) {
   }
 }
 
+// 저장소별 이슈 목록 조회
+async function getRepositoryIssues(req, res) {
+  const { repoId } = req.params;
+  const { state } = req.query; // open/closed 등
+
+  if (!repoId) {
+    return res.status(400).json({
+      success: false,
+      message: '저장소 ID가 필요합니다.',
+    });
+  }
+
+  try {
+    // 저장소 정보도 함께 조회하여 repoUrl 제공
+    const repoResult = await Repository.selectRepositoryDetails(
+      repoId,
+      req.user.userId
+    );
+    if (!repoResult.success) {
+      return res.status(404).json({
+        success: false,
+        message: '저장소를 찾을 수 없습니다.',
+      });
+    }
+
+    const result = await IssueModel.selectIssuesByRepoId(repoId, state);
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        message: '이슈 목록 조회 중 오류가 발생했습니다.',
+      });
+    }
+
+    // 이슈 데이터에 저장소 URL 정보 추가
+    const issuesWithRepoInfo = result.data.map((issue) => ({
+      ...issue,
+      repoUrl: repoResult.data.htmlUrl, // GitHub URL 추가
+      repoFullName: repoResult.data.fullName, // 전체 이름 추가
+    }));
+
+    return res.status(200).json({
+      success: true,
+      data: issuesWithRepoInfo,
+      message: result.data.length === 0 ? '이슈가 없습니다.' : undefined,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: '이슈 목록 조회 중 오류가 발생했습니다.',
+    });
+  }
+}
+
+// 저장소 이슈 상세 조회 (댓글 및 AI 분석 포함)
+async function getRepositoryIssueDetail(req, res) {
+  const { repoId, githubIssueNumber } = req.params;
+  if (!repoId || !githubIssueNumber) {
+    return res.status(400).json({
+      success: false,
+      message: '저장소 ID와 이슈 번호가 필요합니다.',
+    });
+  }
+  try {
+    // 저장소 정보 조회
+    const repoResult = await Repository.selectRepositoryDetails(
+      repoId,
+      req.user.userId
+    );
+    if (!repoResult.success) {
+      return res.status(404).json({
+        success: false,
+        message: '저장소를 찾을 수 없습니다.',
+      });
+    }
+
+    // 확장된 이슈 상세 조회 함수 사용
+    const result = await IssueModel.selectIssueDetailWithExtras(
+      repoId,
+      githubIssueNumber
+    );
+    if (!result.success) {
+      return res.status(404).json({
+        success: false,
+        message: result.error || '이슈를 찾을 수 없습니다.',
+      });
+    }
+
+    // 이슈 데이터에 저장소 정보 추가
+    const issueWithRepoInfo = {
+      ...result.data,
+      repoUrl: repoResult.data.htmlUrl, // GitHub URL 추가
+      repoFullName: repoResult.data.fullName, // 전체 이름 추가
+    };
+
+    return res.status(200).json({
+      success: true,
+      data: issueWithRepoInfo,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: '이슈 조회 중 오류가 발생했습니다.',
+    });
+  }
+}
+
 export default {
   searchRepository,
   getRepositoryList,
@@ -900,4 +1055,6 @@ export default {
   getRepositoryDetails,
   getRepositoryLanguages,
   updateFavoriteStatus,
+  getRepositoryIssues,
+  getRepositoryIssueDetail,
 };

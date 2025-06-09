@@ -3,9 +3,14 @@ import axios from 'axios';
 const FLASK_API_URL = process.env.FLASK_API_URL || 'http://localhost:3002';
 
 // 저장소 인덱싱 요청 (Flask)
-async function requestRepositoryIndexing(repoUrl, repositoryInfo, userId = null) {
+async function requestRepositoryIndexing(
+  repoUrl,
+  repositoryInfo,
+  userId = null
+) {
   try {
-    const expressBaseUrl = process.env.EXPRESS_BASE_URL || 'http://localhost:3001';
+    const expressBaseUrl =
+      process.env.EXPRESS_BASE_URL || 'http://localhost:3001';
     const callbackUrl = `${expressBaseUrl}/internal/analysis-complete`;
 
     const requestData = {
@@ -192,7 +197,11 @@ async function searchRepository(repoName, query, searchType = 'code') {
 }
 
 // 번역 요청 (Flask)
-async function requestTranslation(text, sourceLanguage = 'auto', targetLanguage = 'ko') {
+async function requestTranslation(
+  text,
+  sourceLanguage = 'auto',
+  targetLanguage = 'ko'
+) {
   try {
     console.log(`Flask에 번역 요청: ${text.length}자`);
 

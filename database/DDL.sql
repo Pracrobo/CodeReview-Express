@@ -3,6 +3,7 @@ DROP TABLE IF EXISTS `user_tracked_repositories`;
 DROP TABLE IF EXISTS `recommended_code_snippets`;
 DROP TABLE IF EXISTS `chat_bot_messages`;
 DROP TABLE IF EXISTS `chat_bot_conversations`;
+DROP TABLE IF EXISTS `user_recent_issues`;
 DROP TABLE IF EXISTS `issues`;
 DROP TABLE IF EXISTS `repository_languages`;
 DROP TABLE IF EXISTS `repositories`;
@@ -52,6 +53,9 @@ CREATE TABLE `repositories` (
   `html_url` VARCHAR(500) NOT NULL,
   `license_spdx_id` VARCHAR(50) NULL COMMENT '해당 repo의 license 종류',
   `readme_summary_gpt` TEXT NULL,
+  `readme_filename` VARCHAR(100) NULL COMMENT 'README 파일명 (README.md, README.rst 등)',
+  `license_filename` VARCHAR(100) NULL COMMENT 'LICENSE 파일명 (LICENSE, LICENSE.md 등)',
+  `default_branch` VARCHAR(100) NULL DEFAULT 'main' COMMENT '저장소 기본 브랜치명',
   `star` BIGINT UNSIGNED NOT NULL DEFAULT 0,
   `fork` BIGINT UNSIGNED NOT NULL DEFAULT 0,
   `pr_total_count` INT UNSIGNED DEFAULT 0 COMMENT 'PR 총 개수',
@@ -111,6 +115,7 @@ CREATE TABLE `issues` (
   `score` TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'AI 분석 기반 관련도/중요도 점수 (0-100)',
   `html_url` VARCHAR(500) NOT NULL,
   `summary_gpt` TEXT NULL,
+  `solution_suggestion_gpt` TEXT NULL,
   `tags_gpt_json` JSON NULL COMMENT 'GPT가 정의한 tag',
   `created_at_github` TIMESTAMP NOT NULL,
   `updated_at_github` TIMESTAMP NOT NULL,
@@ -160,11 +165,13 @@ CREATE TABLE `recommended_code_snippets` (
   `recommendation_id` BIGINT NOT NULL AUTO_INCREMENT,
   `issue_id` BIGINT NOT NULL,
   `file_path` VARCHAR(2048) NOT NULL,
+  `github_url` VARCHAR(500) NULL COMMENT 'GitHub 파일 URL',
   `function_name` VARCHAR(255) NULL,
   `class_name` VARCHAR(255) NULL,
   `code_snippet` MEDIUMTEXT NOT NULL,
   `relevance_score` DECIMAL(5, 2) NULL COMMENT '코드 유사도 (0-100)',
   `explanation_gpt` TEXT NULL,
+  `type` ENUM('file', 'snippet') NOT NULL DEFAULT 'snippet' COMMENT '추천 유형(관련 파일/코드 스니펫)',
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`recommendation_id`),
   CONSTRAINT `FK_recommended_code_snippets_issues` FOREIGN KEY (`issue_id`) REFERENCES `issues` (`issue_id`) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -172,6 +179,15 @@ CREATE TABLE `recommended_code_snippets` (
     `relevance_score` BETWEEN 0 AND 100
     OR `relevance_score` IS NULL
   )
+);
+-- 최근 본 이슈 테이블 생성 (user_recent_issues)
+CREATE TABLE `user_recent_issues` (
+  `user_id` BIGINT NOT NULL,
+  `issue_id` BIGINT NOT NULL,
+  `viewed_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`user_id`, `issue_id`),
+  CONSTRAINT `FK_user_recent_issues_users` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `FK_user_recent_issues_issues` FOREIGN KEY (`issue_id`) REFERENCES `issues` (`issue_id`) ON DELETE CASCADE ON UPDATE CASCADE
 );
 -- 인덱스 생성
 -- (PK는 자동으로 인덱스 생성됨)

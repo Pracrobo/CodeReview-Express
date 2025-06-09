@@ -17,7 +17,6 @@ function toCamelCaseRepositories(rows) {
     prTotalCount: row.pr_total_count,
     issueTotalCount: row.issue_total_count,
     lastAnalyzedAt: row.last_analyzed_at,
-    // 새로 추가된 분석 상태 필드들
     analysisStatus: row.analysis_status,
     analysisProgress: row.analysis_progress,
     analysisCurrentStep: row.analysis_current_step,
@@ -26,6 +25,9 @@ function toCamelCaseRepositories(rows) {
     analysisCompletedAt: row.analysis_completed_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    defaultBranch: row.default_branch,
+    readmeFilename: row.readme_filename,
+    licenseFilename: row.license_filename,
   }));
   return { success: true, data: data };
 }
@@ -107,8 +109,6 @@ async function deleteTrack(userId, githubRepoId) {
   }
 }
 
-// ===== 새로 추가: 저장소 분석 관련 함수들 =====
-
 // 라이선스 존재 여부 확인 함수 추가
 async function checkLicenseExists(licenseSpdxId) {
   if (!licenseSpdxId) return { exists: false };
@@ -138,6 +138,9 @@ async function upsertRepository(repositoryData) {
       fork,
       issueTotalCount,
       readmeSummaryGpt,
+      defaultBranch, // 추가
+      readmeFilename, // 추가
+      licenseFilename, // 추가
     } = repositoryData;
 
     // 라이선스 존재 여부 확인
@@ -158,8 +161,9 @@ async function upsertRepository(repositoryData) {
     const [result] = await pool.query(
       `INSERT INTO repositories (
         github_repo_id, full_name, description, html_url, 
-        license_spdx_id, star, fork, issue_total_count, readme_summary_gpt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        license_spdx_id, star, fork, issue_total_count, readme_summary_gpt,
+        default_branch, readme_filename, license_filename
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         full_name = VALUES(full_name),
         description = VALUES(description),
@@ -169,6 +173,9 @@ async function upsertRepository(repositoryData) {
         fork = VALUES(fork),
         issue_total_count = VALUES(issue_total_count),
         readme_summary_gpt = VALUES(readme_summary_gpt),
+        default_branch = VALUES(default_branch),
+        readme_filename = VALUES(readme_filename),
+        license_filename = VALUES(license_filename),
         updated_at = CURRENT_TIMESTAMP`,
       [
         githubRepoId,
@@ -180,6 +187,9 @@ async function upsertRepository(repositoryData) {
         fork,
         issueTotalCount,
         readmeSummaryGpt,
+        defaultBranch, // 추가
+        readmeFilename, // 추가
+        licenseFilename, // 추가
       ]
     );
 
@@ -483,16 +493,20 @@ async function startRepositoryAnalysis(repoId) {
   }
 }
 
-// 특정 저장소의 상세 정보 조회 (사용자별)
+// 저장소 상세 정보 조회 (파일명 정보 포함)
 async function selectRepositoryDetails(repoId, userId) {
   try {
     const [rows] = await pool.query(
       `SELECT 
-        r.*, 
-        utr.tracked_at, 
-        utr.last_viewed_at, 
-        utr.is_favorite,
-        CASE WHEN utr.user_id IS NOT NULL THEN 1 ELSE 0 END as is_tracked
+        r.repo_id, r.github_repo_id, r.full_name, r.description, r.html_url,
+        r.license_spdx_id, r.readme_summary_gpt, r.star, r.fork, 
+        r.pr_total_count, r.issue_total_count, r.last_analyzed_at,
+        r.analysis_status, r.analysis_progress, r.analysis_current_step,
+        r.analysis_error_message, r.analysis_started_at, r.analysis_completed_at,
+        r.created_at, r.updated_at, r.default_branch, 
+        r.readme_filename, r.license_filename,
+        CASE WHEN utr.user_id IS NOT NULL THEN 1 ELSE 0 END as is_tracked,
+        utr.is_favorite
       FROM repositories r
       LEFT JOIN user_tracked_repositories utr ON r.repo_id = utr.repo_id AND utr.user_id = ?
       WHERE r.repo_id = ?`,
@@ -508,6 +522,7 @@ async function selectRepositoryDetails(repoId, userId) {
       repoId: row.repo_id,
       githubRepoId: row.github_repo_id,
       fullName: row.full_name,
+      name: row.full_name ? row.full_name.split('/')[1] : '',
       description: row.description,
       htmlUrl: row.html_url,
       licenseSpdxId: row.license_spdx_id,
@@ -525,11 +540,11 @@ async function selectRepositoryDetails(repoId, userId) {
       analysisCompletedAt: row.analysis_completed_at,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
-      // 사용자별 정보
-      trackedAt: row.tracked_at,
-      lastViewedAt: row.last_viewed_at,
-      isFavorite: row.is_favorite === 1,
+      defaultBranch: row.default_branch,
+      readmeFilename: row.readme_filename,
+      licenseFilename: row.license_filename,
       isTracked: row.is_tracked === 1,
+      isFavorite: row.is_favorite === 1,
     };
 
     return { success: true, data };
@@ -725,18 +740,18 @@ async function updateFavoriteStatus(userId, repoId, isFavorite) {
 
 export default {
   selectRepository,
-  selectTrackRepositories: selectTrackRepositoriesWithLanguages,
-  insertTrack,
+  selectTrackRepositories,
   selectTrack,
+  insertTrack,
   deleteTrack,
   upsertRepository,
   updateRepositoryAnalysisStatus,
   selectAnalyzingRepositories,
   selectRecentlyAnalyzedRepositories,
+  updateLastViewedAt,
   selectRepositoryAnalysisStatus,
   checkRecentAnalysis,
   startRepositoryAnalysis,
-  updateLastViewedAt,
   selectRepositoryDetails,
   selectRepositoryLanguages,
   upsertRepositoryLanguages,
