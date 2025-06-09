@@ -1,8 +1,29 @@
 import axios from 'axios';
 import querystring from 'querystring';
+import { Octokit } from '@octokit/rest';
+import Bottleneck from 'bottleneck';
 
 const GITHUB_API_URL = 'https://api.github.com';
 const GITHUB_OAUTH_URL = 'https://github.com/login/oauth';
+
+// GitHub API 속도 제한을 위한 Bottleneck 설정
+const limiter = new Bottleneck({
+  maxConcurrent: 1, // 동시에 1개의 요청만 처리
+  minTime: 1000, // 각 요청 사이에 최소 1초 간격 (GitHub API 속도 제한 고려)
+});
+
+// Octokit 인스턴스 생성 함수
+function getOctokit(accessToken = null) {
+  return new Octokit({
+    auth: accessToken,
+    // Bottleneck을 사용하여 API 요청 속도 제어
+    request: {
+      fetch: async (url, options) => {
+        return limiter.schedule(() => fetch(url, options));
+      },
+    },
+  });
+}
 
 // GitHub Basic 인증 헤더 생성 (내부용)
 function getBasicAuthHeader() {
@@ -83,18 +104,13 @@ async function getUserEmails(githubAccessToken) {
 async function getRepositoryInfo(repoUrl, accessToken = null) {
   try {
     const { owner, repo } = parseRepositoryUrl(repoUrl);
-    const headers = {
-      Accept: 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28',
-    };
-    if (accessToken) {
-      headers.Authorization = `Bearer ${accessToken}`;
-    }
-    const response = await axios.get(
-      `${GITHUB_API_URL}/repos/${owner}/${repo}`,
-      { headers }
-    );
-    const repoData = response.data;
+    const octokit = getOctokit(accessToken);
+
+    const { data: repoData } = await octokit.repos.get({
+      owner,
+      repo,
+    });
+
     return {
       githubRepoId: repoData.id,
       fullName: repoData.full_name,
@@ -106,7 +122,7 @@ async function getRepositoryInfo(repoUrl, accessToken = null) {
       star: repoData.stargazers_count,
       fork: repoData.forks_count,
       isPrivate: repoData.private,
-      defaultBranch: repoData.default_branch,
+      defaultBranch: repoData.default_branch, // 기본 브랜치 정보 추가
       createdAt: repoData.created_at,
       updatedAt: repoData.updated_at,
       pushedAt: repoData.pushed_at,
@@ -114,11 +130,11 @@ async function getRepositoryInfo(repoUrl, accessToken = null) {
       openIssuesCount: repoData.open_issues_count,
     };
   } catch (error) {
-    if (error.response?.status === 404) {
+    if (error.status === 404) {
       throw new Error('저장소를 찾을 수 없습니다. URL을 확인해주세요.');
-    } else if (error.response?.status === 403) {
+    } else if (error.status === 403) {
       throw new Error('저장소에 접근할 권한이 없습니다.');
-    } else if (error.response?.status === 401) {
+    } else if (error.status === 401) {
       throw new Error('GitHub 인증이 필요합니다.');
     }
     throw new Error(`GitHub 저장소 정보 조회 실패: ${error.message}`);
@@ -298,6 +314,58 @@ async function getOpenIssues(repoUrl, accessToken = null) {
   }
 }
 
+// 저장소의 README 파일명 감지 (Octokit 활용)
+async function detectReadmeFilename(repoUrl, accessToken = null) {
+  try {
+    const { owner, repo } = parseRepositoryUrl(repoUrl);
+    const octokit = getOctokit(accessToken);
+
+    // 저장소 루트 디렉토리 컨텐츠 조회
+    const { data: contents } = await octokit.repos.getContent({
+      owner,
+      repo,
+      path: '', // 루트 디렉토리
+    });
+
+    // README 파일 찾기 (대소문자 무관)
+    const readmeFile = contents.find(
+      (file) =>
+        file.type === 'file' && /^readme(\.(md|rst|txt))?$/i.test(file.name)
+    );
+
+    return readmeFile ? readmeFile.name : 'README.md'; // 기본값
+  } catch (error) {
+    console.warn(`README 파일명 감지 실패: ${error.message}`);
+    return 'README.md'; // 기본값
+  }
+}
+
+// 저장소의 LICENSE 파일명 감지 (Octokit 활용)
+async function detectLicenseFilename(repoUrl, accessToken = null) {
+  try {
+    const { owner, repo } = parseRepositoryUrl(repoUrl);
+    const octokit = getOctokit(accessToken);
+
+    // 저장소 루트 디렉토리 컨텐츠 조회
+    const { data: contents } = await octokit.repos.getContent({
+      owner,
+      repo,
+      path: '', // 루트 디렉토리
+    });
+
+    // LICENSE 파일 찾기 (대소문자 무관)
+    const licenseFile = contents.find(
+      (file) =>
+        file.type === 'file' && /^licen[cs]e(\.(md|txt))?$/i.test(file.name)
+    );
+
+    return licenseFile ? licenseFile.name : 'LICENSE'; // 기본값
+  } catch (error) {
+    console.warn(`LICENSE 파일명 감지 실패: ${error.message}`);
+    return 'LICENSE'; // 기본값
+  }
+}
+
 export default {
   getAccessToken,
   getUserInfo,
@@ -309,4 +377,6 @@ export default {
   unlinkGithub,
   logoutGithub,
   getOpenIssues,
+  detectReadmeFilename,
+  detectLicenseFilename,
 };

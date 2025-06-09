@@ -22,6 +22,12 @@ function formatDate(date) {
   );
 }
 
+// 저장소 URL 구성 함수
+function buildRepoUrl(repoFullName) {
+  if (!repoFullName) return '';
+  return `https://github.com/${repoFullName}`;
+}
+
 // 이슈 목록 조회 (repoId 기준, 저장소명 포함)
 async function selectIssuesByRepoId(repoId, state = null) {
   try {
@@ -228,6 +234,7 @@ async function selectIssueComments(repoId, githubIssueNumber) {
 // AI 코드 스니펫 추천 조회
 async function selectRecommendedCodeSnippets(issueId) {
   try {
+    // type='snippet'만 조회
     const [rows] = await pool.query(
       `SELECT 
         recommendation_id,
@@ -238,7 +245,7 @@ async function selectRecommendedCodeSnippets(issueId) {
         relevance_score,
         explanation_gpt
        FROM recommended_code_snippets 
-       WHERE issue_id = ? 
+       WHERE issue_id = ? AND type = 'snippet'
        ORDER BY relevance_score DESC 
        LIMIT 10`,
       [issueId]
@@ -257,6 +264,36 @@ async function selectRecommendedCodeSnippets(issueId) {
     return { success: true, data };
   } catch (error) {
     console.error('AI 코드 스니펫 조회 오류:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// === 관련 파일 추천 조회 함수 추가 ===
+async function selectRecommendedRelatedFiles(issueId) {
+  try {
+    // type='file'만 조회
+    const [rows] = await pool.query(
+      `SELECT 
+        recommendation_id,
+        file_path,
+        relevance_score,
+        explanation_gpt
+       FROM recommended_code_snippets 
+       WHERE issue_id = ? AND type = 'file'
+       ORDER BY relevance_score DESC 
+       LIMIT 10`,
+      [issueId]
+    );
+
+    const data = rows.map((row) => ({
+      path: row.file_path,
+      relevance: parseFloat(row.relevance_score || 0),
+      explanation: row.explanation_gpt,
+    }));
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('AI 관련 파일 추천 조회 오류:', error.message);
     return { success: false, error: error.message };
   }
 }
@@ -294,6 +331,9 @@ async function selectIssueDetail(repoId, githubIssueNumber) {
       updatedAtDb: formatDate(row.updated_at_db),
       repoName: row.repo_full_name ? row.repo_full_name.split('/')[1] : '',
       repoFullName: row.repo_full_name || '',
+      repoUrl: buildRepoUrl(row.repo_full_name),
+      // === AI 해결 제안도 포함 ===
+      solutionSuggestion: row.solution_suggestion_gpt || '',
     };
     return { success: true, data };
   } catch (error) {
@@ -320,6 +360,14 @@ async function selectIssueDetailWithExtras(repoId, githubIssueNumber) {
     // AI 코드 스니펫 조회
     const snippetsResult = await selectRecommendedCodeSnippets(issue.issueId);
     const codeSnippets = snippetsResult.success ? snippetsResult.data : [];
+
+    // === 관련 파일 추천 조회 ===
+    const relatedFilesResult = await selectRecommendedRelatedFiles(
+      issue.issueId
+    );
+    const relatedFiles = relatedFilesResult.success
+      ? relatedFilesResult.data
+      : [];
 
     // 라벨 정보 파싱 (JSON에서 배열로 변환)
     let labels = [];
@@ -348,8 +396,9 @@ async function selectIssueDetailWithExtras(repoId, githubIssueNumber) {
             functionName: snippet.functionName,
             className: snippet.className,
           })),
-          relatedFiles: [], // 추후 확장
-          suggestion: '', // 추후 확장
+          relatedFiles: relatedFiles,
+          // === solutionSuggestion도 전달 ===
+          suggestion: issue.solutionSuggestion || '',
         },
       },
     };
@@ -371,17 +420,17 @@ async function updateIssueAnalysis(issueId, analysisData) {
       issueId,
     ]);
 
-    // 관련 파일 정보를 recommended_code_snippets 테이블에 저장
+    // 관련 파일 정보를 recommended_code_snippets 테이블에 저장 (type='file')
     if (relatedFiles && relatedFiles.length > 0) {
       for (const file of relatedFiles) {
         await pool.query(
           `INSERT INTO recommended_code_snippets 
-           (issue_id, file_path, code_snippet, relevance_score, explanation_gpt, function_name, class_name)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+           (issue_id, file_path, code_snippet, relevance_score, explanation_gpt, function_name, class_name, type)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 'file')`,
           [
             issueId,
             file.path,
-            `관련 파일: ${file.path}`,
+            '', // 관련 파일은 코드 없음
             file.relevance,
             `관련도 ${file.relevance}%의 파일입니다.`,
             null,
@@ -391,13 +440,13 @@ async function updateIssueAnalysis(issueId, analysisData) {
       }
     }
 
-    // 코드 스니펫 저장
+    // 코드 스니펫 저장 (type='snippet')
     if (codeSnippets && codeSnippets.length > 0) {
       for (const snippet of codeSnippets) {
         await pool.query(
           `INSERT INTO recommended_code_snippets 
-           (issue_id, file_path, code_snippet, relevance_score, explanation_gpt, function_name, class_name)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+           (issue_id, file_path, code_snippet, relevance_score, explanation_gpt, function_name, class_name, type)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 'snippet')`,
           [
             issueId,
             snippet.file,
@@ -408,6 +457,27 @@ async function updateIssueAnalysis(issueId, analysisData) {
             null,
           ]
         );
+      }
+    }
+
+    // AI 해결 제안 저장 (컬럼이 없을 경우 무시)
+    if (solutionSuggestion) {
+      try {
+        await pool.query(
+          'UPDATE issues SET solution_suggestion_gpt = ? WHERE issue_id = ?',
+          [solutionSuggestion, issueId]
+        );
+      } catch (err) {
+        // 컬럼이 없으면 무시 (DB 마이그레이션 전)
+        if (
+          err.message &&
+          err.message.includes('Unknown column') &&
+          err.message.includes('solution_suggestion_gpt')
+        ) {
+          // 무시
+        } else {
+          throw err;
+        }
       }
     }
 
@@ -448,6 +518,8 @@ export default {
   selectIssueDetail,
   selectIssueComments,
   selectRecommendedCodeSnippets,
+  // === 관련 파일 추천 함수도 export ===
+  selectRecommendedRelatedFiles,
   selectIssueDetailWithExtras,
   updateIssueAnalysis,
   checkIssueAnalysisStatus,
