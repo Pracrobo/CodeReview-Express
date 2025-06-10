@@ -122,7 +122,7 @@ async function getRepositoryInfo(repoUrl, accessToken = null) {
       star: repoData.stargazers_count,
       fork: repoData.forks_count,
       isPrivate: repoData.private,
-      defaultBranch: repoData.default_branch, // 기본 브랜치 정보 추가
+      defaultBranch: repoData.default_branch,
       createdAt: repoData.created_at,
       updatedAt: repoData.updated_at,
       pushedAt: repoData.pushed_at,
@@ -133,7 +133,9 @@ async function getRepositoryInfo(repoUrl, accessToken = null) {
     if (error.status === 404) {
       throw new Error('저장소를 찾을 수 없습니다. URL을 확인해주세요.');
     } else if (error.status === 403) {
-      throw new Error('저장소에 접근할 권한이 없습니다.');
+      throw new Error(
+        '저장소에 접근할 권한이 없거나 API rate limit에 도달했습니다.'
+      );
     } else if (error.status === 401) {
       throw new Error('GitHub 인증이 필요합니다.');
     }
