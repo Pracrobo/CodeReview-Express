@@ -4,6 +4,7 @@ import FlaskService from '../services/flaskService.js';
 import Repository from '../models/Repository.js';
 import IssueModel from '../models/Issue.js';
 import Validators from '../utils/validators.js';
+import LicenseService from '../services/licenseService.js'; // LicenseService 임포트
 
 const {
   ValidationError,
@@ -138,6 +139,9 @@ async function analyzeRepository(req, res) {
     try {
       openIssues = await GithubApiService.getOpenIssues(repoUrl);
       if (openIssues.length > 0) {
+        console.log(
+          `Found ${openIssues.length} open issues for repository: ${repoUrl}`
+        );
       }
     } catch (err) {
       console.warn('open 이슈 목록 조회 실패:', err.message);
@@ -837,6 +841,21 @@ async function getRepositoryDetails(req, res) {
       });
     }
 
+    let licenseDetails = null;
+    if (result.data.licenseSpdxId) {
+      const licenseResult = await LicenseService.getLicenseDetails(
+        result.data.licenseSpdxId
+      );
+      if (licenseResult.success && licenseResult.data) {
+        licenseDetails = licenseResult.data;
+      } else {
+        console.warn(
+          `라이선스 상세 정보 조회 실패: ${result.data.licenseSpdxId}`,
+          licenseResult.message
+        );
+      }
+    }
+
     // 저장소 언어 정보 조회
     const languagesResult = await Repository.selectRepositoryLanguages(repoId);
 
@@ -844,6 +863,7 @@ async function getRepositoryDetails(req, res) {
     const repositoryData = {
       ...result.data,
       languages: languagesResult.success ? languagesResult.data : [],
+      license: licenseDetails, // 조회된 라이선스 상세 정보 추가
     };
 
     // 사용자가 트래킹 중인 저장소라면 last_viewed_at 업데이트
@@ -1137,7 +1157,7 @@ export default {
   getRecentlyAnalyzedRepositories,
   getAnalysisStatus,
   updateRepositoryLastViewed,
-  getRepositoryDetails,
+  getRepositoryDetails, // 변경됨
   getRepositoryLanguages,
   updateFavoriteStatus,
   getRepositoryIssues,
