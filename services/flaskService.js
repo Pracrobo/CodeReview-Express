@@ -285,18 +285,18 @@ async function checkFlaskServerHealth() {
 
 // 저장소 컨텍스트 기반 질문 답변 요청 (Flask)
 async function askRepositoryQuestion(
-  repoId,
-  question,
+  repoName, // repo_id 대신 repo_name (full_name) 사용
+  messages, // question 대신 messages 배열 사용
   readmeFilename = null,
   licenseFilename = null,
   contributingFilename = null
 ) {
   try {
-    console.log(`Flask에 저장소 질문 요청: repo_id=${repoId}`);
+    console.log(`Flask에 저장소 질문 요청: repo_name=${repoName}`);
 
     const requestData = {
-      repo_id: repoId,
-      question: question,
+      repo_name: repoName, // repo_id -> repo_name
+      messages: messages, // question -> messages
     };
 
     if (readmeFilename) {
@@ -310,7 +310,7 @@ async function askRepositoryQuestion(
     }
 
     const response = await axios.post(
-      `${FLASK_API_URL}/issue/ask-repository`,
+      `${FLASK_API_URL}/issue/ask-repository`, // repository-question -> ask-repository
       requestData,
       {
         headers: {
@@ -321,13 +321,16 @@ async function askRepositoryQuestion(
     );
 
     if (response.data) {
-      console.log(`저장소 질문 답변 완료: repo_id=${repoId}`);
+      console.log(`저장소 질문 답변 완료: repo_name=${repoName}`);
       return {
         success: true,
         data: response.data,
       };
     } else {
-      console.error(`저장소 질문 답변 실패: repo_id=${repoId}`, response.data);
+      console.error(
+        `저장소 질문 답변 실패: repo_name=${repoName}`,
+        response.data
+      );
       return {
         success: false,
         error: '답변 생성에 실패했습니다.',
@@ -335,7 +338,7 @@ async function askRepositoryQuestion(
     }
   } catch (error) {
     console.error(
-      `저장소 질문 답변 요청 오류: repo_id=${repoId}`,
+      `저장소 질문 답변 요청 오류: repo_name=${repoName}`,
       error.message
     );
 
@@ -371,5 +374,5 @@ export default {
   searchRepository,
   requestTranslation,
   checkFlaskServerHealth,
-  askRepositoryQuestion, // 새로 추가
+  askRepositoryQuestion, // 업데이트된 함수
 };

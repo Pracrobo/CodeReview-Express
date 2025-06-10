@@ -83,7 +83,7 @@ router.get(
   repositoryController.getRepositoryIssueDetail
 );
 
-// 저장소 컨텍스트 기반 질문 답변
+// 저장소 컨텍스트 기반 질문 답변 - Flask API 연동
 router.post(
   '/:repoId/ask',
   authenticate,

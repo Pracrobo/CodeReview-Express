@@ -1118,9 +1118,9 @@ async function askRepositoryQuestion(req, res) {
       });
     }
 
-    // Flask에 대화 목록과 함께 질문 답변 요청
+    // Flask에 실제 API 요청 - repo_name(full_name) 사용
     const flaskResult = await FlaskService.askRepositoryQuestion(
-      repoId,
+      repository.fullName, // repo_id 대신 full_name 사용
       messages, // 대화 목록 전달
       repository.readmeFilename,
       repository.licenseFilename,
