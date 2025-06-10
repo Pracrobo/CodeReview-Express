@@ -138,6 +138,9 @@ async function analyzeRepository(req, res) {
     try {
       openIssues = await GithubApiService.getOpenIssues(repoUrl);
       if (openIssues.length > 0) {
+        console.log(
+          `Found ${openIssues.length} open issues for repository: ${repoUrl}`
+        );
       }
     } catch (err) {
       console.warn('open 이슈 목록 조회 실패:', err.message);
