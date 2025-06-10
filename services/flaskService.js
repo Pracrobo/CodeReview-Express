@@ -283,6 +283,90 @@ async function checkFlaskServerHealth() {
   }
 }
 
+// 저장소 컨텍스트 기반 질문 답변 요청 (Flask)
+async function askRepositoryQuestion(
+  repoName, // repo_id 대신 repo_name (full_name) 사용
+  messages, // question 대신 messages 배열 사용
+  readmeFilename = null,
+  licenseFilename = null,
+  contributingFilename = null
+) {
+  try {
+    console.log(`Flask에 저장소 질문 요청: repo_name=${repoName}`);
+
+    const requestData = {
+      repo_name: repoName, // repo_id -> repo_name
+      messages: messages, // question -> messages
+    };
+
+    if (readmeFilename) {
+      requestData.readme_filename = readmeFilename;
+    }
+    if (licenseFilename) {
+      requestData.license_filename = licenseFilename;
+    }
+    if (contributingFilename) {
+      requestData.contributing_filename = contributingFilename;
+    }
+
+    const response = await axios.post(
+      `${FLASK_API_URL}/issue/ask-repository`, // repository-question -> ask-repository
+      requestData,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 120000, // 2분 타임아웃
+      }
+    );
+
+    if (response.data) {
+      console.log(`저장소 질문 답변 완료: repo_name=${repoName}`);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } else {
+      console.error(
+        `저장소 질문 답변 실패: repo_name=${repoName}`,
+        response.data
+      );
+      return {
+        success: false,
+        error: '답변 생성에 실패했습니다.',
+      };
+    }
+  } catch (error) {
+    console.error(
+      `저장소 질문 답변 요청 오류: repo_name=${repoName}`,
+      error.message
+    );
+
+    if (error.code === 'ECONNABORTED') {
+      return {
+        success: false,
+        error: '답변 생성 시간이 초과되었습니다.',
+      };
+    }
+    if (error.code === 'ECONNREFUSED') {
+      return {
+        success: false,
+        error: 'Flask 서버에 연결할 수 없습니다.',
+      };
+    }
+    if (error.response?.status === 404) {
+      return {
+        success: false,
+        error: '저장소 또는 파일을 찾을 수 없습니다.',
+      };
+    }
+    return {
+      success: false,
+      error: error.message || '질문 답변 요청 중 오류가 발생했습니다.',
+    };
+  }
+}
+
 export default {
   requestRepositoryIndexing,
   getRepositoryAnalysisStatus,
@@ -290,4 +374,5 @@ export default {
   searchRepository,
   requestTranslation,
   checkFlaskServerHealth,
+  askRepositoryQuestion, // 업데이트된 함수
 };

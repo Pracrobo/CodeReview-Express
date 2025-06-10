@@ -366,6 +366,75 @@ async function detectLicenseFilename(repoUrl, accessToken = null) {
   }
 }
 
+// 저장소의 CONTRIBUTING 파일명 감지 (루트 및 1깊이 하위 폴더 검색)
+async function detectContributingFilename(repoUrl, accessToken = null) {
+  try {
+    const { owner, repo } = parseRepositoryUrl(repoUrl);
+    const octokit = getOctokit(accessToken);
+
+    // 1. 먼저 루트 디렉토리에서 CONTRIBUTING 파일 검색
+    try {
+      const { data: contents } = await octokit.repos.getContent({
+        owner,
+        repo,
+        path: '', // 루트 디렉토리
+      });
+
+      // 루트에서 "contribut"로 시작하는 파일 찾기 (대소문자 무관)
+      const contributingFile = contents.find(
+        (file) => file.type === 'file' && /^contribut/i.test(file.name)
+      );
+
+      if (contributingFile) {
+        return contributingFile.name;
+      }
+    } catch (error) {
+      console.warn(`루트 디렉토리 조회 실패: ${error.message}`);
+    }
+
+    // 2. 루트에 없으면 1깊이 하위 폴더들 검색
+    try {
+      const { data: rootContents } = await octokit.repos.getContent({
+        owner,
+        repo,
+        path: '',
+      });
+
+      // 디렉토리만 필터링
+      const directories = rootContents.filter((item) => item.type === 'dir');
+
+      // 각 디렉토리에서 CONTRIBUTING 파일 검색
+      for (const dir of directories) {
+        try {
+          const { data: dirContents } = await octokit.repos.getContent({
+            owner,
+            repo,
+            path: dir.name,
+          });
+
+          const contributingFile = dirContents.find(
+            (file) => file.type === 'file' && /^contribut/i.test(file.name)
+          );
+
+          if (contributingFile) {
+            return `${dir.name}/${contributingFile.name}`;
+          }
+        } catch (dirError) {
+          // 개별 디렉토리 접근 실패는 경고만 출력하고 계속 진행
+          console.warn(`${dir.name} 디렉토리 조회 실패: ${dirError.message}`);
+        }
+      }
+    } catch (error) {
+      console.warn(`하위 디렉토리 검색 실패: ${error.message}`);
+    }
+
+    return null; // CONTRIBUTING 파일을 찾지 못한 경우
+  } catch (error) {
+    console.warn(`CONTRIBUTING 파일명 감지 중 오류: ${error.message}`);
+    throw error;
+  }
+}
+
 export default {
   getAccessToken,
   getUserInfo,
@@ -379,4 +448,5 @@ export default {
   getOpenIssues,
   detectReadmeFilename,
   detectLicenseFilename,
+  detectContributingFilename,
 };

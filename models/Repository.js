@@ -28,6 +28,7 @@ function toCamelCaseRepositories(rows) {
     defaultBranch: row.default_branch,
     readmeFilename: row.readme_filename,
     licenseFilename: row.license_filename,
+    contributingFilename: row.contributing_filename,
   }));
   return { success: true, data: data };
 }
@@ -138,9 +139,10 @@ async function upsertRepository(repositoryData) {
       fork,
       issueTotalCount,
       readmeSummaryGpt,
-      defaultBranch, // 추가
-      readmeFilename, // 추가
-      licenseFilename, // 추가
+      defaultBranch,
+      readmeFilename,
+      licenseFilename,
+      contributingFilename,
     } = repositoryData;
 
     // 라이선스 존재 여부 확인
@@ -162,8 +164,8 @@ async function upsertRepository(repositoryData) {
       `INSERT INTO repositories (
         github_repo_id, full_name, description, html_url, 
         license_spdx_id, star, fork, issue_total_count, readme_summary_gpt,
-        default_branch, readme_filename, license_filename
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        default_branch, readme_filename, license_filename, contributing_filename
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         full_name = VALUES(full_name),
         description = VALUES(description),
@@ -176,6 +178,7 @@ async function upsertRepository(repositoryData) {
         default_branch = VALUES(default_branch),
         readme_filename = VALUES(readme_filename),
         license_filename = VALUES(license_filename),
+        contributing_filename = VALUES(contributing_filename),
         updated_at = CURRENT_TIMESTAMP`,
       [
         githubRepoId,
@@ -187,9 +190,10 @@ async function upsertRepository(repositoryData) {
         fork,
         issueTotalCount,
         readmeSummaryGpt,
-        defaultBranch, // 추가
-        readmeFilename, // 추가
-        licenseFilename, // 추가
+        defaultBranch,
+        readmeFilename,
+        licenseFilename,
+        contributingFilename,
       ]
     );
 
@@ -504,7 +508,7 @@ async function selectRepositoryDetails(repoId, userId) {
         r.analysis_status, r.analysis_progress, r.analysis_current_step,
         r.analysis_error_message, r.analysis_started_at, r.analysis_completed_at,
         r.created_at, r.updated_at, r.default_branch, 
-        r.readme_filename, r.license_filename,
+        r.readme_filename, r.license_filename, r.contributing_filename,
         CASE WHEN utr.user_id IS NOT NULL THEN 1 ELSE 0 END as is_tracked,
         utr.is_favorite
       FROM repositories r
@@ -543,6 +547,7 @@ async function selectRepositoryDetails(repoId, userId) {
       defaultBranch: row.default_branch,
       readmeFilename: row.readme_filename,
       licenseFilename: row.license_filename,
+      contributingFilename: row.contributing_filename,
       isTracked: row.is_tracked === 1,
       isFavorite: row.is_favorite === 1,
     };
