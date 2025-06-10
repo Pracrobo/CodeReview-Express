@@ -1,5 +1,6 @@
 import UserModel from '../models/User.js';
-
+import emailService from '../services/emailService.js';
+import repositoryController from './repositoryController.js';
 const clientData = new Map();
 
 function initializeSseConnection(req, res) {
@@ -48,7 +49,7 @@ function initializeSseConnection(req, res) {
 }
 
 // 클라이언트에게 알림 전송
-async function pushNotification(userId, data) {
+async function pushBrowserNotification(userId, data) {
   try {
     const clientName = await UserModel.findUsernameByUserId(userId);
     if (!clientName) {
@@ -70,7 +71,47 @@ async function pushNotification(userId, data) {
   }
 }
 
+async function sendEmailNotification(req, res) {
+  const { status, userEmail } = req.body;
+  // const repoInfo = await repositoryController.getAnalysisStatus;
+  // WIP로직 구현해야 함
+  const repoInfo = {
+    repoName: `flask`,
+    result: true,
+  };
+  if (!userEmail) {
+    console.error(`사용자 이메일 정보를 찾을 수 없습니다`);
+  }
+  if (!repoInfo) {
+    console.error('분석 에러 발생');
+    res.status(500).json({ message: '저장소 분석 오류로 인한 메일 발송 불가' });
+  }
+  // 메일 수신 상태 여부
+  if (status) {
+    try {
+      const transporter = await emailService.transporterService();
+      const sendMailResult = await emailService.sendMail(
+        userEmail,
+        repoInfo,
+        transporter
+      );
+      if (sendMailResult) {
+        res.status(204).json({ message: '메일 전송 성공' });
+      } else {
+        console.error(`사용자 이메일 ${userEmail}에 발송 실패:`, error);
+        res.status(403).json({ message: '메일 전송 실패' });
+      }
+    } catch (error) {
+      console.error(`이메일 서비스 실패:`, error);
+      res.status(500).json({ message: '서버 오류로 메일 전송 실패' });
+    }
+  } else {
+    console.log('이메일 발송을 신청하지 않았습니다.');
+  }
+}
+
 export default {
   initializeSseConnection,
-  pushNotification,
+  pushBrowserNotification,
+  sendEmailNotification,
 };
