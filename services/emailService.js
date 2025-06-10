@@ -1,87 +1,84 @@
 import nodemailer from 'nodemailer';
+import fs from 'fs';
+import path from 'path';
 import { google } from 'googleapis';
-import Email from '../models/Email';
 
+const SERVICE_MAIL = process.env.SERVICE_MAIL;
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI;
+const SCOPE = process.env.GOOGLE_SCOPE;
+const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials.json');
 
-let cachedAccessToken = null;
-let accessTokenExpiresAt = null;
+/**
+ * OAuth2 클라이언트 생성
+ */
+function createOAuth2Client() {
+  const { client_id, client_secret, refresh_token } = loadCredentialsFromJson();
 
-const oAuth2Client = new google.auth.OAuth2(
-  CLIENT_ID,
-  CLIENT_SECRET,
-  REDIRECT_URI
-);
-oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+  const oAuth2Client = new google.auth.OAuth2(
+    CLIENT_ID,
+    CLIENT_SECRET,
+    REDIRECT_URI
+  );
 
-async function savedToken() {
-  const saved = await Email.selectRefreshTokenInfo();
-  const refreshTokenExpiresAt = saved.refreshTokenExpiresAt;
-  const refreshToken = saved.refreshToken;
+  oAuth2Client.setCredentials({ refresh_token });
 
-  return {
-    refreshToken: refreshToken,
-    refreshTokenExpiresAt: refreshTokenExpiresAt,
-  };
+  return oAuth2Client;
 }
-async function getAccessToken() {
-  const now = Date.now();
-  const refreshTokenExpiresAt = await savedToken.refreshTokenExpiresAt;
-  if (
-    !cachedAccessToken ||
-    now >= accessTokenExpiresAt ||
-    now >= refreshTokenExpiresAt
-  ) {
-    const { token: accessToken, res } = await oAuth2Client.getAccessToken();
-    cachedAccessToken = accessToken;
-    accessTokenExpiresAt = res.expiry_date; // number(ms)
 
-    const refreshTokenExpiresInSec = res.refresh_token_expires_in || 3600;
-    const refreshTokenExpiresAt = new Date(
-      now + refreshTokenExpiresInSec * 1000
-    );
-    const refreshToken = res.refresh_token;
-    await Email.upsertToken({
-      refreshToken,
-      refreshTokenExpiresAt,
-    });
-
-    const expiresIn = Math.floor((accessTokenExpiresAt - now) / 1000);
-    console.log(`새 access 토큰 캐시. 만료까지 ${expiresIn}초`);
-  } else {
-    const expiresIn = Math.floor((accessTokenExpiresAt - now) / 1000);
-    console.log(`기존 access 토큰 사용. 만료까지 ${expiresIn}초`);
+/**
+ * credentials.json에서 refresh_token 등 로드
+ */
+function loadCredentialsFromJson() {
+  try {
+    const raw = fs.readFileSync(CREDENTIALS_PATH, 'utf8');
+    const parsed = JSON.parse(raw);
+    return {
+      client_id: parsed.client_id,
+      client_secret: parsed.client_secret,
+      refresh_token: parsed.refresh_token,
+    };
+  } catch (err) {
+    console.error('credentials.json 로드 실패:', err.message);
+    throw err;
   }
-
-  return cachedAccessToken;
 }
+
+
+/**
+ * access_token 발급 받기
+ */
+async function getAccessTokenFromRefresh(oAuth2Client) {
+  const { token } = await oAuth2Client.getAccessToken();
+  return token;
+}
+
 
 async function transporterService() {
   try {
-    const accessToken = await getAccessToken();
+    const oAuth2Client = createOAuth2Client();
+    const accessToken = await getAccessTokenFromRefresh(oAuth2Client);
+
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
         type: 'OAuth2',
-        clientId: SERVICE_MAIL,
-        clientSecret: SERVICE_PASSWORD,
-        refreshToken: REFRESH_TOKEN,
+        user: SERVICE_MAIL,
+        clientId: CLIENT_ID,
+        clientSecret: CLIENT_SECRET,
+        refreshToken: oAuth2Client.credentials.refresh_token,
         accessToken: accessToken,
       },
     });
     return transporter;
   } catch (error) {
     console.error('nodemail 설정 오류: ', error);
-    throw new Error('서비스 장애');
+    throw new Error('메일 전송 시스템 에러');
   }
 }
 
 async function sendMail(userEmail, repoInfo, transporter) {
-  const SERVICE_MAIL = process.env.SERVICE_MAIL;
-  const transporter = await createTransporter();
-
   const mailOptions = {
     from: SERVICE_MAIL,
     to: userEmail,
