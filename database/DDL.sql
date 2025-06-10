@@ -39,9 +39,6 @@ CREATE TABLE `licenses` (
   `permissions_json` JSON NULL,
   `conditions_json` JSON NULL,
   `limitations_json` JSON NULL,
-  `source_url` VARCHAR(255) NULL,
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`license_spdx_id`)
 );
 -- repositories 테이블 (분석 상태 컬럼 추가, 언어 관련 컬럼 제거)
