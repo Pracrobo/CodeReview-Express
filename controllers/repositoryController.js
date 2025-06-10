@@ -138,7 +138,7 @@ async function analyzeRepository(req, res) {
     try {
       openIssues = await GithubApiService.getOpenIssues(repoUrl);
       if (openIssues.length > 0) {
-        logger.info(
+        console.log(
           `Found ${openIssues.length} open issues for repository: ${repoUrl}`
         );
       }
