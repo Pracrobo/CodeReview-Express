@@ -310,7 +310,7 @@ async function askRepositoryQuestion(
     }
 
     const response = await axios.post(
-      `${FLASK_API_URL}/issue/ask-repository`, // repository-question -> ask-repository
+      `${FLASK_API_URL}/chatbot/ask-repository`,
       requestData,
       {
         headers: {

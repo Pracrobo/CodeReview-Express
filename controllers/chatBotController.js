@@ -1,5 +1,6 @@
 import ChatBotModel from '../models/ChatBot.js';
-
+import Repository from '../models/Repository.js';
+import FlaskService from '../services/flaskService.js';
 // 대화 조회
 async function getConversation(req, res) {
   const userId = req.user?.userId;
@@ -67,21 +68,46 @@ async function deleteConversation(req, res) {
   }
 }
 
-// 채팅 메시지 저장
 async function saveChatMessage(req, res) {
-  const { conversationId, senderType, content } = req.body;
-  if (!conversationId || !senderType || !content) {
-    return res.status(400).json({
-      success: false,
-      message: '필수 값 누락',
-    });
+  const { conversationId, senderType, content, repoId, messages } = req.body;
+  const userId = req.user.userId;
+
+  // 1. 사용자 메시지 DB 저장
+  await ChatBotModel.saveMessage(conversationId, senderType, content);
+
+  let answer = null;
+  if (senderType === 'User') {
+    // 저장소 상세 정보에서 파일명들 가져오기
+    const repoInfoResult = await Repository.selectRepositoryDetails(repoId, userId);
+    if (!repoInfoResult.success) {
+      return res.status(404).json({ success: false, message: '저장소 정보를 찾을 수 없습니다.' });
+    }
+    const repoInfo = repoInfoResult.data;
+
+    const repoNameForFlask = repoInfo.fullName.split('/')[1];
+
+    // messages 배열이 없으면 생성
+    const messagesForAsk = messages && Array.isArray(messages)
+      ? messages
+      : [{ role: 'user', content }];
+
+    // Flask에 질문 전달
+    const flaskRes = await FlaskService.askRepositoryQuestion(
+      repoNameForFlask, // <-- 이렇게 변경!
+      messagesForAsk,
+      repoInfo.readmeFilename,
+      repoInfo.licenseFilename,
+      repoInfo.contributingFilename
+    );
+    if (flaskRes.success && flaskRes.data.answer) {
+      await ChatBotModel.saveMessage(conversationId, 'Agent', flaskRes.data.answer);
+      answer = flaskRes.data.answer;
+    }
   }
-  try {
-    await ChatBotModel.saveMessage(conversationId, senderType, content);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'DB 오류', error: err.message });
-  }
+
+  // 4. 모든 메시지 반환
+  const allMessages = await ChatBotModel.getMessages(conversationId);
+  res.json({ success: true, messages: allMessages, answer });
 }
 
 export default {
