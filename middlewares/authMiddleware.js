@@ -21,7 +21,7 @@ export const verifyJWT = expressjwt({
   },
 });
 
-// 인증 필수 확인 미들웨어
+// 인증 필수 확인 미들웨어 (GitHub 토큰 정보 추가)
 export const requireAuth = (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({
@@ -29,6 +29,28 @@ export const requireAuth = (req, res, next) => {
       message: '인증이 필요합니다. 로그인 후 다시 시도해주세요.',
     });
   }
+
+  // GitHub 토큰 추출 (우선순위 순으로 시도)
+  let githubAccessToken = null;
+
+  // 쿠키에서 추출
+  if (req.cookies?.githubAccessToken) {
+    githubAccessToken = req.cookies.githubAccessToken;
+  }
+  // Authorization 헤더에서 추출
+  else if (req.headers.authorization?.startsWith('Bearer ')) {
+    githubAccessToken = req.headers.authorization.substring(7);
+  }
+  // 쿼리 파라미터에서 추출
+  else if (req.query?.githubToken) {
+    githubAccessToken = req.query.githubToken;
+  }
+
+  // req.user에 GitHub 토큰 추가
+  if (githubAccessToken) {
+    req.user.githubAccessToken = githubAccessToken;
+  }
+
   next();
 };
 
