@@ -17,7 +17,9 @@ async function processGithubLogin(code) {
 
   let email = githubProfile.email;
   if (!email) {
-    const githubEmails = await GithubApiService.getUserEmails(githubAccessToken);
+    const githubEmails = await GithubApiService.getUserEmails(
+      githubAccessToken
+    );
     const primaryEmail = githubEmails.find((e) => e.primary && e.verified);
     email = primaryEmail?.email || githubEmails[0]?.email || '';
   }
@@ -41,7 +43,9 @@ async function processGithubLogin(code) {
     avatarUrl: dbUser.avatarUrl,
   };
 
-  const accessToken = jwt.sign(jwtPayload, process.env.JWT_SECRET, { expiresIn: '15m' });
+  const accessToken = jwt.sign(jwtPayload, process.env.JWT_SECRET, {
+    expiresIn: '15m',
+  });
 
   // refreshToken 생성 및 해싱
   const refreshToken = TokenUtils.generateRefreshToken();
@@ -49,7 +53,11 @@ async function processGithubLogin(code) {
   const refreshTokenExpiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS); // 7일
 
   // DB에 해시값과 만료일 저장
-  await UserModel.updateUserRefreshToken(dbUser.userId, hashedRefreshToken, refreshTokenExpiresAt);
+  await UserModel.updateUserRefreshToken(
+    dbUser.userId,
+    hashedRefreshToken,
+    refreshTokenExpiresAt
+  );
 
   return {
     accessToken,
