@@ -285,8 +285,8 @@ async function checkFlaskServerHealth() {
 
 // 저장소 컨텍스트 기반 질문 답변 요청 (Flask)
 async function askRepositoryQuestion(
-  repoName, // repo_id 대신 repo_name (full_name) 사용
-  messages, // question 대신 messages 배열 사용
+  repoName,
+  messages,
   readmeFilename = null,
   licenseFilename = null,
   contributingFilename = null
@@ -295,8 +295,8 @@ async function askRepositoryQuestion(
     console.log(`Flask에 저장소 질문 요청: repo_name=${repoName}`);
 
     const requestData = {
-      repo_name: repoName, // repo_id -> repo_name
-      messages: messages, // question -> messages
+      repo_name: repoName,
+      messages: messages,
     };
 
     if (readmeFilename) {
@@ -310,7 +310,7 @@ async function askRepositoryQuestion(
     }
 
     const response = await axios.post(
-      `${FLASK_API_URL}/issue/ask-repository`, // repository-question -> ask-repository
+      `${FLASK_API_URL}/chatbot/ask-repository`,
       requestData,
       {
         headers: {
