@@ -47,8 +47,10 @@ async function handleAnalysisComplete(req, res) {
     console.log(`구성된 GitHub URL: ${repoUrl}`);
 
     try {
-      // 저장소 정보 조회
-      const repositoryInfo = await GithubApiService.getRepositoryInfo(repoUrl);
+      // 저장소 정보 조회 (시스템 토큰 사용)
+      const repositoryInfo = await GithubApiService.getRepositoryInfoInternal(
+        repoUrl
+      );
 
       if (!repositoryInfo) {
         console.error(`저장소 정보를 찾을 수 없습니다: ${repoName}`);
@@ -84,10 +86,9 @@ async function handleAnalysisComplete(req, res) {
         console.log(`분석 완료 처리 시작: ${repoName}`);
 
         try {
-          // 언어 정보 조회 및 검증
-          const languagesData = await GithubApiService.getRepositoryLanguages(
-            repoUrl
-          );
+          // 언어 정보 조회 및 검증 (시스템 토큰 사용)
+          const languagesData =
+            await GithubApiService.getRepositoryLanguagesInternal(repoUrl);
           validateLanguagesData(languagesData, repoUrl);
 
           // 언어 정보를 DB에 저장
@@ -137,13 +138,12 @@ async function handleAnalysisComplete(req, res) {
           // 언어 정보 처리 실패는 전체 분석 완료를 막지 않음
         }
 
-        // 라이선스 정보 조회 (빠른 처리)
+        // 라이선스 정보 조회 (시스템 토큰 사용)
         let licenseInfo = null;
         try {
           console.log(`라이선스 정보 조회 시작: ${repoName}`);
-          const licenseData = await GithubApiService.getRepositoryLicense(
-            repoUrl
-          );
+          const licenseData =
+            await GithubApiService.getRepositoryLicenseInternal(repoUrl);
           if (licenseData && licenseData.license) {
             const licenseSpdxId = licenseData.license.spdxId;
             console.log(

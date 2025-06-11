@@ -119,6 +119,7 @@ async function clearUserRefreshToken(userId) {
   );
 }
 
+
 // 사용자 이메일 알림 여부 저장
 async function updateUserEmailStaus(emailStaus, userId, userEmail) {
   const [result] = await pool.query(
@@ -146,6 +147,33 @@ async function selectUserEmailStaus(userId) {
   } else {
     return { success: false };
   }
+// 이번 달 사용량 조회
+async function getMonthlyUsageByUserId(userId) {
+  const [rows] = await pool.query(
+    `SELECT monthly_ai_message_count, monthly_repo_analysis_count FROM users WHERE user_id = ?`,
+    [userId]
+  );
+  if (!rows.length) return null;
+  return {
+    chatbotMessageCount: rows[0].monthly_ai_message_count,
+    analyzedRepositoryCount: rows[0].monthly_repo_analysis_count,
+  };
+}
+
+// 저장소 분석 사용량 증가
+async function increaseMonthlyRepoAnalysisCount(userId) {
+  await pool.query(
+    'UPDATE users SET monthly_repo_analysis_count = monthly_repo_analysis_count + 1 WHERE user_id = ?',
+    [userId]
+  );
+}
+
+// AI 메시지 사용량 증가
+async function increaseMonthlyAiMessageCount(userId) {
+  await pool.query(
+    'UPDATE users SET monthly_ai_message_count = monthly_ai_message_count + 1 WHERE user_id = ?',
+    [userId]
+  );
 }
 
 export default {
@@ -160,4 +188,7 @@ export default {
   clearUserRefreshToken,
   updateUserEmailStaus,
   selectUserEmailStaus,
+  getMonthlyUsageByUserId,
+  increaseMonthlyRepoAnalysisCount,
+  increaseMonthlyAiMessageCount,
 };

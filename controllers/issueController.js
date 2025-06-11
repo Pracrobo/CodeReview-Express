@@ -80,7 +80,14 @@ const saveRecentIssue = async (req, res) => {
 const analyzeIssue = async (req, res) => {
   try {
     const { repoId, issueNumber } = req.params;
-    const userGithubAccessToken = req.user?.githubAccessToken;
+    // 쿠키에서 GitHub 액세스 토큰 추출
+    const userGithubAccessToken = req.cookies.githubAccessToken;
+
+    console.log(
+      `이슈 분석 요청 - 저장소 ID: ${repoId}, 이슈 번호: ${issueNumber}, GitHub 토큰 사용: ${
+        userGithubAccessToken ? '있음' : '없음'
+      }`
+    );
 
     // 1. 이슈 정보 조회
     const issueResult = await Issue.selectIssueDetail(repoId, issueNumber);
@@ -96,11 +103,11 @@ const analyzeIssue = async (req, res) => {
       });
     }
 
-    // === 저장소 기본 브랜치명 조회 ===
+    // === 저장소 기본 브랜치명 조회 (토큰 전달) ===
     let defaultBranch = 'main';
     try {
       const repoInfo = await githubApiService.getRepositoryInfo(
-        issue.repoFullName,
+        issue.repoUrl, // repoFullName 대신 전체 URL 사용
         userGithubAccessToken
       );
       if (repoInfo && repoInfo.defaultBranch) {

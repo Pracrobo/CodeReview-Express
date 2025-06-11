@@ -22,8 +22,11 @@ CREATE TABLE `users` (
   `is_pro_plan` BOOLEAN NOT NULL DEFAULT FALSE COMMENT '현재 Pro 플랜 활성 상태 여부',
   `pro_plan_activated_at` TIMESTAMP NULL COMMENT 'Pro 플랜 시작일 또는 마지막 갱신일',
   `pro_plan_expires_at` TIMESTAMP NULL COMMENT 'Pro 플랜 만료일 (NULL이면 무기한 또는 다른 로직)',
+  `monthly_repo_analysis_count` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '이번 달 저장소 분석 요청 횟수',
+  `monthly_ai_message_count` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '이번 달 AI 챗봇 메시지 전송 횟수',
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `is_email_notification` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0 COMMENT '이메일 알림 전송 여부',
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `UK_github_user_id` (`github_user_id`),
   CHECK (
