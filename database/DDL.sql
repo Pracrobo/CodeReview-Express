@@ -26,6 +26,7 @@ CREATE TABLE `users` (
   `monthly_ai_message_count` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '이번 달 AI 챗봇 메시지 전송 횟수',
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `is_email_notification` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0 COMMENT '이메일 알림 전송 여부',
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `UK_github_user_id` (`github_user_id`),
   CHECK (
