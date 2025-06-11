@@ -437,6 +437,22 @@ async function detectContributingFilename(repoUrl, accessToken = null) {
   }
 }
 
+// 이슈 댓글 조회
+async function getIssueComments(repoFullName, githubIssueNumber, accessToken) {
+  try {
+    const url = `https://api.github.com/repos/${repoFullName}/issues/${githubIssueNumber}/comments`;
+    const headers = {};
+    if (accessToken) {
+      headers['Authorization'] = `token ${accessToken}`;
+    }
+    const res = await axios.get(url, { headers });
+    return res.data;
+  } catch (error) {
+    console.error('GitHub 이슈 댓글 조회 오류:', error.message);
+    return [];
+  }
+}
+
 export default {
   getAccessToken,
   getUserInfo,
@@ -451,4 +467,5 @@ export default {
   detectReadmeFilename,
   detectLicenseFilename,
   detectContributingFilename,
+  getIssueComments,
 };

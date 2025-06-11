@@ -1060,11 +1060,35 @@ async function getRepositoryIssueDetail(req, res) {
       });
     }
 
-    // 이슈 데이터에 저장소 정보 추가
+    // === 실제 댓글을 GitHub에서 불러와서 덮어씀 ===
+    const githubAccessToken = req.user?.githubAccessToken;
+    const repoFullName = repoResult.data.fullName;
+    const commentsResult = await IssueModel.selectIssueComments(
+      repoId,
+      githubIssueNumber,
+      repoFullName,
+      githubAccessToken
+    );
+    let comments = [];
+    if (commentsResult.success) {
+      comments = commentsResult.data;
+    }
+
+    if (result.data.relatedFiles && Array.isArray(result.data.relatedFiles)) {
+      const repoFullName = repoResult.data.fullName;
+      const branch = repoResult.data.defaultBranch || 'main';
+      result.data.relatedFiles = result.data.relatedFiles.map((file) => ({
+        ...file,
+        githubUrl: `https://github.com/${repoFullName}/blob/${branch}/${file.path}`,
+      }));
+    }
+
+    // 이슈 데이터에 저장소 정보 및 실제 댓글 추가
     const issueWithRepoInfo = {
       ...result.data,
-      repoUrl: repoResult.data.htmlUrl, // GitHub URL 추가
-      repoFullName: repoResult.data.fullName, // 전체 이름 추가
+      repoUrl: repoResult.data.htmlUrl,
+      repoFullName: repoResult.data.fullName,
+      comments, // 실제 댓글로 덮어쓰기
     };
 
     return res.status(200).json({
