@@ -1,4 +1,5 @@
 import UserModel from '../models/User.js';
+import emailService from '../services/emailService.js';
 
 const clientData = new Map();
 
@@ -48,7 +49,7 @@ function initializeSseConnection(req, res) {
 }
 
 // 클라이언트에게 알림 전송
-async function pushNotification(userId, data) {
+async function pushBrowserNotification(userId, data) {
   try {
     const clientName = await UserModel.findUsernameByUserId(userId);
     if (!clientName) {
@@ -70,7 +71,60 @@ async function pushNotification(userId, data) {
   }
 }
 
+async function sendEmailNotificationStatus(req, res) {
+  const { isEnable, userId } = req.body;
+
+  if (typeof isEnable !== 'boolean' || !userId) {
+    return res.status(400).json({ message: '유효하지 않은 요청 파라미터.' });
+  }
+  const saveDB = await emailService.saveEmailStatus(isEnable, userId);
+  if (saveDB) {
+    if (saveDB.success) {
+      res.status(200).json({ success: true, message: 'DB 저장 완료' });
+    } else {
+      res.status(500).json({ success: false, message: 'DB 저장 에러' });
+    }
+  }
+}
+
+async function sendEmail(data) {
+  const { userId, repoName, result } = data;
+  console.log(userId, result, repoName);
+  if (!userId || typeof result !== 'boolean' || !repoName) {
+    console.error('handleAnalysisCompletion: 필수 분석 데이터 누락.');
+    return { success: false, message: '필수 데이터 누락' };
+  }
+  const repoInfo = { repoName: repoName, result: result };
+  const response = await emailService.selectEmailStatus(userId);
+  if (response.success && response.isEnable) {
+    try {
+      const transporter = await emailService.transporterService();
+      const sendMailResult = await emailService.sendMail(
+        response.userEmail,
+        repoInfo,
+        transporter
+      );
+      if (sendMailResult) {
+        return { success: true, message: '메일 전송 성공' };
+      } else {
+        console.error(`사용자 이메일 ${response.userEmail}에 발송 실패`);
+        return { success: false, message: '메일 전송 실패' };
+      }
+    } catch (error) {
+      console.error(`이메일 서비스 실패:`, error);
+      return { success: false, message: '서버 오류로 메일 전송 실패' };
+    }
+  } else if (!response.success) {
+    console.error('에러 발생', error);
+    return { success: false, message: '메일 전송 실패' };
+  } else {
+    return { success: true, message: '메일 전송하기를 껐습니다.' };
+  }
+}
+
 export default {
   initializeSseConnection,
-  pushNotification,
+  pushBrowserNotification,
+  sendEmailNotificationStatus,
+  sendEmail,
 };

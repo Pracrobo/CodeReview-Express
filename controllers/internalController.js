@@ -224,8 +224,21 @@ async function handleAnalysisComplete(req, res) {
             );
           }
 
+          await notificationController
+            .sendEmail({
+              userId: userId,
+              repoName: repoName,
+              result: true,
+            })
+            .catch((emailNotificationError) => {
+              console.error(
+                `분석 성공 - 이메일 알림 전송 실패: ${repoName}`,
+                emailNotificationError
+              );
+            });
+
           try {
-            await notificationController.pushNotification(userId, {
+            await notificationController.pushBrowserNotification(userId, {
               type: 'analysis_complete',
               title: '분석 완료',
               status: 'completed',
@@ -240,7 +253,6 @@ async function handleAnalysisComplete(req, res) {
               notificationError
             );
           }
-
           return res.status(200).json({
             success: true,
             message: '분석이 성공적으로 완료되었습니다.',
@@ -280,8 +292,20 @@ async function handleAnalysisComplete(req, res) {
         if (updateResult.success) {
           console.log(`분석 실패 상태 업데이트 성공: ${repoName}`);
 
+          await notificationController
+            .sendEmail({
+              userId: userId,
+              repoName: repoName,
+              result: false,
+            })
+            .catch((emailNotificationError) => {
+              console.error(
+                `분석 실패 - 이메일 알림 전송 실패: ${repoName}`,
+                emailNotificationError
+              );
+            });
           try {
-            await notificationController.pushNotification(userId, {
+            await notificationController.pushBrowserNotification(userId, {
               type: 'analysis_failed',
               title: '분석 실패',
               status: 'failed',
@@ -347,7 +371,16 @@ async function handleAnalysisComplete(req, res) {
   } catch (error) {
     // 시스템 오류 알림 전송 - fire-and-forget 방식으로 처리
     notificationController
-      .pushNotification(userId, {
+      .sendEmail({ userId: userId, repoName: repoName, result: false })
+      .catch((emailNotificationError) => {
+        console.error(
+          `시스템 오류 메일 전송 실패: ${repoName}`,
+          emailNotificationError
+        );
+      });
+
+    notificationController
+      .pushBrowserNotification(userId, {
         type: 'analysis_error',
         title: '시스템 오류',
         status: 'error',
