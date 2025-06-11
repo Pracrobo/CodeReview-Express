@@ -73,21 +73,9 @@ async function getMonthlyUsage(req, res) {
   }
 }
 
-// AI 메시지 사용량 1 증가
-async function increaseAiMessageCount(req, res) {
-  const userId = req.user.userId;
-  try {
-    await UserModel.increaseMonthlyAiMessageCount(userId);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-}
-
 export default {
   paymentFail,
   paymentComplete,
   getPaymentStatus,
   getMonthlyUsage,
-  increaseAiMessageCount,
 };

@@ -448,7 +448,7 @@ async function analyzeRepository(req, res) {
       `저장소 정보 DB 저장 완료: ${repositoryInfo.fullName}, repoId: ${repoId}`
     );
 
-    // 저장소 정보 DB 저장 완료 후 ===> 여기서 사용량 증가!
+    // 저장소 정보 DB 저장 완료 후 사용량 증가
     await UserModel.increaseMonthlyRepoAnalysisCount(userId);
 
     // 9. 분석 상태를 'analyzing'으로 설정

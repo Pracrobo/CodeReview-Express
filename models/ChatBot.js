@@ -1,4 +1,5 @@
 import Database from '../database/database.js';
+import UserModel from './User.js';
 const pool = Database.getConnectionPool();
 
 // DB 조회 결과(snake_case)를 camelCase로 변환
@@ -72,30 +73,14 @@ async function getMessages(conversationId) {
 
 // 메시지 저장 (Agent 답변일 때 사용량 증가)
 async function saveMessage(conversationId, senderType, content, userId) {
-  const conn = await pool.getConnection();
-  try {
-    await conn.beginTransaction();
-    await conn.query(
-      'INSERT INTO chat_bot_messages (conversation_id, sender_type, content, timestamp) VALUES (?, ?, ?, NOW())',
-      [conversationId, senderType, content]
-    );
-    await conn.query(
-      'UPDATE chat_bot_conversations SET updated_at = NOW() WHERE conversation_id = ?',
-      [conversationId]
-    );
-    // Agent 답변이면 사용량 증가
-    if (senderType === 'Agent' && userId) {
-      await conn.query(
-        'UPDATE users SET monthly_ai_message_count = monthly_ai_message_count + 1 WHERE user_id = ?',
-        [userId]
-      );
-    }
-    await conn.commit();
-  } catch (err) {
-    await conn.rollback();
-    throw err;
-  } finally {
-    conn.release();
+  await pool.query(
+    'INSERT INTO chat_bot_messages (conversation_id, sender_type, content, timestamp) VALUES (?, ?, ?, NOW())',
+    [conversationId, senderType, content]
+  );
+
+  // Agent 답변이면 사용량 증가
+  if (senderType === 'Agent' && userId) {
+    await UserModel.increaseMonthlyAiMessageCount(userId);
   }
 }
 

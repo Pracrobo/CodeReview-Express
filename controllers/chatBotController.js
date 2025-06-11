@@ -73,7 +73,7 @@ async function saveChatMessage(req, res) {
   const userId = req.user.userId;
 
   // 1. 사용자 메시지 DB 저장
-  await ChatBotModel.saveMessage(conversationId, senderType, content);
+  await ChatBotModel.saveMessage(conversationId, senderType, content, userId);
 
   let answer = null;
   if (senderType === 'User') {
@@ -100,7 +100,7 @@ async function saveChatMessage(req, res) {
       repoInfo.contributingFilename
     );
     if (flaskRes.success && flaskRes.data.answer) {
-      await ChatBotModel.saveMessage(conversationId, 'Agent', flaskRes.data.answer);
+      await ChatBotModel.saveMessage(conversationId, 'Agent', flaskRes.data.answer, req.user.userId);
       answer = flaskRes.data.answer;
     }
   }
