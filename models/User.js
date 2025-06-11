@@ -129,7 +129,7 @@ async function updateUserEmailStaus(emailStaus, userId, userEmail) {
   if (result.affectedRows > 0) {
     return { success: true };
   } else {
-    return { sucess: false };
+    return { success: false };
   }
 }
 
