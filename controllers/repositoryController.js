@@ -1083,6 +1083,19 @@ async function getRepositoryIssueDetail(req, res) {
       }));
     }
 
+    if (
+      result.data.aiAnalysis &&
+      Array.isArray(result.data.aiAnalysis.relatedFiles)
+    ) {
+      const repoFullName = repoResult.data.fullName;
+      const branch = repoResult.data.defaultBranch || 'main';
+      result.data.aiAnalysis.relatedFiles =
+        result.data.aiAnalysis.relatedFiles.map((file) => ({
+          ...file,
+          githubUrl: `https://github.com/${repoFullName}/blob/${branch}/${file.path}`,
+        }));
+    }
+
     // 이슈 데이터에 저장소 정보 및 실제 댓글 추가
     const issueWithRepoInfo = {
       ...result.data,
