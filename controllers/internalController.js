@@ -2,7 +2,6 @@ import Repository from '../models/Repository.js';
 import notificationController from '../controllers/notificationController.js';
 import GithubApiService from '../services/githubApiService.js';
 import Validators from '../utils/validators.js';
-import emailService from '../services/emailService.js';
 
 const { ValidationError, validateLanguagesData } = Validators;
 
@@ -239,7 +238,7 @@ async function handleAnalysisComplete(req, res) {
             });
 
           try {
-            await notificationController.pushNotification(userId, {
+            await notificationController.pushBrowserNotification(userId, {
               type: 'analysis_complete',
               title: '분석 완료',
               status: 'completed',
@@ -306,7 +305,7 @@ async function handleAnalysisComplete(req, res) {
               );
             });
           try {
-            await notificationController.pushNotification(userId, {
+            await notificationController.pushBrowserNotification(userId, {
               type: 'analysis_failed',
               title: '분석 실패',
               status: 'failed',

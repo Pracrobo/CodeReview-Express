@@ -97,7 +97,7 @@ async function updateUserRefreshToken(
   refreshTokenExpiresAt
 ) {
   await pool.query(
-    "UPDATE users SET refresh_token = ?, refresh_token_expires_at = ?, updated_at = NOW() WHERE user_id = ?",
+    'UPDATE users SET refresh_token = ?, refresh_token_expires_at = ?, updated_at = NOW() WHERE user_id = ?',
     [hashedRefreshToken, refreshTokenExpiresAt, userId]
   );
 }
@@ -114,7 +114,7 @@ async function findUserByRefreshToken(hashedRefreshToken) {
 // 사용자 리프레시 토큰 삭제
 async function clearUserRefreshToken(userId) {
   await pool.query(
-    "UPDATE users SET refresh_token = NULL, refresh_token_expires_at = NULL, updated_at = NOW() WHERE user_id = ?",
+    'UPDATE users SET refresh_token = NULL, refresh_token_expires_at = NULL, updated_at = NOW() WHERE user_id = ?',
     [userId]
   );
 }
@@ -138,11 +138,14 @@ async function selectUserEmailStaus(userId) {
     'SELECT email, is_email_notification FROM users WHERE user_id =?',
     [userId]
   );
-  if (rows > 0) {
-    console.log(rows);
-    return { success: true, userEmail: rows[0], isEnable: rows[1] };
+  console.log(rows);
+  if (rows) {
+    return {
+      success: true,
+      userEmail: rows[0].email,
+      isEnable: rows[0].is_email_notification,
+    };
   } else {
-    console.log(rows);
     return { success: false };
   }
 }

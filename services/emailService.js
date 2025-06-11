@@ -24,12 +24,17 @@ async function saveEmailStatus(emailStatus, userId, userEmail) {
 async function selectEmailStatus(userId) {
   try {
     const result = await UserModel.selectUserEmailStaus(userId);
-    if (result.success) {
+    console.log(result);
+    if (result.success && result.isEnable) {
       return {
         success: true,
         userEmail: result.userEmail,
         isEnable: result.isEnable,
       };
+    } else if (!result.isEnable) {
+      return { success: result.success, isEable: false };
+    } else {
+      return { success: result.success };
     }
   } catch (error) {
     console.error('db 보기 에러', error);

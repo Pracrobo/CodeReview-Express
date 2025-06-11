@@ -94,34 +94,36 @@ async function sendEmailNotificationStatus(req, res) {
 async function sendEmail(data) {
   const { userId, repoName, result } = data;
   console.log(userId, result, repoName);
-  if (!userId || !result || !repoName) {
+  if (!userId || typeof result !== 'boolean' || !repoName) {
     console.error('handleAnalysisCompletion: 필수 분석 데이터 누락.');
-    return;
+    return { success: false, message: '필수 데이터 누락' };
   }
   const repoInfo = { repoName: repoName, result: result };
-  const user = emailService.selectEmailStatus(userId);
-
-  if (user) {
+  const response = await emailService.selectEmailStatus(userId);
+  console.log('response', response);
+  if (response.success && response.isEnable) {
     try {
       const transporter = await emailService.transporterService();
       const sendMailResult = await emailService.sendMail(
-        user.userEmail,
+        response.userEmail,
         repoInfo,
         transporter
       );
       if (sendMailResult) {
-        res.status(204).json({ message: '메일 전송 성공' });
+        return { success: true, message: '메일 전송 성공' };
       } else {
-        console.error(`사용자 이메일 ${userEmail}에 발송 실패:`, error);
-        res.status(403).json({ message: '메일 전송 실패' });
+        console.error(`사용자 이메일 ${response.userEmail}에 발송 실패:`);
+        return { success: false, message: '메일 전송 실패' };
       }
     } catch (error) {
       console.error(`이메일 서비스 실패:`, error);
-      res.status(500).json({ message: '서버 오류로 메일 전송 실패' });
+      return { success: false, message: '서버 오류로 메일 전송 실패' };
     }
+  } else if (!response.success) {
+    console.error('에러 발생', error);
+    return { success: false, message: '메일 전송 실패' };
   } else {
-    console.error('실패했습니다.');
-    res.status(500).json({ message: '메일 전송 실패 ' });
+    return { success: true, message: '메일 전송하기를 껐습니다.' };
   }
 }
 
