@@ -1,3 +1,4 @@
+import { sourcerepo } from 'googleapis/build/src/apis/sourcerepo/index.js';
 import Database from '../database/database.js';
 const pool = Database.getConnectionPool();
 
@@ -121,20 +122,30 @@ async function clearUserRefreshToken(userId) {
 
 // 사용자 이메일 알림 여부 저장
 async function updateUserEmailStaus(emailStaus, userId, userEmail) {
-  const result = await pool.query(
-    'UPDATE users SET is_email_send = ? WHERE user_id = ? OR user_email = ? ',
+  console.log(emailStaus, userId, userEmail);
+  const [result] = await pool.query(
+    'UPDATE users SET is_email_notification = ? WHERE user_id = ? OR email = ? ',
     [emailStaus, userId, userEmail]
   );
-  console.log('db 결과 ', result);
-  return result;
+  if (result.affectedRows > 0) {
+    return { success: true };
+  } else {
+    return { sucess: false };
+  }
 }
-async function selectUserEmailStaus(userId, userEmail) {
-  const result = await pool.query(
-    'SELECT is_email_send FROM users WHERE user_id =? OR user_email =?',
-    [userId, userEmail]
+
+async function selectUserEmailStaus(userId) {
+  const [rows] = await pool.query(
+    'SELECT email, is_email_notification FROM users WHERE user_id =?',
+    [userId]
   );
-  console.log('db select 결과', result);
-  return result;
+  if (rows > 0) {
+    console.log(rows);
+    return { success: true, userEmail: rows[0], isEnable: rows[1] };
+  } else {
+    console.log(rows);
+    return { success: false };
+  }
 }
 
 export default {

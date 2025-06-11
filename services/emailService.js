@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import UserModel from '../models.User.js';
+import UserModel from '../models/User.js';
 
 const SERVICE_MAIL = process.env.SERVICE_MAIL;
 const SERVICE_PW = process.env.SERVICE_PASSWORD;
@@ -14,25 +14,22 @@ async function saveEmailStatus(emailStatus, userId, userEmail) {
       userEmail
     );
     console.log('db저장 관련 service', result);
-    if (result) {
-      return { success: true };
-    } else {
-      return { success: false };
-    }
+    return result;
   } catch (error) {
     console.error('db 저장 에러', error);
     return { success: false };
   }
 }
 
-async function selectEmailStatus(userId, userEmail) {
-  const result = await UserModel.selectUserEmailStaus(userId, userEmail);
-  console.log('select 관련', result);
+async function selectEmailStatus(userId) {
   try {
-    if (result) {
-      return { success: true };
-    } else {
-      return { success: false };
+    const result = await UserModel.selectUserEmailStaus(userId);
+    if (result.success) {
+      return {
+        success: true,
+        userEmail: result.userEmail,
+        isEnable: result.isEnable,
+      };
     }
   } catch (error) {
     console.error('db 보기 에러', error);

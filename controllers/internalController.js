@@ -243,7 +243,8 @@ async function handleAnalysisComplete(req, res) {
           }
 
           await notificationController
-            .analysisCallback({
+            .sendEmail({
+              userId: userId,
               repoName: repoName,
               result: true,
             })
@@ -311,7 +312,8 @@ async function handleAnalysisComplete(req, res) {
           }
 
           await notificationController
-            .analysisCallback({
+            .sendEmail({
+              userId: userId,
               repoName: repoName,
               result: false,
             })
@@ -372,7 +374,7 @@ async function handleAnalysisComplete(req, res) {
   } catch (error) {
     // 시스템 오류 알림 전송 - fire-and-forget 방식으로 처리
     notificationController
-      .analysisCallback({ repoName: repoName, result: false })
+      .sendEmail({ userId: userId, repoName: repoName, result: false })
       .catch((emailNotificationError) => {
         console.error(
           `시스템 오류 메일 전송 실패: ${{ repoName }}`,
