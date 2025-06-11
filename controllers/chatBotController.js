@@ -93,7 +93,7 @@ async function saveChatMessage(req, res) {
 
     // Flask에 질문 전달
     const flaskRes = await FlaskService.askRepositoryQuestion(
-      repoNameForFlask, // <-- 이렇게 변경!
+      repoNameForFlask,
       messagesForAsk,
       repoInfo.readmeFilename,
       repoInfo.licenseFilename,
