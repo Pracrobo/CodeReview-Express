@@ -119,12 +119,11 @@ async function clearUserRefreshToken(userId) {
   );
 }
 
-
 // 사용자 이메일 알림 여부 저장
-async function updateUserEmailStaus(emailStaus, userId, userEmail) {
+async function updateUserEmailStatus(emailStatus, userId, userEmail) {
   const [result] = await pool.query(
     'UPDATE users SET is_email_notification = ? WHERE user_id = ? OR email = ? ',
-    [emailStaus, userId, userEmail]
+    [emailStatus, userId, userEmail]
   );
   if (result.affectedRows > 0) {
     return { success: true };
@@ -133,7 +132,7 @@ async function updateUserEmailStaus(emailStaus, userId, userEmail) {
   }
 }
 
-async function selectUserEmailStaus(userId) {
+async function selectUserEmailStatus(userId) {
   const [rows] = await pool.query(
     'SELECT email, is_email_notification FROM users WHERE user_id =?',
     [userId]
@@ -147,6 +146,8 @@ async function selectUserEmailStaus(userId) {
   } else {
     return { success: false };
   }
+}
+
 // 이번 달 사용량 조회
 async function getMonthlyUsageByUserId(userId) {
   const [rows] = await pool.query(
@@ -186,8 +187,8 @@ export default {
   updateUserRefreshToken,
   findUserByRefreshToken,
   clearUserRefreshToken,
-  updateUserEmailStaus,
-  selectUserEmailStaus,
+  updateUserEmailStatus,
+  selectUserEmailStatus,
   getMonthlyUsageByUserId,
   increaseMonthlyRepoAnalysisCount,
   increaseMonthlyAiMessageCount,

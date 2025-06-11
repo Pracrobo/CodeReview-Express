@@ -374,13 +374,13 @@ async function handleAnalysisComplete(req, res) {
       .sendEmail({ userId: userId, repoName: repoName, result: false })
       .catch((emailNotificationError) => {
         console.error(
-          `시스템 오류 메일 전송 실패: ${{ repoName }}`,
+          `시스템 오류 메일 전송 실패: ${repoName}`,
           emailNotificationError
         );
       });
 
     notificationController
-      .pushNotification(userId, {
+      .pushBrowserNotification(userId, {
         type: 'analysis_error',
         title: '시스템 오류',
         status: 'error',

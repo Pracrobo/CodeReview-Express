@@ -8,7 +8,7 @@ const SERVICE_PW = process.env.SERVICE_PASSWORD;
  */
 async function saveEmailStatus(emailStatus, userId, userEmail) {
   try {
-    const result = await UserModel.updateUserEmailStaus(
+    const result = await UserModel.updateUserEmailStatus(
       emailStatus,
       userId,
       userEmail
@@ -22,7 +22,7 @@ async function saveEmailStatus(emailStatus, userId, userEmail) {
 
 async function selectEmailStatus(userId) {
   try {
-    const result = await UserModel.selectUserEmailStaus(userId);
+    const result = await UserModel.selectUserEmailStatus(userId);
     if (result.success && result.isEnable) {
       return {
         success: true,
@@ -30,7 +30,7 @@ async function selectEmailStatus(userId) {
         isEnable: result.isEnable,
       };
     } else if (!result.isEnable) {
-      return { success: result.success, isEable: false };
+      return { success: result.success, isEnable: false };
     } else {
       return { success: result.success };
     }
