@@ -100,7 +100,6 @@ async function sendEmail(data) {
   }
   const repoInfo = { repoName: repoName, result: result };
   const response = await emailService.selectEmailStatus(userId);
-  console.log('response', response);
   if (response.success && response.isEnable) {
     try {
       const transporter = await emailService.transporterService();
@@ -112,7 +111,7 @@ async function sendEmail(data) {
       if (sendMailResult) {
         return { success: true, message: '메일 전송 성공' };
       } else {
-        console.error(`사용자 이메일 ${response.userEmail}에 발송 실패:`);
+        console.error(`사용자 이메일 ${response.userEmail}에 발송 실패`);
         return { success: false, message: '메일 전송 실패' };
       }
     } catch (error) {

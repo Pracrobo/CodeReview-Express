@@ -13,7 +13,6 @@ async function saveEmailStatus(emailStatus, userId, userEmail) {
       userId,
       userEmail
     );
-    console.log('db저장 관련 service', result);
     return result;
   } catch (error) {
     console.error('db 저장 에러', error);
@@ -24,7 +23,6 @@ async function saveEmailStatus(emailStatus, userId, userEmail) {
 async function selectEmailStatus(userId) {
   try {
     const result = await UserModel.selectUserEmailStaus(userId);
-    console.log(result);
     if (result.success && result.isEnable) {
       return {
         success: true,
@@ -37,7 +35,7 @@ async function selectEmailStatus(userId) {
       return { success: result.success };
     }
   } catch (error) {
-    console.error('db 보기 에러', error);
+    console.error('db 조회 에러', error);
     return { success: false };
   }
 }
