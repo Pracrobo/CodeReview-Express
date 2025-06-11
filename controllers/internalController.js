@@ -2,20 +2,25 @@ import Repository from '../models/Repository.js';
 import notificationController from '../controllers/notificationController.js';
 import GithubApiService from '../services/githubApiService.js';
 import Validators from '../utils/validators.js';
+import emailService from '../services/emailService.js';
 
 const { ValidationError, validateLanguagesData } = Validators;
 
 // Flask에서 분석 완료 콜백 처리
 async function handleAnalysisComplete(req, res) {
   try {
-    const { repo_name: repoName, status, error_message: errorMessage, user_id: userId } = req.body;
+    const {
+      repo_name: repoName,
+      status,
+      error_message: errorMessage,
+      user_id: userId,
+    } = req.body;
     console.log('Flask 콜백 요청 받음:', {
       body: req.body,
       headers: req.headers,
       method: req.method,
       url: req.url,
     });
-
 
     // 기본 검증
     if (!repoName) {
@@ -237,6 +242,18 @@ async function handleAnalysisComplete(req, res) {
             );
           }
 
+          await notificationController
+            .analysisCallback({
+              repoName: repoName,
+              result: true,
+            })
+            .catch((emailNotificationError) => {
+              console.error(
+                `분석 성공 - 이메일 알림 전송 실패: ${repoName}`,
+                emailNotificationError
+              );
+            });
+
           return res.status(200).json({
             success: true,
             message: '분석이 성공적으로 완료되었습니다.',
@@ -293,6 +310,18 @@ async function handleAnalysisComplete(req, res) {
             );
           }
 
+          await notificationController
+            .analysisCallback({
+              repoName: repoName,
+              result: false,
+            })
+            .catch((emailNotificationError) => {
+              console.error(
+                `분석 실패 - 이메일 알림 전송 실패: ${repoName}`,
+                emailNotificationError
+              );
+            });
+
           return res.status(200).json({
             success: true,
             message: '분석 실패 상태가 업데이트되었습니다.',
@@ -343,18 +372,24 @@ async function handleAnalysisComplete(req, res) {
   } catch (error) {
     // 시스템 오류 알림 전송 - fire-and-forget 방식으로 처리
     notificationController
-      .pushNotification(
-        userId,
-        {
-          type: 'analysis_error',
-          title: '시스템 오류',
-          status: 'error',
-          repo_name: repoName,
-          message: '분석 처리 중 시스템 오류가 발생했습니다.',
-          errorMessage: error?.message || '알 수 없는 오류',
-          timestamp: Date.now(),
-        }
-      )
+      .analysisCallback({ repoName: repoName, result: false })
+      .catch((emailNotificationError) => {
+        console.error(
+          `시스템 오류 메일 전송 실패: ${{ repoName }}`,
+          emailNotificationError
+        );
+      });
+
+    notificationController
+      .pushNotification(userId, {
+        type: 'analysis_error',
+        title: '시스템 오류',
+        status: 'error',
+        repo_name: repoName,
+        message: '분석 처리 중 시스템 오류가 발생했습니다.',
+        errorMessage: error?.message || '알 수 없는 오류',
+        timestamp: Date.now(),
+      })
       .catch((notificationError) => {
         console.error(
           `시스템 오류 알림 전송 실패: ${repoName}`,

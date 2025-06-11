@@ -1,75 +1,65 @@
 import nodemailer from 'nodemailer';
-import fs from 'fs';
-import path from 'path';
-import { google } from 'googleapis';
+import UserModel from '../models.User.js';
 
 const SERVICE_MAIL = process.env.SERVICE_MAIL;
-const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI;
-const SCOPE = process.env.GOOGLE_SCOPE;
-const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials.json');
-
+const SERVICE_PW = process.env.SERVICE_PASSWORD;
 /**
- * OAuth2 클라이언트 생성
+ * UserModel에 이메일 전송 여부 저장하기
  */
-function createOAuth2Client() {
-  const { client_id, client_secret, refresh_token } = loadCredentialsFromJson();
-
-  const oAuth2Client = new google.auth.OAuth2(
-    CLIENT_ID,
-    CLIENT_SECRET,
-    REDIRECT_URI
-  );
-
-  oAuth2Client.setCredentials({ refresh_token });
-
-  return oAuth2Client;
-}
-
-/**
- * credentials.json에서 refresh_token 등 로드
- */
-function loadCredentialsFromJson() {
+async function saveEmailStatus(emailStatus, userId, userEmail) {
   try {
-    const raw = fs.readFileSync(CREDENTIALS_PATH, 'utf8');
-    const parsed = JSON.parse(raw);
-    return {
-      client_id: parsed.client_id,
-      client_secret: parsed.client_secret,
-      refresh_token: parsed.refresh_token,
-    };
-  } catch (err) {
-    console.error('credentials.json 로드 실패:', err.message);
-    throw err;
+    const result = await UserModel.updateUserEmailStaus(
+      emailStatus,
+      userId,
+      userEmail
+    );
+    console.log('db저장 관련 service', result);
+    if (result) {
+      return { success: true };
+    } else {
+      return { success: false };
+    }
+  } catch (error) {
+    console.error('db 저장 에러', error);
+    return { success: false };
   }
 }
 
-
-/**
- * access_token 발급 받기
- */
-async function getAccessTokenFromRefresh(oAuth2Client) {
-  const { token } = await oAuth2Client.getAccessToken();
-  return token;
+async function selectEmailStatus(userId, userEmail) {
+  const result = await UserModel.selectUserEmailStaus(userId, userEmail);
+  console.log('select 관련', result);
+  try {
+    if (result) {
+      return { success: true };
+    } else {
+      return { success: false };
+    }
+  } catch (error) {
+    console.error('db 보기 에러', error);
+    return { success: false };
+  }
 }
 
+/**
+ * nodemailer - transporter 사용하기
+ */
 
 async function transporterService() {
   try {
-    const oAuth2Client = createOAuth2Client();
-    const accessToken = await getAccessTokenFromRefresh(oAuth2Client);
-
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        type: 'OAuth2',
-        user: SERVICE_MAIL,
-        clientId: CLIENT_ID,
-        clientSecret: CLIENT_SECRET,
-        refreshToken: oAuth2Client.credentials.refresh_token,
-        accessToken: accessToken,
+        user: SERVICE_MAIL, // 이메일 주소는 여전히 필요
+        pass: SERVICE_PW,
       },
+    });
+
+    transporter.on('token', (token) => {
+      console.log(
+        'A new access token was generated for service account:',
+        token.accessToken
+      );
+      console.log('Expires:', new Date(token.expires));
     });
     return transporter;
   } catch (error) {
@@ -95,9 +85,17 @@ async function sendMail(userEmail, repoInfo, transporter) {
     const result = await transporter.sendMail(mailOptions);
     return result;
   } catch (error) {
-    console.log('transport 전송 에러 발생, 메세지 전송 실패:', error);
+    console.log(
+      'transport 전송 에러 발생, 메세지 전송 실패:',
+      JSON.stringify(error, Object.getOwnPropertyNames(error))
+    );
     return false;
   }
 }
 
-export default { transporterService, sendMail };
+export default {
+  saveEmailStatus,
+  selectEmailStatus,
+  transporterService,
+  sendMail,
+};

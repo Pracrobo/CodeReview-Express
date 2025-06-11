@@ -91,7 +91,11 @@ async function updateProPlanStatus(githubId) {
 }
 
 // 사용자 리프레시 토큰 업데이트
-async function updateUserRefreshToken(userId, hashedRefreshToken, refreshTokenExpiresAt) {
+async function updateUserRefreshToken(
+  userId,
+  hashedRefreshToken,
+  refreshTokenExpiresAt
+) {
   await pool.query(
     "UPDATE users SET refresh_token = ?, refresh_token_expires_at = ?, updated_at = CONVERT_TZ(NOW(), '+00:00', '+09:00') WHERE user_id = ?",
     [hashedRefreshToken, refreshTokenExpiresAt, userId]
@@ -115,6 +119,24 @@ async function clearUserRefreshToken(userId) {
   );
 }
 
+// 사용자 이메일 알림 여부 저장
+async function updateUserEmailStaus(emailStaus, userId, userEmail) {
+  const result = await pool.query(
+    'UPDATE users SET is_email_send = ? WHERE user_id = ? OR user_email = ? ',
+    [emailStaus, userId, userEmail]
+  );
+  console.log('db 결과 ', result);
+  return result;
+}
+async function selectUserEmailStaus(userId, userEmail) {
+  const result = await pool.query(
+    'SELECT is_email_send FROM users WHERE user_id =? OR user_email =?',
+    [userId, userEmail]
+  );
+  console.log('db select 결과', result);
+  return result;
+}
+
 export default {
   mapUserToCamelCase,
   findUserByGithubId,
@@ -125,4 +147,6 @@ export default {
   updateUserRefreshToken,
   findUserByRefreshToken,
   clearUserRefreshToken,
+  updateUserEmailStaus,
+  selectUserEmailStaus,
 };
