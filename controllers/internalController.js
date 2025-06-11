@@ -225,6 +225,19 @@ async function handleAnalysisComplete(req, res) {
             );
           }
 
+          await notificationController
+            .sendEmail({
+              userId: userId,
+              repoName: repoName,
+              result: true,
+            })
+            .catch((emailNotificationError) => {
+              console.error(
+                `분석 성공 - 이메일 알림 전송 실패: ${repoName}`,
+                emailNotificationError
+              );
+            });
+
           try {
             await notificationController.pushNotification(userId, {
               type: 'analysis_complete',
@@ -241,20 +254,6 @@ async function handleAnalysisComplete(req, res) {
               notificationError
             );
           }
-
-          await notificationController
-            .sendEmail({
-              userId: userId,
-              repoName: repoName,
-              result: true,
-            })
-            .catch((emailNotificationError) => {
-              console.error(
-                `분석 성공 - 이메일 알림 전송 실패: ${repoName}`,
-                emailNotificationError
-              );
-            });
-
           return res.status(200).json({
             success: true,
             message: '분석이 성공적으로 완료되었습니다.',
@@ -294,6 +293,18 @@ async function handleAnalysisComplete(req, res) {
         if (updateResult.success) {
           console.log(`분석 실패 상태 업데이트 성공: ${repoName}`);
 
+          await notificationController
+            .sendEmail({
+              userId: userId,
+              repoName: repoName,
+              result: false,
+            })
+            .catch((emailNotificationError) => {
+              console.error(
+                `분석 실패 - 이메일 알림 전송 실패: ${repoName}`,
+                emailNotificationError
+              );
+            });
           try {
             await notificationController.pushNotification(userId, {
               type: 'analysis_failed',
@@ -310,19 +321,6 @@ async function handleAnalysisComplete(req, res) {
               notificationError
             );
           }
-
-          await notificationController
-            .sendEmail({
-              userId: userId,
-              repoName: repoName,
-              result: false,
-            })
-            .catch((emailNotificationError) => {
-              console.error(
-                `분석 실패 - 이메일 알림 전송 실패: ${repoName}`,
-                emailNotificationError
-              );
-            });
 
           return res.status(200).json({
             success: true,

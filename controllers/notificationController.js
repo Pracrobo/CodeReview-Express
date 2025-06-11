@@ -92,7 +92,8 @@ async function sendEmailNotificationStatus(req, res) {
 }
 
 async function sendEmail(data) {
-  const { userId, repoName, result } = data; // isSuccess: 분석 자체의 성공/실패 여부
+  const { userId, repoName, result } = data;
+  console.log(userId, result, repoName);
   if (!userId || !result || !repoName) {
     console.error('handleAnalysisCompletion: 필수 분석 데이터 누락.');
     return;
