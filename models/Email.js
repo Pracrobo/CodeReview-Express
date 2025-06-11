@@ -15,7 +15,7 @@ async function upsertToken(userId, refreshToken, refreshTokenExpiresAt) {
   try {
     const result = pool.query(
       `INSERT INTO email_token_manages(user_id, refresh_token, refresh_token_expires_at, created_at, updated_at) \n
-        VALUES(?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON DUFLICATE KEY UPDATE (refresh_token, refresh_token_expires_at, created_at, updated_at) = VALUES(?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+        VALUES(?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON DUPLICATE KEY UPDATE (refresh_token, refresh_token_expires_at, created_at, updated_at) = VALUES(?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
       [
         userId,
         refreshToken,
