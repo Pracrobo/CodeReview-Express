@@ -53,8 +53,41 @@ async function getPaymentStatus(req, res) {
   }
 }
 
+async function getMonthlyUsage(req, res) {
+  const userId = req.user.userId;
+  try {
+    const usage = await UserModel.getMonthlyUsageByUserId(userId);
+    if (!usage) {
+      return res.status(404).json({ success: false, message: '사용자를 찾을 수 없습니다.' });
+    }
+    res.json({
+      success: true,
+      chatbotMessageCount: usage.chatbotMessageCount,
+      analyzedRepositoryCount: usage.analyzedRepositoryCount,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: `사용량 조회 중 오류가 발생했습니다. (${error?.message || '알 수 없는 오류'})`,
+    });
+  }
+}
+
+// AI 메시지 사용량 1 증가
+async function increaseAiMessageCount(req, res) {
+  const userId = req.user.userId;
+  try {
+    await UserModel.increaseMonthlyAiMessageCount(userId);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+}
+
 export default {
   paymentFail,
   paymentComplete,
   getPaymentStatus,
+  getMonthlyUsage,
+  increaseAiMessageCount,
 };

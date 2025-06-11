@@ -70,8 +70,8 @@ async function getMessages(conversationId) {
   return rows.map(mapMessageToCamelCase);
 }
 
-// 메시지 저장
-async function saveMessage(conversationId, senderType, content) {
+// 메시지 저장 (Agent 답변일 때 사용량 증가)
+async function saveMessage(conversationId, senderType, content, userId) {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -83,6 +83,13 @@ async function saveMessage(conversationId, senderType, content) {
       'UPDATE chat_bot_conversations SET updated_at = NOW() WHERE conversation_id = ?',
       [conversationId]
     );
+    // Agent 답변이면 사용량 증가
+    if (senderType === 'Agent' && userId) {
+      await conn.query(
+        'UPDATE users SET monthly_ai_message_count = monthly_ai_message_count + 1 WHERE user_id = ?',
+        [userId]
+      );
+    }
     await conn.commit();
   } catch (err) {
     await conn.rollback();
