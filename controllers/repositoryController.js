@@ -1102,6 +1102,7 @@ async function getRepositoryIssueDetail(req, res) {
       repoUrl: repoResult.data.htmlUrl,
       repoFullName: repoResult.data.fullName,
       comments, // 실제 댓글로 덮어쓰기
+      hasAnalysis: result.data.hasAnalysis, // 분석 여부 전달
     };
 
     return res.status(200).json({
