@@ -24,6 +24,7 @@ CREATE TABLE `users` (
   `pro_plan_expires_at` TIMESTAMP NULL COMMENT 'Pro 플랜 만료일 (NULL이면 무기한 또는 다른 로직)',
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `is_email_notification` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0 COMMENT '이메일 알림 전송 여부',
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `UK_github_user_id` (`github_user_id`),
   CHECK (
