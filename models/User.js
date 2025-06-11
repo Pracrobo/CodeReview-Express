@@ -120,10 +120,10 @@ async function clearUserRefreshToken(userId) {
 }
 
 // 사용자 이메일 알림 여부 저장
-async function updateUserEmailStatus(emailStatus, userId, userEmail) {
+async function updateUserEmailStatus(emailStatus, userId) {
   const [result] = await pool.query(
-    'UPDATE users SET is_email_notification = ? WHERE user_id = ? OR email = ? ',
-    [emailStatus, userId, userEmail]
+    'UPDATE users SET is_email_notification = ? WHERE user_id = ?',
+    [emailStatus, userId]
   );
   if (result.affectedRows > 0) {
     return { success: true };
@@ -137,7 +137,7 @@ async function selectUserEmailStatus(userId) {
     'SELECT email, is_email_notification FROM users WHERE user_id =?',
     [userId]
   );
-  if (rows) {
+  if (rows.length > 0) {
     return {
       success: true,
       userEmail: rows[0].email,

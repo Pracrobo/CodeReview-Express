@@ -72,16 +72,12 @@ async function pushBrowserNotification(userId, data) {
 }
 
 async function sendEmailNotificationStatus(req, res) {
-  const { isEnable, userId, userEmail } = req.body;
+  const { isEnable, userId } = req.body;
 
-  if (!userEmail || typeof isEnable !== 'boolean' || !userId) {
+  if (typeof isEnable !== 'boolean' || !userId) {
     return res.status(400).json({ message: '유효하지 않은 요청 파라미터.' });
   }
-  const saveDB = await emailService.saveEmailStatus(
-    isEnable,
-    userId,
-    userEmail
-  );
+  const saveDB = await emailService.saveEmailStatus(isEnable, userId);
   if (saveDB) {
     if (saveDB.success) {
       res.status(200).json({ success: true, message: 'DB 저장 완료' });

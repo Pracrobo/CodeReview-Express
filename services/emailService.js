@@ -6,13 +6,9 @@ const SERVICE_PW = process.env.SERVICE_PASSWORD;
 /**
  * UserModel에 이메일 전송 여부 저장하기
  */
-async function saveEmailStatus(emailStatus, userId, userEmail) {
+async function saveEmailStatus(emailStatus, userId) {
   try {
-    const result = await UserModel.updateUserEmailStatus(
-      emailStatus,
-      userId,
-      userEmail
-    );
+    const result = await UserModel.updateUserEmailStatus(emailStatus, userId);
     return result;
   } catch (error) {
     console.error('db 저장 에러', error);
