@@ -13,4 +13,7 @@ router.post('/complete', authenticate, paymentController.paymentComplete);
 // 결제/구독 상태 조회
 router.get('/status', authenticate, paymentController.getPaymentStatus);
 
+// 이번 달 사용량 조회
+router.get('/monthly-usage', authenticate, paymentController.getMonthlyUsage);
+
 export default router;
