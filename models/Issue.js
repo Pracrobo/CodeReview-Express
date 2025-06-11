@@ -222,7 +222,12 @@ async function selectRecentIssues(userId, limit = 20, offset = 0) {
 }
 
 // 이슈 댓글 조회 함수 개선 (GitHub API 연동)
-async function selectIssueComments(repoId, githubIssueNumber, repoFullName, userGithubAccessToken) {
+async function selectIssueComments(
+  repoId,
+  githubIssueNumber,
+  repoFullName,
+  userGithubAccessToken
+) {
   try {
     // GitHub API에서 댓글을 가져옴
     if (!repoFullName) {
@@ -362,7 +367,11 @@ async function selectIssueDetail(repoId, githubIssueNumber) {
 }
 
 // 이슈 상세 조회 (댓글 및 AI 분석 포함)
-async function selectIssueDetailWithExtras(repoId, githubIssueNumber, commentsOverride = null) {
+async function selectIssueDetailWithExtras(
+  repoId,
+  githubIssueNumber,
+  commentsOverride = null
+) {
   try {
     // 기본 이슈 정보 조회
     const issueResult = await selectIssueDetail(repoId, githubIssueNumber);
@@ -377,7 +386,10 @@ async function selectIssueDetailWithExtras(repoId, githubIssueNumber, commentsOv
     if (commentsOverride) {
       comments = commentsOverride;
     } else {
-      const commentsResult = await selectIssueComments(repoId, githubIssueNumber);
+      const commentsResult = await selectIssueComments(
+        repoId,
+        githubIssueNumber
+      );
       comments = commentsResult.success ? commentsResult.data : [];
     }
 
@@ -386,8 +398,12 @@ async function selectIssueDetailWithExtras(repoId, githubIssueNumber, commentsOv
     const codeSnippets = snippetsResult.success ? snippetsResult.data : [];
 
     // === 관련 파일 추천 조회 ===
-    const relatedFilesResult = await selectRecommendedRelatedFiles(issue.issueId);
-    const relatedFiles = relatedFilesResult.success ? relatedFilesResult.data : [];
+    const relatedFilesResult = await selectRecommendedRelatedFiles(
+      issue.issueId
+    );
+    const relatedFiles = relatedFilesResult.success
+      ? relatedFilesResult.data
+      : [];
 
     // 라벨 정보 파싱 (JSON에서 배열로 변환)
     let labels = [];
@@ -399,6 +415,12 @@ async function selectIssueDetailWithExtras(repoId, githubIssueNumber, commentsOv
         console.warn('태그 JSON 파싱 오류:', error.message);
       }
     }
+
+    // 분석 여부 플래그 추가
+    const hasAnalysis =
+      !!issue.summaryGpt &&
+      issue.summaryGpt.trim() !== '' &&
+      issue.summaryGpt !== 'AI 요약 정보 없음';
 
     return {
       success: true,
@@ -419,6 +441,7 @@ async function selectIssueDetailWithExtras(repoId, githubIssueNumber, commentsOv
           relatedFiles: relatedFiles,
           suggestion: issue.solutionSuggestion || '',
         },
+        hasAnalysis, // 분석 여부 반환
       },
     };
   } catch (error) {
@@ -430,7 +453,8 @@ async function selectIssueDetailWithExtras(repoId, githubIssueNumber, commentsOv
 // AI 분석 결과 저장
 async function updateIssueAnalysis(issueId, analysisData) {
   try {
-    const { summary, relatedFiles, codeSnippets, solutionSuggestion } = analysisData;
+    const { summary, relatedFiles, codeSnippets, solutionSuggestion } =
+      analysisData;
     // 이슈 테이블에 요약 업데이트
     await pool.query('UPDATE issues SET summary_gpt = ? WHERE issue_id = ?', [
       summary,
@@ -516,7 +540,8 @@ async function checkIssueAnalysisStatus(issueId) {
       return { success: false, error: '이슈를 찾을 수 없습니다.' };
     }
 
-    const hasAnalysis = rows[0].summary_gpt && rows[0].summary_gpt.trim() !== '';
+    const hasAnalysis =
+      rows[0].summary_gpt && rows[0].summary_gpt.trim() !== '';
     return { success: true, hasAnalysis };
   } catch (error) {
     console.error('AI 분석 상태 확인 오류:', error.message);
