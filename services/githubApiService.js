@@ -1,14 +1,37 @@
 import axios from 'axios';
 import querystring from 'querystring';
+import { Octokit } from '@octokit/rest';
+import Bottleneck from 'bottleneck';
 
 const GITHUB_API_URL = 'https://api.github.com';
 const GITHUB_OAUTH_URL = 'https://github.com/login/oauth';
+
+// GitHub API 속도 제한을 위한 Bottleneck 설정
+const limiter = new Bottleneck({
+  maxConcurrent: 1, // 동시에 1개의 요청만 처리
+  minTime: 1000, // 각 요청 사이에 최소 1초 간격 (GitHub API 속도 제한 고려)
+});
+
+// Octokit 인스턴스 생성 함수
+function getOctokit(accessToken = null) {
+  return new Octokit({
+    auth: accessToken,
+    // Bottleneck을 사용하여 API 요청 속도 제어
+    request: {
+      fetch: async (url, options) => {
+        return limiter.schedule(() => fetch(url, options));
+      },
+    },
+  });
+}
 
 // GitHub Basic 인증 헤더 생성 (내부용)
 function getBasicAuthHeader() {
   const clientId = process.env.GITHUB_CLIENT_ID;
   const clientSecret = process.env.GITHUB_CLIENT_SECRET;
-  const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+  const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString(
+    'base64'
+  );
   return `Basic ${credentials}`;
 }
 
@@ -81,18 +104,13 @@ async function getUserEmails(githubAccessToken) {
 async function getRepositoryInfo(repoUrl, accessToken = null) {
   try {
     const { owner, repo } = parseRepositoryUrl(repoUrl);
-    const headers = {
-      Accept: 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28',
-    };
-    if (accessToken) {
-      headers.Authorization = `Bearer ${accessToken}`;
-    }
-    const response = await axios.get(
-      `${GITHUB_API_URL}/repos/${owner}/${repo}`,
-      { headers }
-    );
-    const repoData = response.data;
+    const octokit = getOctokit(accessToken);
+
+    const { data: repoData } = await octokit.repos.get({
+      owner,
+      repo,
+    });
+
     return {
       githubRepoId: repoData.id,
       fullName: repoData.full_name,
@@ -112,11 +130,13 @@ async function getRepositoryInfo(repoUrl, accessToken = null) {
       openIssuesCount: repoData.open_issues_count,
     };
   } catch (error) {
-    if (error.response?.status === 404) {
+    if (error.status === 404) {
       throw new Error('저장소를 찾을 수 없습니다. URL을 확인해주세요.');
-    } else if (error.response?.status === 403) {
-      throw new Error('저장소에 접근할 권한이 없습니다.');
-    } else if (error.response?.status === 401) {
+    } else if (error.status === 403) {
+      throw new Error(
+        '저장소에 접근할 권한이 없거나 API rate limit에 도달했습니다.'
+      );
+    } else if (error.status === 401) {
       throw new Error('GitHub 인증이 필요합니다.');
     }
     throw new Error(`GitHub 저장소 정보 조회 실패: ${error.message}`);
@@ -160,7 +180,9 @@ async function getRepositoryReadme(repoUrl, accessToken = null) {
       `${GITHUB_API_URL}/repos/${owner}/${repo}/readme`,
       { headers }
     );
-    const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
+    const content = Buffer.from(response.data.content, 'base64').toString(
+      'utf-8'
+    );
     return {
       content: content,
       name: response.data.name,
@@ -270,6 +292,151 @@ async function logoutGithub(githubAccessToken) {
   }
 }
 
+// 저장소 open 이슈 목록 조회
+async function getOpenIssues(repoUrl, accessToken = null) {
+  try {
+    const { owner, repo } = parseRepositoryUrl(repoUrl);
+    const headers = {
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+    };
+    if (accessToken) {
+      headers.Authorization = `Bearer ${accessToken}`;
+    }
+    // open 상태만, PR 제외
+    const response = await axios.get(
+      `${GITHUB_API_URL}/repos/${owner}/${repo}/issues?state=open&per_page=100`,
+      { headers }
+    );
+    // PR이 아닌 이슈만 필터링
+    return response.data.filter((issue) => !issue.pull_request);
+  } catch (error) {
+    console.warn(`open 이슈 목록 조회 실패: ${error.message}`);
+    return [];
+  }
+}
+
+// 저장소의 README 파일명 감지 (Octokit 활용)
+async function detectReadmeFilename(repoUrl, accessToken = null) {
+  try {
+    const { owner, repo } = parseRepositoryUrl(repoUrl);
+    const octokit = getOctokit(accessToken);
+
+    // 저장소 루트 디렉토리 컨텐츠 조회
+    const { data: contents } = await octokit.repos.getContent({
+      owner,
+      repo,
+      path: '', // 루트 디렉토리
+    });
+
+    // README 파일 찾기 (대소문자 무관)
+    const readmeFile = contents.find(
+      (file) =>
+        file.type === 'file' && /^readme(\.(md|rst|txt))?$/i.test(file.name)
+    );
+
+    return readmeFile ? readmeFile.name : 'README.md'; // 기본값
+  } catch (error) {
+    console.warn(`README 파일명 감지 실패: ${error.message}`);
+    return 'README.md'; // 기본값
+  }
+}
+
+// 저장소의 LICENSE 파일명 감지 (Octokit 활용)
+async function detectLicenseFilename(repoUrl, accessToken = null) {
+  try {
+    const { owner, repo } = parseRepositoryUrl(repoUrl);
+    const octokit = getOctokit(accessToken);
+
+    // 저장소 루트 디렉토리 컨텐츠 조회
+    const { data: contents } = await octokit.repos.getContent({
+      owner,
+      repo,
+      path: '', // 루트 디렉토리
+    });
+
+    // LICENSE 파일 찾기 (대소문자 무관)
+    const licenseFile = contents.find(
+      (file) =>
+        file.type === 'file' && /^licen[cs]e(\.(md|txt))?$/i.test(file.name)
+    );
+
+    return licenseFile ? licenseFile.name : 'LICENSE'; // 기본값
+  } catch (error) {
+    console.warn(`LICENSE 파일명 감지 실패: ${error.message}`);
+    return 'LICENSE'; // 기본값
+  }
+}
+
+// 저장소의 CONTRIBUTING 파일명 감지 (루트 및 1깊이 하위 폴더 검색)
+async function detectContributingFilename(repoUrl, accessToken = null) {
+  try {
+    const { owner, repo } = parseRepositoryUrl(repoUrl);
+    const octokit = getOctokit(accessToken);
+
+    // 1. 먼저 루트 디렉토리에서 CONTRIBUTING 파일 검색
+    try {
+      const { data: contents } = await octokit.repos.getContent({
+        owner,
+        repo,
+        path: '', // 루트 디렉토리
+      });
+
+      // 루트에서 "contribut"로 시작하는 파일 찾기 (대소문자 무관)
+      const contributingFile = contents.find(
+        (file) => file.type === 'file' && /^contribut/i.test(file.name)
+      );
+
+      if (contributingFile) {
+        return contributingFile.name;
+      }
+    } catch (error) {
+      console.warn(`루트 디렉토리 조회 실패: ${error.message}`);
+    }
+
+    // 2. 루트에 없으면 1깊이 하위 폴더들 검색
+    try {
+      const { data: rootContents } = await octokit.repos.getContent({
+        owner,
+        repo,
+        path: '',
+      });
+
+      // 디렉토리만 필터링
+      const directories = rootContents.filter((item) => item.type === 'dir');
+
+      // 각 디렉토리에서 CONTRIBUTING 파일 검색
+      for (const dir of directories) {
+        try {
+          const { data: dirContents } = await octokit.repos.getContent({
+            owner,
+            repo,
+            path: dir.name,
+          });
+
+          const contributingFile = dirContents.find(
+            (file) => file.type === 'file' && /^contribut/i.test(file.name)
+          );
+
+          if (contributingFile) {
+            return `${dir.name}/${contributingFile.name}`;
+          }
+        } catch (dirError) {
+          // 개별 디렉토리 접근 실패는 경고만 출력하고 계속 진행
+          console.warn(`${dir.name} 디렉토리 조회 실패: ${dirError.message}`);
+        }
+      }
+    } catch (error) {
+      console.warn(`하위 디렉토리 검색 실패: ${error.message}`);
+    }
+
+    return null; // CONTRIBUTING 파일을 찾지 못한 경우
+  } catch (error) {
+    console.warn(`CONTRIBUTING 파일명 감지 중 오류: ${error.message}`);
+    throw error;
+  }
+}
+
 export default {
   getAccessToken,
   getUserInfo,
@@ -280,4 +447,8 @@ export default {
   getRepositoryLicense,
   unlinkGithub,
   logoutGithub,
+  getOpenIssues,
+  detectReadmeFilename,
+  detectLicenseFilename,
+  detectContributingFilename,
 };

@@ -5,6 +5,7 @@ import paymentRoute from './paymentRoute.js';
 import internalRoute from './internalRoute.js';
 import chatbotRoute from './chatbotRoute.js';
 import notificationRoute from './notificationRoute.js';
+import issueRoute from './issueRoute.js';
 
 const router = express.Router();
 
@@ -25,5 +26,8 @@ router.use('/chatbot', chatbotRoute);
 
 // 알림 관련 라우트
 router.use('/notification', notificationRoute);
+
+// 이슈 관련 라우트
+router.use('/issues', issueRoute);
 
 export default router;

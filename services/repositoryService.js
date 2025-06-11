@@ -20,7 +20,10 @@ async function getUserRepositories(userId) {
 
 // 유저가 특정 저장소를 트래킹 중인지 확인
 async function checkUserTrackingStatus(userId, githubRepositoryId) {
-  const response = await RepositoryModel.selectTrack(userId, githubRepositoryId);
+  const response = await RepositoryModel.selectTrack(
+    userId,
+    githubRepositoryId
+  );
   if (!response.success) {
     throw new Error('트래킹 상태 확인에 실패했습니다.');
   }
@@ -29,7 +32,10 @@ async function checkUserTrackingStatus(userId, githubRepositoryId) {
 
 // 저장소 트래킹 추가
 async function addRepositoryToTracking(userId, githubRepositoryId) {
-  const response = await RepositoryModel.insertTrack(userId, githubRepositoryId);
+  const response = await RepositoryModel.insertTrack(
+    userId,
+    githubRepositoryId
+  );
   if (!response.success) {
     throw new Error('저장소 추가에 실패했습니다.');
   }
