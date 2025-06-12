@@ -114,6 +114,24 @@ async function addRepositoryInTracker(req, res) {
 async function analyzeRepository(req, res) {
   const userId = req.user.userId;
 
+  // 사용량 조회
+  const usage = await UserModel.getMonthlyUsageByUserId(userId);
+  
+    if (!usage.isProPlan && usage.analyzedRepositoryCount >= 3) {
+    return res.status(403).json({
+      success: false,
+      message: '무료 플랜의 월간 저장소 분석 한도(3개)를 초과했습니다.',
+      errorType: 'REPO_ANALYSIS_LIMIT_EXCEEDED',
+    });
+  }
+  if (usage.isProPlan && usage.analyzedRepositoryCount >= 30) {
+    return res.status(403).json({
+      success: false,
+      message: 'Pro 플랜의 월간 저장소 분석 한도(30개)를 초과했습니다.',
+      errorType: 'REPO_ANALYSIS_LIMIT_EXCEEDED',
+    });
+  }
+  
   try {
     // 1. 요청 데이터 종합 검증
     const validatedData = validateAnalysisRequest(req.body);
