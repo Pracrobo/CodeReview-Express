@@ -64,6 +64,7 @@ async function getMonthlyUsage(req, res) {
       success: true,
       chatbotMessageCount: usage.chatbotMessageCount,
       analyzedRepositoryCount: usage.analyzedRepositoryCount,
+      isProPlan: usage.isProPlan,
     });
   } catch (error) {
     return res.status(500).json({

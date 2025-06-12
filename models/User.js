@@ -117,13 +117,17 @@ async function clearUserRefreshToken(userId) {
 // 이번 달 사용량 조회
 async function getMonthlyUsageByUserId(userId) {
   const [rows] = await pool.query(
-    `SELECT monthly_ai_message_count, monthly_repo_analysis_count FROM users WHERE user_id = ?`,
+    `SELECT is_pro_plan, monthly_ai_message_count, monthly_repo_analysis_count FROM users WHERE user_id = ?`,
     [userId]
   );
   if (!rows.length) return null;
+
+  const isProPlan = !!rows[0].is_pro_plan;
+
   return {
     chatbotMessageCount: rows[0].monthly_ai_message_count,
     analyzedRepositoryCount: rows[0].monthly_repo_analysis_count,
+    isProPlan,
   };
 }
 
