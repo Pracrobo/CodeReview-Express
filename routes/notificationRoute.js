@@ -4,5 +4,6 @@ const router = express.Router();
 
 // 브라우저 알림 SSE 스트림 연결
 router.get('/stream', notificationController.initializeSseConnection);
+router.get('/email', notificationController.getEmailStatus);
 router.post('/email', notificationController.sendEmailNotificationStatus);
 export default router;
