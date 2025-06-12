@@ -128,6 +128,9 @@ async function getEmailStatus(req, res) {
     const response = await emailService.selectEmailStatus(userId);
     if (response.success) {
       res.status(200).json({ success: true, message: response.isEnable });
+    } else {
+      console.error('서버 오류: 이메일 상태를 가져오지 못했습니다.');
+      res.status(500).json({ success: false, message: '이메일 상태를 가져오지 못했습니다.' });
     }
   } else {
     console.error('잘못된 요청입니다.');
