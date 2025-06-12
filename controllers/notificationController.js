@@ -122,9 +122,23 @@ async function sendEmail(data) {
   }
 }
 
+async function getEmailStatus(req, res) {
+  const userId = req.query.userId;
+  if (userId) {
+    const response = await emailService.selectEmailStatus(userId);
+    if (response.success) {
+      res.status(200).json({ success: true, message: response.isEnable });
+    }
+  } else {
+    console.error('잘못된 요청입니다.');
+    res.status(400).json({ success: false, message: '잘못된 요청입니다.' });
+  }
+}
+
 export default {
   initializeSseConnection,
   pushBrowserNotification,
   sendEmailNotificationStatus,
   sendEmail,
+  getEmailStatus,
 };
