@@ -47,8 +47,10 @@ async function handleAnalysisComplete(req, res) {
     console.log(`구성된 GitHub URL: ${repoUrl}`);
 
     try {
-      // 저장소 정보 조회
-      const repositoryInfo = await GithubApiService.getRepositoryInfo(repoUrl);
+      // 저장소 정보 조회 (시스템 토큰 사용)
+      const repositoryInfo = await GithubApiService.getRepositoryInfoInternal(
+        repoUrl
+      );
 
       if (!repositoryInfo) {
         console.error(`저장소 정보를 찾을 수 없습니다: ${repoName}`);
@@ -84,10 +86,9 @@ async function handleAnalysisComplete(req, res) {
         console.log(`분석 완료 처리 시작: ${repoName}`);
 
         try {
-          // 언어 정보 조회 및 검증
-          const languagesData = await GithubApiService.getRepositoryLanguages(
-            repoUrl
-          );
+          // 언어 정보 조회 및 검증 (시스템 토큰 사용)
+          const languagesData =
+            await GithubApiService.getRepositoryLanguagesInternal(repoUrl);
           validateLanguagesData(languagesData, repoUrl);
 
           // 언어 정보를 DB에 저장
@@ -137,13 +138,12 @@ async function handleAnalysisComplete(req, res) {
           // 언어 정보 처리 실패는 전체 분석 완료를 막지 않음
         }
 
-        // 라이선스 정보 조회 (빠른 처리)
+        // 라이선스 정보 조회 (시스템 토큰 사용)
         let licenseInfo = null;
         try {
           console.log(`라이선스 정보 조회 시작: ${repoName}`);
-          const licenseData = await GithubApiService.getRepositoryLicense(
-            repoUrl
-          );
+          const licenseData =
+            await GithubApiService.getRepositoryLicenseInternal(repoUrl);
           if (licenseData && licenseData.license) {
             const licenseSpdxId = licenseData.license.spdxId;
             console.log(
@@ -224,8 +224,21 @@ async function handleAnalysisComplete(req, res) {
             );
           }
 
+          await notificationController
+            .sendEmail({
+              userId: userId,
+              repoName: repoName,
+              result: true,
+            })
+            .catch((emailNotificationError) => {
+              console.error(
+                `분석 성공 - 이메일 알림 전송 실패: ${repoName}`,
+                emailNotificationError
+              );
+            });
+
           try {
-            await notificationController.pushNotification(userId, {
+            await notificationController.pushBrowserNotification(userId, {
               type: 'analysis_complete',
               title: '분석 완료',
               status: 'completed',
@@ -240,7 +253,6 @@ async function handleAnalysisComplete(req, res) {
               notificationError
             );
           }
-
           return res.status(200).json({
             success: true,
             message: '분석이 성공적으로 완료되었습니다.',
@@ -280,8 +292,20 @@ async function handleAnalysisComplete(req, res) {
         if (updateResult.success) {
           console.log(`분석 실패 상태 업데이트 성공: ${repoName}`);
 
+          await notificationController
+            .sendEmail({
+              userId: userId,
+              repoName: repoName,
+              result: false,
+            })
+            .catch((emailNotificationError) => {
+              console.error(
+                `분석 실패 - 이메일 알림 전송 실패: ${repoName}`,
+                emailNotificationError
+              );
+            });
           try {
-            await notificationController.pushNotification(userId, {
+            await notificationController.pushBrowserNotification(userId, {
               type: 'analysis_failed',
               title: '분석 실패',
               status: 'failed',
@@ -347,7 +371,16 @@ async function handleAnalysisComplete(req, res) {
   } catch (error) {
     // 시스템 오류 알림 전송 - fire-and-forget 방식으로 처리
     notificationController
-      .pushNotification(userId, {
+      .sendEmail({ userId: userId, repoName: repoName, result: false })
+      .catch((emailNotificationError) => {
+        console.error(
+          `시스템 오류 메일 전송 실패: ${repoName}`,
+          emailNotificationError
+        );
+      });
+
+    notificationController
+      .pushBrowserNotification(userId, {
         type: 'analysis_error',
         title: '시스템 오류',
         status: 'error',

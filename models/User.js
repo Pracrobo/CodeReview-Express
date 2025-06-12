@@ -1,3 +1,4 @@
+import { sourcerepo } from 'googleapis/build/src/apis/sourcerepo/index.js';
 import Database from '../database/database.js';
 const pool = Database.getConnectionPool();
 
@@ -90,9 +91,13 @@ async function updateProPlanStatus(githubId) {
 }
 
 // 사용자 리프레시 토큰 업데이트
-async function updateUserRefreshToken(userId, hashedRefreshToken, refreshTokenExpiresAt) {
+async function updateUserRefreshToken(
+  userId,
+  hashedRefreshToken,
+  refreshTokenExpiresAt
+) {
   await pool.query(
-    "UPDATE users SET refresh_token = ?, refresh_token_expires_at = ?, updated_at = NOW() WHERE user_id = ?",
+    'UPDATE users SET refresh_token = ?, refresh_token_expires_at = ?, updated_at = NOW() WHERE user_id = ?',
     [hashedRefreshToken, refreshTokenExpiresAt, userId]
   );
 }
@@ -109,9 +114,38 @@ async function findUserByRefreshToken(hashedRefreshToken) {
 // 사용자 리프레시 토큰 삭제
 async function clearUserRefreshToken(userId) {
   await pool.query(
-    "UPDATE users SET refresh_token = NULL, refresh_token_expires_at = NULL, updated_at = NOW() WHERE user_id = ?",
+    'UPDATE users SET refresh_token = NULL, refresh_token_expires_at = NULL, updated_at = NOW() WHERE user_id = ?',
     [userId]
   );
+}
+
+// 사용자 이메일 알림 여부 저장
+async function updateUserEmailStatus(emailStatus, userId) {
+  const [result] = await pool.query(
+    'UPDATE users SET is_email_notification = ? WHERE user_id = ?',
+    [emailStatus, userId]
+  );
+  if (result.affectedRows > 0) {
+    return { success: true };
+  } else {
+    return { success: false };
+  }
+}
+
+async function selectUserEmailStatus(userId) {
+  const [rows] = await pool.query(
+    'SELECT email, is_email_notification FROM users WHERE user_id =?',
+    [userId]
+  );
+  if (rows.length > 0) {
+    return {
+      success: true,
+      userEmail: rows[0].email,
+      isEnable: rows[0].is_email_notification,
+    };
+  } else {
+    return { success: false };
+  }
 }
 
 // 이번 달 사용량 조회
@@ -157,6 +191,8 @@ export default {
   updateUserRefreshToken,
   findUserByRefreshToken,
   clearUserRefreshToken,
+  updateUserEmailStatus,
+  selectUserEmailStatus,
   getMonthlyUsageByUserId,
   increaseMonthlyRepoAnalysisCount,
   increaseMonthlyAiMessageCount,
