@@ -30,7 +30,7 @@ async function requestRepositoryIndexing(
         headers: {
           'Content-Type': 'application/json',
         },
-        timeout: 30000,
+        timeout: 300000, // 5분으로 증가
       }
     );
 
@@ -74,7 +74,7 @@ async function getRepositoryAnalysisStatus(repoName) {
         headers: {
           'Content-Type': 'application/json',
         },
-        timeout: 10000,
+        timeout: 300000, // 5분으로 증가
       }
     );
 
@@ -107,7 +107,7 @@ async function requestReadmeSummary(repoName, readmeContent) {
         headers: {
           'Content-Type': 'application/json',
         },
-        timeout: 60000,
+        timeout: 300000, // 5분으로 증가
       }
     );
 
@@ -161,7 +161,7 @@ async function searchRepository(repoName, query, searchType = 'code') {
         headers: {
           'Content-Type': 'application/json',
         },
-        timeout: 60000,
+        timeout: 300000, // 5분으로 증가
       }
     );
 
@@ -216,7 +216,7 @@ async function requestTranslation(
         headers: {
           'Content-Type': 'application/json',
         },
-        timeout: 30000,
+        timeout: 300000, // 5분으로 증가
       }
     );
 
@@ -266,7 +266,7 @@ async function requestTranslation(
 async function checkFlaskServerHealth() {
   try {
     const response = await axios.get(`${FLASK_API_URL}/`, {
-      timeout: 5000,
+      timeout: 10000, // 10초로 증가
     });
 
     return {
@@ -316,7 +316,7 @@ async function askRepositoryQuestion(
         headers: {
           'Content-Type': 'application/json',
         },
-        timeout: 120000, // 2분 타임아웃
+        timeout: 300000, // 5분으로 증가
       }
     );
 
