@@ -11,7 +11,10 @@ function initializeSseConnection(req, res) {
   res.flushHeaders();
 
   const clientName = req.query.clientName;
-  if (!clientName) return res.status(400).end();
+  if (!clientName) {
+    res.status(400).end();
+    return;
+  }
 
   console.log(`등록된 clientName: ${clientName}`);
 
@@ -60,7 +63,7 @@ async function pushBrowserNotification(userId, data) {
     }
     const client = clientData.get(clientName);
 
-    if (!client || !client.res) {
+    if (!client?.res) {
       console.error(`클라이언트 ${clientName}에 해당하는 연결이 없습니다.`);
       return;
     }
@@ -75,15 +78,22 @@ async function sendEmailNotificationStatus(req, res) {
   const { isEnable, userId } = req.body;
 
   if (typeof isEnable !== 'boolean' || !userId) {
-    return res.status(400).json({ message: '유효하지 않은 요청 파라미터.' });
+    res.status(400).json({ message: '유효하지 않은 요청 파라미터.' });
+    return;
   }
-  const saveDB = await emailService.saveEmailStatus(isEnable, userId);
-  if (saveDB) {
+  try {
+    const saveDB = await emailService.saveEmailStatus(isEnable, userId);
+    if (!saveDB) {
+      res.status(500).json({ success: false, message: 'DB 저장 에러' });
+      return;
+    }
     if (saveDB.success) {
       res.status(200).json({ success: true, message: 'DB 저장 완료' });
     } else {
       res.status(500).json({ success: false, message: 'DB 저장 에러' });
     }
+  } catch (error) {
+    res.status(500).json({ success: false, message: '서버 오류' });
   }
 }
 
@@ -94,31 +104,57 @@ async function sendEmail(data) {
     console.error('handleAnalysisCompletion: 필수 분석 데이터 누락.');
     return { success: false, message: '필수 데이터 누락' };
   }
-  const repoInfo = { repoName: repoName, result: result };
-  const response = await emailService.selectEmailStatus(userId);
-  if (response.success && response.isEnable) {
-    try {
-      const transporter = await emailService.transporterService();
-      const sendMailResult = await emailService.sendMail(
-        response.userEmail,
-        repoInfo,
-        transporter
-      );
-      if (sendMailResult) {
-        return { success: true, message: '메일 전송 성공' };
-      } else {
-        console.error(`사용자 이메일 ${response.userEmail}에 발송 실패`);
-        return { success: false, message: '메일 전송 실패' };
-      }
-    } catch (error) {
-      console.error(`이메일 서비스 실패:`, error);
-      return { success: false, message: '서버 오류로 메일 전송 실패' };
+  try {
+    const repoInfo = { repoName, result };
+    const response = await emailService.selectEmailStatus(userId);
+    if (!response.success) {
+      console.error('에러 발생', response.error);
+      return { success: false, message: '메일 전송 실패' };
     }
-  } else if (!response.success) {
-    console.error('에러 발생', error);
-    return { success: false, message: '메일 전송 실패' };
-  } else {
-    return { success: true, message: '메일 전송하기를 껐습니다.' };
+    if (!response.isEnable) {
+      return { success: true, message: '메일 전송하기를 껐습니다.' };
+    }
+    const transporter = await emailService.transporterService();
+    const sendMailResult = await emailService.sendMail(
+      response.userEmail,
+      repoInfo,
+      transporter
+    );
+    if (sendMailResult) {
+      return { success: true, message: '메일 전송 성공' };
+    } else {
+      console.error(`사용자 이메일 ${response.userEmail}에 발송 실패`);
+      return { success: false, message: '메일 전송 실패' };
+    }
+  } catch (error) {
+    console.error(`이메일 서비스 실패:`, error);
+    return { success: false, message: '서버 오류로 메일 전송 실패' };
+  }
+}
+
+async function getEmailStatus(req, res) {
+  const userId = req.query.userId;
+  if (!userId) {
+    console.error('잘못된 요청입니다.');
+    res.status(400).json({ success: false, message: '잘못된 요청입니다.' });
+    return;
+  }
+  try {
+    const response = await emailService.selectEmailStatus(userId);
+    if (response.success) {
+      res.status(200).json({ success: true, message: response.isEnable });
+    } else {
+      console.error('서버 오류: 이메일 상태를 가져오지 못했습니다.');
+      res
+        .status(500)
+        .json({
+          success: false,
+          message: '이메일 상태를 가져오지 못했습니다.',
+        });
+    }
+  } catch (error) {
+    console.error('서버 오류:', error);
+    res.status(500).json({ success: false, message: '서버 오류' });
   }
 }
 
@@ -127,4 +163,5 @@ export default {
   pushBrowserNotification,
   sendEmailNotificationStatus,
   sendEmail,
+  getEmailStatus,
 };
