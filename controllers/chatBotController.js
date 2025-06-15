@@ -1,6 +1,11 @@
+import UserModel from '../models/User.js';
 import ChatBotModel from '../models/ChatBot.js';
 import Repository from '../models/Repository.js';
 import FlaskService from '../services/flaskService.js';
+
+// 한도 상수 선언
+const FREE_CHATBOT_MESSAGE_LIMIT = 100;
+
 // 대화 조회
 async function getConversation(req, res) {
   const userId = req.user?.userId;
@@ -68,11 +73,25 @@ async function deleteConversation(req, res) {
   }
 }
 
+// 챗봇 메시지 저장 (사용량 제한 체크 포함)
 async function saveChatMessage(req, res) {
-  const { conversationId, senderType, content, repoId, messages } = req.body;
   const userId = req.user.userId;
+  const { conversationId, senderType, content, repoId, messages } = req.body;
 
-  // 1. 사용자 메시지 DB 저장
+  // 사용량 조회
+  const usage = await UserModel.getMonthlyUsageByUserId(userId);
+
+  // 무료 플랜: 100개 제한
+  if (!usage.isProPlan && usage.chatbotMessageCount >= FREE_CHATBOT_MESSAGE_LIMIT) {
+    return res.status(403).json({
+      success: false,
+      message: `무료 플랜의 월간 AI 챗봇 메시지 한도(${FREE_CHATBOT_MESSAGE_LIMIT}개)를 초과했습니다.`,
+      errorType: 'CHATBOT_MESSAGE_LIMIT_EXCEEDED',
+    });
+  }
+  // Pro 플랜: 무제한(제한 없음)
+
+  // 메시지 저장
   await ChatBotModel.saveMessage(conversationId, senderType, content, userId);
 
   let answer = null;
