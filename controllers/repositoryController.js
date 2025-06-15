@@ -14,6 +14,10 @@ const {
   validateAnalysisRequest,
 } = Validators;
 
+// 저장소 분석 한도 상수
+const FREE_REPO_ANALYSIS_LIMIT = 3;
+const PRO_REPO_ANALYSIS_LIMIT = 30;
+
 // 저장소 검색
 async function searchRepository(req, res) {
   const { query } = req.query;
@@ -116,22 +120,22 @@ async function analyzeRepository(req, res) {
 
   // 사용량 조회
   const usage = await UserModel.getMonthlyUsageByUserId(userId);
-  
-    if (!usage.isProPlan && usage.analyzedRepositoryCount >= 3) {
+
+  if (!usage.isProPlan && usage.analyzedRepositoryCount >= FREE_REPO_ANALYSIS_LIMIT) {
     return res.status(403).json({
       success: false,
-      message: '무료 플랜의 월간 저장소 분석 한도(3개)를 초과했습니다.',
+      message: `무료 플랜의 월간 저장소 분석 한도(${FREE_REPO_ANALYSIS_LIMIT}개)를 초과했습니다.`,
       errorType: 'REPO_ANALYSIS_LIMIT_EXCEEDED',
     });
   }
-  if (usage.isProPlan && usage.analyzedRepositoryCount >= 30) {
+  if (usage.isProPlan && usage.analyzedRepositoryCount >= PRO_REPO_ANALYSIS_LIMIT) {
     return res.status(403).json({
       success: false,
-      message: 'Pro 플랜의 월간 저장소 분석 한도(30개)를 초과했습니다.',
+      message: `Pro 플랜의 월간 저장소 분석 한도(${PRO_REPO_ANALYSIS_LIMIT}개)를 초과했습니다.`,
       errorType: 'REPO_ANALYSIS_LIMIT_EXCEEDED',
     });
   }
-  
+
   // 여러 방법으로 GitHub 액세스 토큰 추출 시도
   let githubAccessToken = null;
 
