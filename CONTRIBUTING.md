@@ -9,17 +9,17 @@
 1. 이슈 먼저 남기기: 작업을 시작하기 전에 먼저 이슈를 생성해주세요.
    어떤 작업을 할지 다른 기여자들에게 알리는 데 도움이 됩니다.
    제안하는 문제가 이 저장소의 방향과 맞지 않을 수도 있습니다.
-2. 현재 코드베이스를 유지하는 것이 우리의 의도일 수도 있습니다. (KISS 원칙: Keep It Simple, Stupid)
+2. 현재 코드베이스를 유지하는 것이 우리의 의도일 수도 있습니다. ([KISS 원칙](https://en.wikipedia.org/wiki/KISS_principle): Keep It Simple, Stupid)
 3. Git 사용법 숙지: Git 사용법을 이해하고 있어야 합니다.
    만약 Git에 익숙하지 않다면, "Git 사용 방법"을 검색하여 기본적인 내용을 학습하는 것을 권장합니다. 개발자로서 필수적인 기술입니다.
-   Git tutorial을 참고할 수 있습니다.
+   [Git tutorial](https://docs.github.com/en/get-started/git-basics/set-up-git)을 참고할 수 있습니다.
    기여 가이드라인 (Contribution Guidelines)
 
 자 이제 기여 해보러 갈까요?
 
 ### Step 1: 저장소 Fork (Fork the Repository)
 
-GitHub에서 'Fork' 버튼을 눌러 프로젝트를 여러분의 계정으로 Fork하세요. 이 과정은 여러분의 개인 저장소에 프로젝트 복사본을 생성하여 작업을 시작할 수 있도록 합니다.
+[GitHub](https://github.com/Mai-Nova/AIssue-BE-Express)에서 'Fork' 버튼을 눌러 프로젝트를 여러분의 계정으로 Fork하세요. 이 과정은 여러분의 개인 저장소에 프로젝트 복사본을 생성하여 작업을 시작할 수 있도록 합니다.
 
 ### Step 2: 로컬 컴퓨터에 클론 (Clone to Your Local Computer)
 
@@ -41,12 +41,13 @@ git remote add upstream https://github.com/Mai-Nova/AIssue-BE-Express.git
 원본 저장소에 업데이트가 있을 경우, 로컬 복사본과 여러분의 GitHub 저장소를 최신 상태로 유지할 수 있습니다.
 
 ```Bash
-git pull upstream master && git push origin master
+git pull upstream main && git push origin main
 ```
 
 ### Step 4: 새 브랜치 생성 (Make a Branch)
 
 main 브랜치는 Pull Request들이 계속 병합되고 수정되기 때문에, main 브랜치에서 직접 작업하지 않는 것이 좋습니다. 항상 작업할 내용에 맞는 의미 있는 이름의 새 브랜치를 생성해주세요.
+
 예시:
 
 ```Bash
@@ -106,19 +107,18 @@ feat: Add user authentication endpoint
 
 ```Bash
 git fetch upstream
-git rebase upstream/master
+git rebase upstream/main
 ```
 
 ### Step 7: 변경 사항 푸시 (Push Your Changes)
 
 로컬에서 작업한 내용을 여러분의 GitHub 저장소로 푸시합니다.
 
-푸시하기 전에, 코드 스타일 가이드를 준수해주세요. 필요하다면 eslint와 같은 린터를 실행하여 코드 형식을 맞춰주세요. 가독성이 최우선입니다!
+푸시하기 전에, 코드 스타일 가이드를 준수해주세요. eslint 린터를 실행하여 코드 형식을 맞춰주세요. 가독성이 최우선입니다!
+저희 팀은 이미 npm에 eslint 형식을 추가해놓았습니다.
 
-예시 (Node.js 프로젝트의 경우 ESLint 사용):
-
-```Bash
-npx eslint --fix .
+```bash
+npm install
 ```
 
 작업 중인 브랜치로 푸시:
