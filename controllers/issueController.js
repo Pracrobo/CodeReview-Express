@@ -172,7 +172,7 @@ const analyzeIssue = async (req, res) => {
       ) {
         analysisData.relatedFiles.forEach((file, idx) => {
           console.log(
-            `[AIssue] Flask 분석 결과 관련 파일 ${idx + 1}: path=${
+            `[CodeReview] Flask 분석 결과 관련 파일 ${idx + 1}: path=${
               file.path
             }, githubUrl=${file.githubUrl}`
           );

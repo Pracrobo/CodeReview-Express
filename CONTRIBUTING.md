@@ -1,6 +1,6 @@
-# ‘AIssue-BE-Express’ 프로젝트 기여 방법 (Contribution Guidelines)
+# ‘CodeReview-Express’ 프로젝트 기여 방법 (Contribution Guidelines)
 
-이 문서는 'AIssue-BE-Express' 프로젝트에 기여하는 데 필요한 프로세스를 안내합니다. 여러분의 참여에 감사드립니다!
+이 문서는 'CodeReview-Express' 프로젝트에 기여하는 데 필요한 프로세스를 안내합니다. 여러분의 참여에 감사드립니다!
 
 ## 사전 확인 (Precheck Steps)
 
@@ -19,23 +19,23 @@
 
 ### Step 1: 저장소 Fork (Fork the Repository)
 
-[GitHub](https://github.com/Mai-Nova/AIssue-BE-Express)에서 'Fork' 버튼을 눌러 프로젝트를 여러분의 계정으로 Fork하세요. 이 과정은 여러분의 개인 저장소에 프로젝트 복사본을 생성하여 작업을 시작할 수 있도록 합니다.
+[GitHub](https://github.com/Pracrobo/CodeReview-Express)에서 'Fork' 버튼을 눌러 프로젝트를 여러분의 계정으로 Fork하세요. 이 과정은 여러분의 개인 저장소에 프로젝트 복사본을 생성하여 작업을 시작할 수 있도록 합니다.
 
 ### Step 2: 로컬 컴퓨터에 클론 (Clone to Your Local Computer)
 
 Fork한 저장소를 로컬 컴퓨터로 다운로드합니다. YOUR_GITHUB_NAME을 여러분의 GitHub 사용자 이름으로 변경해야 합니다.
 
 ```Bash
-git clone https://github.com/YOUR_GITHUB_NAME/AIssue-BE-Express.git
-cd AIssue-BE-Express
+git clone https://github.com/YOUR_GITHUB_NAME/CodeReview-Expresss.git
+cd CodeReview-Expresss
 ```
 
 ### Step 3: Upstream 설정 (Setup an Upstream)
 
-원본 저장소(AIssue-BE-Express)와의 연결을 설정하여, 나중에 변경 사항을 쉽게 동기화할 수 있도록 합니다.
+원본 저장소(CodeReview-Expresss)와의 연결을 설정하여, 나중에 변경 사항을 쉽게 동기화할 수 있도록 합니다.
 
 ```Bash
-git remote add upstream https://github.com/Mai-Nova/AIssue-BE-Express.git
+git remote add upstream https://github.com/Mai-Nova/CodeReview-Expresss.git
 ```
 
 원본 저장소에 업데이트가 있을 경우, 로컬 복사본과 여러분의 GitHub 저장소를 최신 상태로 유지할 수 있습니다.

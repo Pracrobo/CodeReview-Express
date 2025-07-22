@@ -68,7 +68,7 @@ async function sendMail(userEmail, repoInfo, transporter) {
   const mailOptions = {
     from: SERVICE_MAIL,
     to: userEmail,
-    subject: `AISSUE: 신청하신 레포지토리 ${repoInfo.repoName} 분석이 도착했습니다.`,
+    subject: `CodeReview: 신청하신 레포지토리 ${repoInfo.repoName} 분석이 도착했습니다.`,
     text: `이메일 알림 신청을 통해 분석 요청하신 레포지토리 ${
       repoInfo.repoName
     } 분석이 완료되었습니다. \n\n
